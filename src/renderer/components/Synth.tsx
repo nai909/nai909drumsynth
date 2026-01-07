@@ -265,26 +265,56 @@ const SynthKnob: React.FC<SynthKnobProps> = ({ label, value, onChange, min = 0, 
   const normalizedValue = (value - min) / (max - min);
   const rotation = normalizedValue * 270 - 135;
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleStart = (clientY: number) => {
     isDragging.current = true;
-    startY.current = e.clientY;
+    startY.current = clientY;
     startValue.current = value;
+  };
+
+  const handleMove = (clientY: number) => {
+    if (!isDragging.current) return;
+    const deltaY = startY.current - clientY;
+    const deltaValue = (deltaY / 100) * (max - min);
+    const newValue = Math.max(min, Math.min(max, startValue.current + deltaValue));
+    onChange(newValue);
+  };
+
+  const handleEnd = () => {
+    isDragging.current = false;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleStart(e.clientY);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging.current) return;
-    const deltaY = startY.current - e.clientY;
-    const deltaValue = (deltaY / 150) * (max - min);
-    const newValue = Math.max(min, Math.min(max, startValue.current + deltaValue));
-    onChange(newValue);
+    handleMove(e.clientY);
   };
 
   const handleMouseUp = () => {
-    isDragging.current = false;
+    handleEnd();
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleStart(e.touches[0].clientY);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    e.preventDefault();
+    handleMove(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = () => {
+    handleEnd();
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
   };
 
   return (
@@ -293,6 +323,7 @@ const SynthKnob: React.FC<SynthKnobProps> = ({ label, value, onChange, min = 0, 
         ref={knobRef}
         className="synth-knob"
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         <div className="knob-body" style={{ transform: `rotate(${rotation}deg)` }}>
           <div className="knob-indicator" />
