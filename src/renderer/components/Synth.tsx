@@ -10,14 +10,47 @@ interface SynthProps {
 const OCTAVE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const BASE_OCTAVE = 3;
 
-// Scale definitions (intervals from root)
+// Scale definitions (intervals from root) - All Ableton scales
 const SCALES: { [key: string]: number[] } = {
+  // Basic scales
   'major': [0, 2, 4, 5, 7, 9, 11],
   'minor': [0, 2, 3, 5, 7, 8, 10],
-  'pentatonic': [0, 2, 4, 7, 9],
-  'blues': [0, 3, 5, 6, 7, 10],
+  'harmonic minor': [0, 2, 3, 5, 7, 8, 11],
+  'melodic minor': [0, 2, 3, 5, 7, 9, 11],
+  // Modes
   'dorian': [0, 2, 3, 5, 7, 9, 10],
+  'phrygian': [0, 1, 3, 5, 7, 8, 10],
+  'lydian': [0, 2, 4, 6, 7, 9, 11],
   'mixolydian': [0, 2, 4, 5, 7, 9, 10],
+  'locrian': [0, 1, 3, 5, 6, 8, 10],
+  // Pentatonic & Blues
+  'major pentatonic': [0, 2, 4, 7, 9],
+  'minor pentatonic': [0, 3, 5, 7, 10],
+  'blues': [0, 3, 5, 6, 7, 10],
+  'major blues': [0, 2, 3, 4, 7, 9],
+  // Diminished & Whole Tone
+  'whole tone': [0, 2, 4, 6, 8, 10],
+  'half-whole dim': [0, 1, 3, 4, 6, 7, 9, 10],
+  'whole-half dim': [0, 2, 3, 5, 6, 8, 9, 11],
+  // Bebop
+  'bebop dominant': [0, 2, 4, 5, 7, 9, 10, 11],
+  'bebop major': [0, 2, 4, 5, 7, 8, 9, 11],
+  'bebop minor': [0, 2, 3, 5, 7, 8, 9, 10],
+  // World scales
+  'arabic': [0, 1, 4, 5, 7, 8, 11],
+  'hungarian minor': [0, 2, 3, 6, 7, 8, 11],
+  'japanese': [0, 1, 5, 7, 8],
+  'hirajoshi': [0, 2, 3, 7, 8],
+  'gypsy': [0, 2, 3, 6, 7, 8, 10],
+  'spanish': [0, 1, 3, 4, 5, 7, 8, 10],
+  'phrygian dominant': [0, 1, 4, 5, 7, 8, 10],
+  'double harmonic': [0, 1, 4, 5, 7, 8, 11],
+  // Other useful scales
+  'chromatic': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  'augmented': [0, 3, 4, 7, 8, 11],
+  'prometheus': [0, 2, 4, 6, 9, 10],
+  'tritone': [0, 1, 4, 6, 7, 10],
+  'super locrian': [0, 1, 3, 4, 6, 8, 10],
 };
 
 const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
