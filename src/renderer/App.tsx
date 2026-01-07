@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import { DrumSynth } from './audio/DrumSynth';
 import { Sequencer } from './audio/Sequencer';
+import { MelodicSynth } from './audio/MelodicSynth';
 import { Pattern, DrumTrack } from './types';
 import StepSequencer from './components/StepSequencer';
 import Transport from './components/Transport';
 import TrackParams from './components/TrackParams';
+import Synth from './components/Synth';
 import PsychedelicBackground from './components/PsychedelicBackground';
 import './styles/App.css';
 
@@ -223,7 +225,7 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState(0);
-  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params'>('pad');
+  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
@@ -231,6 +233,7 @@ const App: React.FC = () => {
 
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
+  const melodicSynthRef = useRef<MelodicSynth | null>(null);
 
   // Apply theme to document
   useEffect(() => {
@@ -245,6 +248,7 @@ const App: React.FC = () => {
   useEffect(() => {
     drumSynthRef.current = new DrumSynth();
     sequencerRef.current = new Sequencer(drumSynthRef.current);
+    melodicSynthRef.current = new MelodicSynth();
 
     sequencerRef.current.onStep((step) => {
       setCurrentStep(step);
@@ -268,6 +272,7 @@ const App: React.FC = () => {
       document.removeEventListener('click', initAudioOnInteraction);
       sequencerRef.current?.dispose();
       drumSynthRef.current?.dispose();
+      melodicSynthRef.current?.dispose();
     };
   }, []);
 
@@ -391,8 +396,16 @@ const App: React.FC = () => {
               >
                 SEQUENCER
               </button>
+              <button
+                className={`mode-toggle ${mode === 'synth' ? 'active' : ''}`}
+                onClick={() => setMode('synth')}
+              >
+                SYNTH
+              </button>
             </div>
-            {mode === 'params' ? (
+            {mode === 'synth' ? (
+              melodicSynthRef.current && <Synth synth={melodicSynthRef.current} />
+            ) : mode === 'params' ? (
               <TrackParams
                 track={pattern.tracks[selectedTrack]}
                 trackIndex={selectedTrack}
