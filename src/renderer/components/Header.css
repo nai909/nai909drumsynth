@@ -1,0 +1,127 @@
+.header {
+  background: linear-gradient(180deg, rgba(42, 42, 42, 0.95) 0%, rgba(31, 31, 31, 0.95) 100%);
+  border-bottom: 2px solid var(--accent-primary);
+  padding: 10px 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.psychedelic-smiley {
+  width: 36px;
+  height: 45px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+  -webkit-filter: drop-shadow(0 0 10px var(--accent-glow));
+  animation: smileyMelt 4s ease-in-out infinite;
+  overflow: visible;
+  display: block;
+}
+
+.smiley-face {
+  fill: var(--accent-primary);
+  animation: smileyColorCycle 4s ease-in-out infinite;
+}
+
+.smiley-eye {
+  fill: #1a1a1a;
+}
+
+.smiley-mouth {
+  stroke: #1a1a1a;
+}
+
+@keyframes smileyColorCycle {
+  0%, 100% {
+    fill: var(--accent-primary);
+  }
+  33% {
+    fill: var(--accent-secondary);
+  }
+  66% {
+    fill: var(--trigger-primary);
+  }
+}
+
+@keyframes smileyMelt {
+  0%, 100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(2px) scaleY(1.03);
+  }
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent-primary);
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.logo-subtitle {
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: #888;
+  margin-top: -2px;
+}
+
+.header-info {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.pattern-info {
+  font-size: 12px;
+  color: #aaa;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 8px 10px;
+  }
+
+  .logo {
+    gap: 8px;
+  }
+
+  .psychedelic-smiley {
+    width: 28px;
+    height: 35px;
+  }
+
+  .logo-text {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+
+  .pattern-info {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .header-info {
+    gap: 10px;
+  }
+}

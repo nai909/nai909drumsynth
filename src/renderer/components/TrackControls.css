@@ -1,0 +1,100 @@
+.track-controls {
+  width: 200px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .track-controls {
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px;
+  }
+}
+
+.track-controls-header {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #888;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tracks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.track-item {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.track-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.track-item.selected {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+}
+
+.track-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.track-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.track-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #888;
+  transition: all 0.2s;
+}
+
+.track-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.track-btn.active {
+  color: #fff;
+}
+
+.mute-btn.active {
+  background: #F44336;
+  border-color: #F44336;
+  box-shadow: 0 0 5px rgba(244, 67, 54, 0.5);
+}
+
+.solo-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+}

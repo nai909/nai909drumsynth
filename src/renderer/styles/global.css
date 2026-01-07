@@ -1,0 +1,131 @@
+:root {
+  /* Default theme - Purple */
+  --accent-primary: #a855f7;
+  --accent-secondary: #c084fc;
+  --accent-glow: rgba(168, 85, 247, 0.5);
+  --accent-bg: rgba(168, 85, 247, 0.1);
+  --accent-bg-hover: rgba(168, 85, 247, 0.2);
+  --accent-bg-active: rgba(168, 85, 247, 0.3);
+  --accent-border: rgba(168, 85, 247, 0.3);
+  --accent-border-hover: rgba(168, 85, 247, 0.5);
+
+  --trigger-primary: #10b981;
+  --trigger-secondary: #34d399;
+  --trigger-glow: rgba(16, 185, 129, 0.6);
+  --trigger-bg: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="blue"] {
+  --accent-primary: #3b82f6;
+  --accent-secondary: #60a5fa;
+  --accent-glow: rgba(59, 130, 246, 0.5);
+  --accent-bg: rgba(59, 130, 246, 0.1);
+  --accent-bg-hover: rgba(59, 130, 246, 0.2);
+  --accent-bg-active: rgba(59, 130, 246, 0.3);
+  --accent-border: rgba(59, 130, 246, 0.3);
+  --accent-border-hover: rgba(59, 130, 246, 0.5);
+}
+
+[data-theme="red"] {
+  --accent-primary: #ef4444;
+  --accent-secondary: #f87171;
+  --accent-glow: rgba(239, 68, 68, 0.5);
+  --accent-bg: rgba(239, 68, 68, 0.1);
+  --accent-bg-hover: rgba(239, 68, 68, 0.2);
+  --accent-bg-active: rgba(239, 68, 68, 0.3);
+  --accent-border: rgba(239, 68, 68, 0.3);
+  --accent-border-hover: rgba(239, 68, 68, 0.5);
+}
+
+[data-theme="orange"] {
+  --accent-primary: #f97316;
+  --accent-secondary: #fb923c;
+  --accent-glow: rgba(249, 115, 22, 0.5);
+  --accent-bg: rgba(249, 115, 22, 0.1);
+  --accent-bg-hover: rgba(249, 115, 22, 0.2);
+  --accent-bg-active: rgba(249, 115, 22, 0.3);
+  --accent-border: rgba(249, 115, 22, 0.3);
+  --accent-border-hover: rgba(249, 115, 22, 0.5);
+}
+
+[data-theme="green"] {
+  --accent-primary: #22c55e;
+  --accent-secondary: #4ade80;
+  --accent-glow: rgba(34, 197, 94, 0.5);
+  --accent-bg: rgba(34, 197, 94, 0.1);
+  --accent-bg-hover: rgba(34, 197, 94, 0.2);
+  --accent-bg-active: rgba(34, 197, 94, 0.3);
+  --accent-border: rgba(34, 197, 94, 0.3);
+  --accent-border-hover: rgba(34, 197, 94, 0.5);
+
+  --trigger-primary: #a855f7;
+  --trigger-secondary: #c084fc;
+  --trigger-glow: rgba(168, 85, 247, 0.6);
+  --trigger-bg: rgba(168, 85, 247, 0.3);
+}
+
+[data-theme="cyan"] {
+  --accent-primary: #06b6d4;
+  --accent-secondary: #22d3ee;
+  --accent-glow: rgba(6, 182, 212, 0.5);
+  --accent-bg: rgba(6, 182, 212, 0.1);
+  --accent-bg-hover: rgba(6, 182, 212, 0.2);
+  --accent-bg-active: rgba(6, 182, 212, 0.3);
+  --accent-border: rgba(6, 182, 212, 0.3);
+  --accent-border-hover: rgba(6, 182, 212, 0.5);
+}
+
+[data-theme="pink"] {
+  --accent-primary: #ec4899;
+  --accent-secondary: #f472b6;
+  --accent-glow: rgba(236, 72, 153, 0.5);
+  --accent-bg: rgba(236, 72, 153, 0.1);
+  --accent-bg-hover: rgba(236, 72, 153, 0.2);
+  --accent-bg-active: rgba(236, 72, 153, 0.3);
+  --accent-border: rgba(236, 72, 153, 0.3);
+  --accent-border-hover: rgba(236, 72, 153, 0.5);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  overflow: hidden;
+  touch-action: manipulation;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, select {
+  font-family: inherit;
+  touch-action: manipulation;
+}
