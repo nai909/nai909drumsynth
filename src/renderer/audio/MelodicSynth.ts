@@ -1,6 +1,7 @@
 import * as Tone from 'tone';
 
 export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
+export type ArpMode = 'off' | 'up' | 'down' | 'updown' | 'random';
 
 export interface SynthParams {
   waveform: WaveformType;
@@ -13,6 +14,8 @@ export interface SynthParams {
   filterEnvAmount: number;
   detune: number;
   volume: number;
+  arpMode: ArpMode;
+  arpRate: number; // 0-1, maps to different speeds
 }
 
 export const DEFAULT_SYNTH_PARAMS: SynthParams = {
@@ -26,6 +29,8 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   filterEnvAmount: 0.5,
   detune: 0,
   volume: 0.7,
+  arpMode: 'off',
+  arpRate: 0.5,
 };
 
 export class MelodicSynth {
@@ -37,6 +42,13 @@ export class MelodicSynth {
   private params: SynthParams;
   private initialized: boolean = false;
   private activeNotes: Set<string> = new Set();
+
+  // Arpeggiator state
+  private heldNotes: string[] = [];
+  private arpInterval: number | null = null;
+  private arpIndex: number = 0;
+  private arpDirection: 1 | -1 = 1;
+  private currentArpNote: string | null = null;
 
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
@@ -147,33 +159,168 @@ export class MelodicSynth {
     if (params.volume !== undefined) {
       this.gain.gain.value = params.volume;
     }
+
+    // Handle arpeggiator changes
+    if (params.arpMode !== undefined) {
+      if (params.arpMode === 'off') {
+        this.stopArpeggiator();
+      } else if (this.heldNotes.length > 0) {
+        this.startArpeggiator();
+      }
+    }
+
+    if (params.arpRate !== undefined && this.params.arpMode !== 'off' && this.heldNotes.length > 0) {
+      // Restart with new rate
+      this.startArpeggiator();
+    }
+  }
+
+  // Convert note to MIDI number for sorting
+  private noteToMidi(note: string): number {
+    const noteMap: { [key: string]: number } = {
+      'C': 0, 'C#': 1, 'D': 2, 'D#': 3, 'E': 4, 'F': 5,
+      'F#': 6, 'G': 7, 'G#': 8, 'A': 9, 'A#': 10, 'B': 11
+    };
+    const match = note.match(/^([A-G]#?)(\d+)$/);
+    if (!match) return 0;
+    const [, noteName, octave] = match;
+    return noteMap[noteName] + (parseInt(octave) + 1) * 12;
+  }
+
+  private getArpRateMs(): number {
+    // Map 0-1 to 400ms - 50ms (slow to fast)
+    return 400 - (this.params.arpRate * 350);
+  }
+
+  private startArpeggiator() {
+    this.stopArpeggiator();
+    if (this.heldNotes.length === 0 || this.params.arpMode === 'off') return;
+
+    // Sort notes by pitch
+    const sortedNotes = [...this.heldNotes].sort((a, b) => this.noteToMidi(a) - this.noteToMidi(b));
+    this.arpIndex = 0;
+    this.arpDirection = 1;
+
+    const playNextNote = () => {
+      if (sortedNotes.length === 0 || !this.synth) return;
+
+      // Release previous arp note
+      if (this.currentArpNote) {
+        this.synth.triggerRelease(this.currentArpNote, Tone.now());
+      }
+
+      let noteIndex: number;
+      switch (this.params.arpMode) {
+        case 'up':
+          noteIndex = this.arpIndex % sortedNotes.length;
+          this.arpIndex++;
+          break;
+        case 'down':
+          noteIndex = (sortedNotes.length - 1) - (this.arpIndex % sortedNotes.length);
+          this.arpIndex++;
+          break;
+        case 'updown':
+          noteIndex = this.arpIndex;
+          this.arpIndex += this.arpDirection;
+          if (this.arpIndex >= sortedNotes.length - 1) {
+            this.arpDirection = -1;
+            this.arpIndex = sortedNotes.length - 1;
+          } else if (this.arpIndex <= 0) {
+            this.arpDirection = 1;
+            this.arpIndex = 0;
+          }
+          break;
+        case 'random':
+          noteIndex = Math.floor(Math.random() * sortedNotes.length);
+          break;
+        default:
+          return;
+      }
+
+      const note = sortedNotes[noteIndex];
+      this.currentArpNote = note;
+      this.synth.triggerAttack(note, Tone.now(), 0.8);
+      this.filterEnv.triggerAttack(Tone.now());
+    };
+
+    // Play first note immediately
+    playNextNote();
+
+    // Continue arpeggiating
+    this.arpInterval = window.setInterval(playNextNote, this.getArpRateMs());
+  }
+
+  private stopArpeggiator() {
+    if (this.arpInterval !== null) {
+      clearInterval(this.arpInterval);
+      this.arpInterval = null;
+    }
+    if (this.currentArpNote && this.synth) {
+      this.synth.triggerRelease(this.currentArpNote, Tone.now());
+      this.currentArpNote = null;
+    }
+    this.arpIndex = 0;
+    this.arpDirection = 1;
+  }
+
+  private restartArpIfNeeded() {
+    if (this.params.arpMode !== 'off' && this.heldNotes.length > 0) {
+      this.startArpeggiator();
+    }
   }
 
   async noteOn(note: string, velocity: number = 0.8) {
     await this.init();
     if (!this.synth) return;
 
-    this.activeNotes.add(note);
-    this.synth.triggerAttack(note, Tone.now(), velocity);
-    this.filterEnv.triggerAttack(Tone.now());
+    // Add to held notes for arpeggiator
+    if (!this.heldNotes.includes(note)) {
+      this.heldNotes.push(note);
+    }
+
+    if (this.params.arpMode === 'off') {
+      // Normal mode - play note directly
+      this.activeNotes.add(note);
+      this.synth.triggerAttack(note, Tone.now(), velocity);
+      this.filterEnv.triggerAttack(Tone.now());
+    } else {
+      // Arp mode - restart arpeggiator with new notes
+      this.restartArpIfNeeded();
+    }
   }
 
   noteOff(note: string) {
     if (!this.synth) return;
 
-    this.activeNotes.delete(note);
-    this.synth.triggerRelease(note, Tone.now());
+    // Remove from held notes
+    this.heldNotes = this.heldNotes.filter(n => n !== note);
 
-    if (this.activeNotes.size === 0) {
-      this.filterEnv.triggerRelease(Tone.now());
+    if (this.params.arpMode === 'off') {
+      // Normal mode
+      this.activeNotes.delete(note);
+      this.synth.triggerRelease(note, Tone.now());
+
+      if (this.activeNotes.size === 0) {
+        this.filterEnv.triggerRelease(Tone.now());
+      }
+    } else {
+      // Arp mode
+      if (this.heldNotes.length === 0) {
+        this.stopArpeggiator();
+        this.filterEnv.triggerRelease(Tone.now());
+      } else {
+        this.restartArpIfNeeded();
+      }
     }
   }
 
   releaseAll() {
     if (!this.synth) return;
+    this.stopArpeggiator();
     this.synth.releaseAll();
     this.filterEnv.triggerRelease();
     this.activeNotes.clear();
+    this.heldNotes = [];
   }
 
   getParams(): SynthParams {

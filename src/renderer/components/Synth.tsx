@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { MelodicSynth, SynthParams, WaveformType, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
+import { MelodicSynth, SynthParams, WaveformType, ArpMode, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
 import './Synth.css';
 
 interface SynthProps {
@@ -9,6 +9,32 @@ interface SynthProps {
 // Define keyboard notes
 const OCTAVE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const BASE_OCTAVE = 3;
+
+// Scale definitions (intervals from root)
+const SCALES: { [key: string]: number[] } = {
+  'major': [0, 2, 4, 5, 7, 9, 11],
+  'minor': [0, 2, 3, 5, 7, 8, 10],
+  'pentatonic': [0, 2, 4, 7, 9],
+  'blues': [0, 3, 5, 6, 7, 10],
+  'dorian': [0, 2, 3, 5, 7, 9, 10],
+  'mixolydian': [0, 2, 4, 5, 7, 9, 10],
+};
+
+const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+// Get notes in a scale
+const getScaleNotes = (root: string, scale: string): Set<string> => {
+  const scaleNotes = new Set<string>();
+  const rootIndex = ROOT_NOTES.indexOf(root);
+  const intervals = SCALES[scale] || [];
+
+  intervals.forEach(interval => {
+    const noteIndex = (rootIndex + interval) % 12;
+    scaleNotes.add(ROOT_NOTES[noteIndex]);
+  });
+
+  return scaleNotes;
+};
 
 const getKeyboardNotes = (numOctaves: number) => {
   const notes: { note: string; isBlack: boolean }[] = [];
@@ -37,6 +63,19 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const keysPressed = useRef<Set<string>>(new Set());
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
+
+  // Scale highlighting state
+  const [scaleEnabled, setScaleEnabled] = useState(false);
+  const [scaleRoot, setScaleRoot] = useState('C');
+  const [scaleType, setScaleType] = useState('major');
+  const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+
+  // Check if a note is in the current scale
+  const isInScale = (note: string): boolean => {
+    if (!scaleEnabled) return false;
+    const noteName = note.replace(/\d+$/, ''); // Remove octave number
+    return scaleNotes.has(noteName);
+  };
 
   // Responsive octaves - 1 on mobile, 2 on desktop
   const numOctaves = isMobile ? 1 : 2;
@@ -140,13 +179,35 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
     };
   }, [handleNoteOn, handleNoteOff]);
 
-  const handleParamChange = (param: keyof SynthParams, value: number | WaveformType) => {
+  const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
     const newParams = { ...params, [param]: value };
     setParams(newParams);
-    synth.updateParams({ [param]: value });
+    synth.updateParams({ [param]: value } as Partial<SynthParams>);
+  };
+
+  // Randomize all parameters
+  const randomizeParams = () => {
+    const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
+    const newParams: SynthParams = {
+      waveform: waveforms[Math.floor(Math.random() * waveforms.length)],
+      attack: Math.random() * 0.5,
+      decay: 0.05 + Math.random() * 0.5,
+      sustain: Math.random(),
+      release: 0.05 + Math.random() * 0.8,
+      filterCutoff: 0.2 + Math.random() * 0.8,
+      filterResonance: Math.random() * 0.7,
+      filterEnvAmount: Math.random(),
+      detune: (Math.random() - 0.5) * 0.4,
+      volume: 0.5 + Math.random() * 0.3,
+      arpMode: params.arpMode, // Keep current arp mode
+      arpRate: params.arpRate, // Keep current arp rate
+    };
+    setParams(newParams);
+    synth.updateParams(newParams);
   };
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
+  const arpModes: ArpMode[] = ['off', 'up', 'down', 'updown', 'random'];
 
   return (
     <div className="synth-container">
@@ -222,7 +283,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
           </div>
         </div>
 
-        {/* Other params */}
+        {/* Output */}
         <div className="synth-section">
           <div className="section-label">OUTPUT</div>
           <div className="knob-row">
@@ -240,15 +301,82 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
             />
           </div>
         </div>
+
+        {/* Arpeggiator */}
+        <div className="synth-section">
+          <div className="section-label">ARPEGGIATOR</div>
+          <div className="arp-controls">
+            <select
+              className="arp-select"
+              value={params.arpMode}
+              onChange={(e) => handleParamChange('arpMode', e.target.value as ArpMode)}
+            >
+              {arpModes.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <SynthKnob
+              label="RATE"
+              value={params.arpRate}
+              onChange={(v) => handleParamChange('arpRate', v)}
+            />
+          </div>
+        </div>
+
+        {/* Scale */}
+        <div className="synth-section">
+          <div className="section-label">SCALE</div>
+          <div className="scale-controls">
+            <button
+              className={`scale-toggle ${scaleEnabled ? 'active' : ''}`}
+              onClick={() => setScaleEnabled(!scaleEnabled)}
+            >
+              {scaleEnabled ? 'ON' : 'OFF'}
+            </button>
+            {scaleEnabled && (
+              <>
+                <select
+                  className="scale-select"
+                  value={scaleRoot}
+                  onChange={(e) => setScaleRoot(e.target.value)}
+                >
+                  {ROOT_NOTES.map((note) => (
+                    <option key={note} value={note}>{note}</option>
+                  ))}
+                </select>
+                <select
+                  className="scale-select"
+                  value={scaleType}
+                  onChange={(e) => setScaleType(e.target.value)}
+                >
+                  {Object.keys(SCALES).map((scale) => (
+                    <option key={scale} value={scale}>
+                      {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Random */}
+        <div className="synth-section">
+          <button className="random-btn" onClick={randomizeParams}>
+            RANDOM
+          </button>
+        </div>
       </div>
 
       {/* Keyboard */}
       <div className="keyboard-container">
         <div className="keyboard">
-          {keyboardNotes.filter((n) => !n.isBlack).map((noteObj, index) => (
+          {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => (
             <div
               key={noteObj.note}
-              className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''}`}
+              className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
               onMouseDown={() => handleNoteOn(noteObj.note)}
               onMouseUp={() => handleNoteOff(noteObj.note)}
               onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
@@ -282,7 +410,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
             return (
               <div
                 key={noteObj.note}
-                className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''}`}
+                className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
                 style={{ left: `calc(${position * keyWidth}% + ${keyWidth / 2}% - 15px)` }}
                 onMouseDown={() => handleNoteOn(noteObj.note)}
                 onMouseUp={() => handleNoteOff(noteObj.note)}
