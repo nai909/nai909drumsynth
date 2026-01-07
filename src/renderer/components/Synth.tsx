@@ -36,6 +36,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const keysPressed = useRef<Set<string>>(new Set());
+  const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
 
   // Responsive octaves - 1 on mobile, 2 on desktop
   const numOctaves = isMobile ? 1 : 2;
@@ -48,12 +49,25 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleNoteOn = useCallback(async (note: string) => {
+  // Release all notes - safety function
+  const releaseAllNotes = useCallback(() => {
+    synth.releaseAll();
+    setActiveNotes(new Set());
+    activeTouches.current.clear();
+  }, [synth]);
+
+  const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
+    if (touchId !== undefined) {
+      activeTouches.current.set(touchId, note);
+    }
     await synth.noteOn(note, 0.8);
     setActiveNotes((prev) => new Set([...prev, note]));
   }, [synth]);
 
-  const handleNoteOff = useCallback((note: string) => {
+  const handleNoteOff = useCallback((note: string, touchId?: number) => {
+    if (touchId !== undefined) {
+      activeTouches.current.delete(touchId);
+    }
     synth.noteOff(note);
     setActiveNotes((prev) => {
       const next = new Set(prev);
@@ -61,6 +75,42 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
       return next;
     });
   }, [synth]);
+
+  // Global touch end handler - catches any missed touch releases
+  useEffect(() => {
+    const handleGlobalTouchEnd = (e: TouchEvent) => {
+      // Check if any tracked touches are no longer active
+      const currentTouchIds = new Set(Array.from(e.touches).map(t => t.identifier));
+      activeTouches.current.forEach((note, touchId) => {
+        if (!currentTouchIds.has(touchId)) {
+          handleNoteOff(note, touchId);
+        }
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        releaseAllNotes();
+      }
+    };
+
+    const handleWindowBlur = () => {
+      releaseAllNotes();
+    };
+
+    window.addEventListener('touchend', handleGlobalTouchEnd);
+    window.addEventListener('touchcancel', handleGlobalTouchEnd);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+
+    return () => {
+      window.removeEventListener('touchend', handleGlobalTouchEnd);
+      window.removeEventListener('touchcancel', handleGlobalTouchEnd);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      releaseAllNotes();
+    };
+  }, [handleNoteOff, releaseAllNotes]);
 
   // Computer keyboard support
   useEffect(() => {
@@ -204,11 +254,18 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
               onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
               onTouchStart={(e) => {
                 e.preventDefault();
-                handleNoteOn(noteObj.note);
+                const touch = e.changedTouches[0];
+                handleNoteOn(noteObj.note, touch.identifier);
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
-                handleNoteOff(noteObj.note);
+                const touch = e.changedTouches[0];
+                handleNoteOff(noteObj.note, touch.identifier);
+              }}
+              onTouchCancel={(e) => {
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                handleNoteOff(noteObj.note, touch.identifier);
               }}
             >
               <span className="key-label">{noteObj.note}</span>
@@ -232,11 +289,18 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
                 onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
                 onTouchStart={(e) => {
                   e.preventDefault();
-                  handleNoteOn(noteObj.note);
+                  const touch = e.changedTouches[0];
+                  handleNoteOn(noteObj.note, touch.identifier);
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
-                  handleNoteOff(noteObj.note);
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
                 }}
               />
             );
