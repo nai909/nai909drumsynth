@@ -389,7 +389,7 @@ const App: React.FC = () => {
                   className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
                   onClick={() => setMode('params')}
                 >
-                  PARAMS
+                  EDIT
                 </button>
                 <button
                   className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
