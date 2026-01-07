@@ -6,13 +6,13 @@ interface SynthProps {
   synth: MelodicSynth;
 }
 
-// Define keyboard notes - 2 octaves
+// Define keyboard notes
 const OCTAVE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const BASE_OCTAVE = 3;
 
-const getKeyboardNotes = () => {
+const getKeyboardNotes = (numOctaves: number) => {
   const notes: { note: string; isBlack: boolean }[] = [];
-  for (let octave = BASE_OCTAVE; octave <= BASE_OCTAVE + 1; octave++) {
+  for (let octave = BASE_OCTAVE; octave < BASE_OCTAVE + numOctaves; octave++) {
     OCTAVE_NOTES.forEach((note) => {
       notes.push({
         note: `${note}${octave}`,
@@ -22,8 +22,6 @@ const getKeyboardNotes = () => {
   }
   return notes;
 };
-
-const KEYBOARD_NOTES = getKeyboardNotes();
 
 // Computer keyboard mapping
 const KEY_MAP: { [key: string]: string } = {
@@ -36,7 +34,19 @@ const KEY_MAP: { [key: string]: string } = {
 const Synth: React.FC<SynthProps> = ({ synth }) => {
   const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const keysPressed = useRef<Set<string>>(new Set());
+
+  // Responsive octaves - 1 on mobile, 2 on desktop
+  const numOctaves = isMobile ? 1 : 2;
+  const keyboardNotes = getKeyboardNotes(numOctaves);
+  const numWhiteKeys = keyboardNotes.filter(n => !n.isBlack).length;
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleNoteOn = useCallback(async (note: string) => {
     await synth.noteOn(note, 0.8);
@@ -185,7 +195,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
       {/* Keyboard */}
       <div className="keyboard-container">
         <div className="keyboard">
-          {KEYBOARD_NOTES.filter((n) => !n.isBlack).map((noteObj, index) => (
+          {keyboardNotes.filter((n) => !n.isBlack).map((noteObj, index) => (
             <div
               key={noteObj.note}
               className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''}`}
@@ -204,18 +214,19 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
               <span className="key-label">{noteObj.note}</span>
             </div>
           ))}
-          {KEYBOARD_NOTES.filter((n) => n.isBlack).map((noteObj) => {
+          {keyboardNotes.filter((n) => n.isBlack).map((noteObj) => {
             const baseNote = noteObj.note.replace('#', '').replace(/\d/, '');
             const octave = noteObj.note.slice(-1);
             const whiteIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(baseNote);
             const octaveOffset = (parseInt(octave) - BASE_OCTAVE) * 7;
             const position = whiteIndex + octaveOffset;
+            const keyWidth = 100 / numWhiteKeys;
 
             return (
               <div
                 key={noteObj.note}
                 className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''}`}
-                style={{ left: `calc(${position * (100 / 14)}% + ${100 / 14 / 2}% - 15px)` }}
+                style={{ left: `calc(${position * keyWidth}% + ${keyWidth / 2}% - 15px)` }}
                 onMouseDown={() => handleNoteOn(noteObj.note)}
                 onMouseUp={() => handleNoteOff(noteObj.note)}
                 onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}

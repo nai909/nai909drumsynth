@@ -377,27 +377,29 @@ const App: React.FC = () => {
       <div className="main-content">
         <div className="center-section">
           <div className="sequencer-container">
-            <div className="mode-toggle-container">
+            <div className="mode-toggle-wrapper">
+              <div className="mode-toggle-container">
+                <button
+                  className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
+                  onClick={() => setMode('pad')}
+                >
+                  PAD
+                </button>
+                <button
+                  className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
+                  onClick={() => setMode('params')}
+                >
+                  PARAMS
+                </button>
+                <button
+                  className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
+                  onClick={() => setMode('sequencer')}
+                >
+                  SEQUENCE
+                </button>
+              </div>
               <button
-                className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
-                onClick={() => setMode('pad')}
-              >
-                PAD
-              </button>
-              <button
-                className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
-                onClick={() => setMode('params')}
-              >
-                PARAMETERS
-              </button>
-              <button
-                className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
-                onClick={() => setMode('sequencer')}
-              >
-                SEQUENCER
-              </button>
-              <button
-                className={`mode-toggle ${mode === 'synth' ? 'active' : ''}`}
+                className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
                 onClick={() => setMode('synth')}
               >
                 SYNTH

@@ -228,56 +228,113 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .synth-container {
-    padding: 10px;
-    gap: 10px;
+    padding: 8px;
+    gap: 8px;
   }
 
   .synth-panel {
-    gap: 10px;
+    gap: 8px;
     padding: 5px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
   }
 
   .synth-section {
-    padding: 10px;
+    padding: 8px;
+    min-width: fit-content;
+    flex-shrink: 0;
+  }
+
+  .section-label {
+    font-size: 8px;
   }
 
   .waveform-btn {
-    width: 36px;
-    height: 36px;
-    padding: 6px;
+    width: 32px;
+    height: 32px;
+    padding: 5px;
   }
 
   .synth-knob {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .knob-indicator {
+    top: 4px;
+    width: 3px;
+    height: 10px;
+  }
+
+  .knob-label {
+    font-size: 7px;
   }
 
   .knob-row {
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .keyboard-container {
+    padding: 10px;
+    flex: 1;
+    min-height: 180px;
   }
 
   .keyboard {
-    height: 120px;
-    min-width: 480px;
+    height: 100%;
+    min-height: 160px;
+    min-width: 100%;
+  }
+
+  .white-key {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .white-key .key-label {
+    font-size: 7px;
   }
 
   .black-key {
-    width: 26px;
-    height: 70px;
+    width: 22px;
+    height: 55%;
   }
 
   .black-key.active {
-    height: 68px;
+    height: calc(55% - 2px);
   }
 }
 
 @media (max-width: 480px) {
   .synth-section {
-    width: 100%;
+    padding: 6px;
+  }
+
+  .waveform-buttons {
+    gap: 4px;
+  }
+
+  .waveform-btn {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+  }
+
+  .synth-knob {
+    width: 32px;
+    height: 32px;
   }
 
   .knob-row {
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 6px;
+  }
+
+  .keyboard-container {
+    min-height: 200px;
+  }
+
+  .keyboard {
+    min-height: 180px;
   }
 }
