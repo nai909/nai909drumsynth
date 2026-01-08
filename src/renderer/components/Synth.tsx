@@ -231,7 +231,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
     };
   }, [handleNoteOn, handleNoteOff, keyMap, octaveUp, octaveDown]);
 
-  const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
+  const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode | boolean) => {
     const newParams = { ...params, [param]: value };
     setParams(newParams);
     synth.updateParams({ [param]: value } as Partial<SynthParams>);
@@ -253,6 +253,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
       volume: 0.5 + Math.random() * 0.3,
       arpMode: params.arpMode, // Keep current arp mode
       arpRate: params.arpRate, // Keep current arp rate
+      mono: params.mono, // Keep current mono setting
     };
     setParams(newParams);
     synth.updateParams(newParams);
@@ -284,6 +285,17 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
               +
             </button>
           </div>
+        </div>
+
+        {/* Mono/Poly toggle */}
+        <div className="synth-section">
+          <div className="section-label">VOICE</div>
+          <button
+            className={`mono-poly-btn ${params.mono ? 'mono' : 'poly'}`}
+            onClick={() => handleParamChange('mono', !params.mono)}
+          >
+            {params.mono ? 'MONO' : 'POLY'}
+          </button>
         </div>
 
         {/* Waveform selector */}

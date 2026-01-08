@@ -16,6 +16,7 @@ export interface SynthParams {
   volume: number;
   arpMode: ArpMode;
   arpRate: number; // 0-1, maps to different speeds
+  mono: boolean; // true = monophonic, false = polyphonic
 }
 
 export const DEFAULT_SYNTH_PARAMS: SynthParams = {
@@ -31,6 +32,7 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   volume: 0.7,
   arpMode: 'off',
   arpRate: 0.5,
+  mono: false,
 };
 
 export class MelodicSynth {
@@ -279,6 +281,16 @@ export class MelodicSynth {
     }
 
     if (this.params.arpMode === 'off') {
+      // Mono mode - release all other notes first
+      if (this.params.mono && this.activeNotes.size > 0) {
+        this.activeNotes.forEach(activeNote => {
+          if (activeNote !== note) {
+            this.synth!.triggerRelease(activeNote, Tone.now());
+          }
+        });
+        this.activeNotes.clear();
+      }
+
       // Normal mode - play note directly
       this.activeNotes.add(note);
       this.synth.triggerAttack(note, Tone.now(), velocity);

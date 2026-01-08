@@ -10,118 +10,110 @@ interface SynthSequencerProps {
 }
 
 const NUM_STEPS = 16;
-const OCTAVE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+// All available notes (3 octaves for good range)
+const ALL_NOTES = [
+  'C2', 'C#2', 'D2', 'D#2', 'E2', 'F2', 'F#2', 'G2', 'G#2', 'A2', 'A#2', 'B2',
+  'C3', 'C#3', 'D3', 'D#3', 'E3', 'F3', 'F#3', 'G3', 'G#3', 'A3', 'A#3', 'B3',
+  'C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4', 'A4', 'A#4', 'B4',
+  'C5', 'C#5', 'D5', 'D#5', 'E5', 'F5', 'F#5', 'G5', 'G#5', 'A5', 'A#5', 'B5',
+];
 
 // Scale definitions
 const SCALES: { [key: string]: number[] } = {
+  'chromatic': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
   'major': [0, 2, 4, 5, 7, 9, 11],
   'minor': [0, 2, 3, 5, 7, 8, 10],
-  'harmonic minor': [0, 2, 3, 5, 7, 8, 11],
-  'melodic minor': [0, 2, 3, 5, 7, 9, 11],
+  'pentatonic': [0, 2, 4, 7, 9],
+  'blues': [0, 3, 5, 6, 7, 10],
   'dorian': [0, 2, 3, 5, 7, 9, 10],
   'phrygian': [0, 1, 3, 5, 7, 8, 10],
-  'lydian': [0, 2, 4, 6, 7, 9, 11],
-  'mixolydian': [0, 2, 4, 5, 7, 9, 10],
-  'locrian': [0, 1, 3, 5, 6, 8, 10],
-  'major pentatonic': [0, 2, 4, 7, 9],
-  'minor pentatonic': [0, 3, 5, 7, 10],
-  'blues': [0, 3, 5, 6, 7, 10],
 };
 
 const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-const getScaleNotes = (root: string, scale: string): Set<string> => {
-  const scaleNotes = new Set<string>();
+// Get notes in a scale across all octaves
+const getScaleNotes = (root: string, scale: string): string[] => {
   const rootIndex = ROOT_NOTES.indexOf(root);
-  const intervals = SCALES[scale] || [];
-  intervals.forEach(interval => {
-    const noteIndex = (rootIndex + interval) % 12;
-    scaleNotes.add(ROOT_NOTES[noteIndex]);
+  const intervals = SCALES[scale] || SCALES['chromatic'];
+  const scaleNotes: string[] = [];
+
+  ALL_NOTES.forEach(note => {
+    const noteName = note.replace(/\d+$/, '');
+    const noteIndex = ROOT_NOTES.indexOf(noteName);
+    const interval = (noteIndex - rootIndex + 12) % 12;
+    if (intervals.includes(interval)) {
+      scaleNotes.push(note);
+    }
   });
+
   return scaleNotes;
 };
 
-// Generate notes for the grid (2 octaves, from high to low for display)
-const generateGridNotes = (baseOctave: number): string[] => {
-  const notes: string[] = [];
-  for (let octave = baseOctave + 1; octave >= baseOctave; octave--) {
-    for (let i = OCTAVE_NOTES.length - 1; i >= 0; i--) {
-      notes.push(`${OCTAVE_NOTES[i]}${octave}`);
-    }
-  }
-  return notes;
-};
+interface Step {
+  active: boolean;
+  note: string;
+}
 
 const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo }) => {
   const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
-  const [sequence, setSequence] = useState<Set<string>[]>(() =>
-    Array.from({ length: NUM_STEPS }, () => new Set<string>())
+  const [steps, setSteps] = useState<Step[]>(() =>
+    Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' }))
   );
   const [currentStep, setCurrentStep] = useState(-1);
-  const [baseOctave, setBaseOctave] = useState(3);
-  const [scaleEnabled, setScaleEnabled] = useState(false);
   const [scaleRoot, setScaleRoot] = useState('C');
-  const [scaleType, setScaleType] = useState('minor pentatonic');
+  const [scaleType, setScaleType] = useState('pentatonic');
 
   const sequencerRef = useRef<Tone.Sequence | null>(null);
-  const gridNotes = generateGridNotes(baseOctave);
-  const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const isInScale = (note: string): boolean => {
-    if (!scaleEnabled) return false;
-    const noteName = note.replace(/\d+$/, '');
-    return scaleNotes.has(noteName);
-  };
+  const scaleNotes = getScaleNotes(scaleRoot, scaleType);
 
-  const isBlackKey = (note: string): boolean => {
-    return note.includes('#');
-  };
-
-  // Toggle a note at a step
-  const toggleNote = (stepIndex: number, note: string) => {
-    setSequence(prev => {
-      const newSequence = [...prev];
-      const newSet = new Set(newSequence[stepIndex]);
-      if (newSet.has(note)) {
-        newSet.delete(note);
-      } else {
-        newSet.add(note);
-        // Play the note when adding
-        synth.noteOn(note, 0.8);
-        setTimeout(() => synth.noteOff(note), 150);
+  // Toggle step on/off
+  const toggleStep = (index: number) => {
+    setSteps(prev => {
+      const newSteps = [...prev];
+      newSteps[index] = { ...newSteps[index], active: !newSteps[index].active };
+      if (newSteps[index].active) {
+        // Play preview
+        synth.noteOn(newSteps[index].note, 0.8);
+        setTimeout(() => synth.noteOff(newSteps[index].note), 150);
       }
-      newSequence[stepIndex] = newSet;
-      return newSequence;
+      return newSteps;
     });
   };
 
-  // Clear all notes
-  const clearSequence = () => {
-    setSequence(Array.from({ length: NUM_STEPS }, () => new Set<string>()));
-  };
+  // Change note pitch via drag
+  const handleDrag = useCallback((index: number, startY: number, currentY: number, startNote: string) => {
+    const deltaY = startY - currentY;
+    const noteSteps = Math.round(deltaY / 8); // 8px per note
+    const startIndex = scaleNotes.indexOf(startNote);
+    const newIndex = Math.max(0, Math.min(scaleNotes.length - 1, startIndex + noteSteps));
+    const newNote = scaleNotes[newIndex];
 
-  // Randomize sequence based on scale
-  const randomizeSequence = () => {
-    const newSequence: Set<string>[] = Array.from({ length: NUM_STEPS }, () => new Set<string>());
-    const availableNotes = scaleEnabled
-      ? gridNotes.filter(n => isInScale(n))
-      : gridNotes;
-
-    for (let step = 0; step < NUM_STEPS; step++) {
-      // 40% chance of a note on each step
-      if (Math.random() < 0.4 && availableNotes.length > 0) {
-        const randomNote = availableNotes[Math.floor(Math.random() * availableNotes.length)];
-        newSequence[step].add(randomNote);
+    setSteps(prev => {
+      const newSteps = [...prev];
+      if (newSteps[index].note !== newNote) {
+        newSteps[index] = { ...newSteps[index], note: newNote };
       }
-    }
-    setSequence(newSequence);
-  };
+      return newSteps;
+    });
+  }, [scaleNotes]);
 
   // Handle synth param changes
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
     const newParams = { ...params, [param]: value };
     setParams(newParams);
     synth.updateParams({ [param]: value } as Partial<SynthParams>);
+  };
+
+  // Randomize sequence
+  const randomizeSequence = () => {
+    const newSteps = steps.map(() => ({
+      active: Math.random() < 0.5,
+      note: scaleNotes[Math.floor(Math.random() * Math.min(scaleNotes.length, 24)) + Math.floor(scaleNotes.length / 4)],
+    }));
+    setSteps(newSteps);
   };
 
   // Randomize synth params
@@ -140,33 +132,52 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       volume: 0.6 + Math.random() * 0.2,
       arpMode: 'off',
       arpRate: 0.5,
+      mono: params.mono,
     };
     setParams(newParams);
     synth.updateParams(newParams);
   };
 
+  // Clear sequence
+  const clearSequence = () => {
+    setSteps(Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' })));
+  };
+
+  // Snap existing notes to new scale
+  useEffect(() => {
+    setSteps(prev => prev.map(step => {
+      if (!step.active) return step;
+      // Find closest note in new scale
+      const currentIndex = ALL_NOTES.indexOf(step.note);
+      let closestNote = scaleNotes[0];
+      let closestDistance = Infinity;
+      scaleNotes.forEach(note => {
+        const distance = Math.abs(ALL_NOTES.indexOf(note) - currentIndex);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestNote = note;
+        }
+      });
+      return { ...step, note: closestNote };
+    }));
+  }, [scaleRoot, scaleType]);
+
   // Sequencer playback
   useEffect(() => {
     if (isPlaying) {
-      // Create Tone.js sequence
-      const stepTime = `${NUM_STEPS}n`;
-
       sequencerRef.current = new Tone.Sequence(
         (time, step) => {
           setCurrentStep(step);
-          const notes = sequence[step];
-          notes.forEach(note => {
-            synth.noteOn(note, 0.8);
-            // Schedule note off
+          if (steps[step].active) {
+            synth.noteOn(steps[step].note, 0.8);
             Tone.getTransport().scheduleOnce(() => {
-              synth.noteOff(note);
+              synth.noteOff(steps[step].note);
             }, time + Tone.Time('16n').toSeconds() * 0.8);
-          });
+          }
         },
         Array.from({ length: NUM_STEPS }, (_, i) => i),
-        stepTime
+        '16n'
       );
-
       sequencerRef.current.start(0);
     } else {
       if (sequencerRef.current) {
@@ -185,7 +196,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         sequencerRef.current = null;
       }
     };
-  }, [isPlaying, sequence, synth]);
+  }, [isPlaying, steps, synth]);
 
   // Update tempo
   useEffect(() => {
@@ -195,26 +206,9 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
   return (
-    <div className="synth-sequencer">
-      {/* Controls row */}
-      <div className="seq-controls">
-        <div className="seq-control-group">
-          <label className="seq-label">OCTAVE</label>
-          <div className="octave-controls">
-            <button
-              className="octave-btn"
-              onClick={() => setBaseOctave(o => Math.max(1, o - 1))}
-              disabled={baseOctave <= 1}
-            >-</button>
-            <span className="octave-display">{baseOctave}</span>
-            <button
-              className="octave-btn"
-              onClick={() => setBaseOctave(o => Math.min(5, o + 1))}
-              disabled={baseOctave >= 5}
-            >+</button>
-          </div>
-        </div>
-
+    <div className="synth-seq-simple">
+      {/* Controls */}
+      <div className="seq-controls-simple">
         <div className="seq-control-group">
           <label className="seq-label">WAVE</label>
           <div className="waveform-buttons-small">
@@ -231,107 +225,182 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         </div>
 
         <div className="seq-control-group">
-          <label className="seq-label">SCALE</label>
-          <div className="scale-controls-compact">
-            <button
-              className={`scale-toggle-small ${scaleEnabled ? 'active' : ''}`}
-              onClick={() => setScaleEnabled(!scaleEnabled)}
-            >
-              {scaleEnabled ? 'ON' : 'OFF'}
-            </button>
-            {scaleEnabled && (
-              <>
-                <select
-                  className="scale-select-small"
-                  value={scaleRoot}
-                  onChange={(e) => setScaleRoot(e.target.value)}
-                >
-                  {ROOT_NOTES.map((note) => (
-                    <option key={note} value={note}>{note}</option>
-                  ))}
-                </select>
-                <select
-                  className="scale-select-small"
-                  value={scaleType}
-                  onChange={(e) => setScaleType(e.target.value)}
-                >
-                  {Object.keys(SCALES).map((scale) => (
-                    <option key={scale} value={scale}>
-                      {scale.charAt(0).toUpperCase() + scale.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-          </div>
+          <label className="seq-label">KEY</label>
+          <select
+            className="seq-select"
+            value={scaleRoot}
+            onChange={(e) => setScaleRoot(e.target.value)}
+          >
+            {ROOT_NOTES.map((note) => (
+              <option key={note} value={note}>{note}</option>
+            ))}
+          </select>
         </div>
 
-        <div className="seq-control-group seq-actions">
-          <button className="seq-action-btn" onClick={randomizeSequence}>
-            DICE
-          </button>
-          <button className="seq-action-btn mutate-btn" onClick={randomizeParams}>
-            MUTATE
-          </button>
-          <button className="seq-action-btn clear-btn" onClick={clearSequence}>
-            CLEAR
-          </button>
+        <div className="seq-control-group">
+          <label className="seq-label">SCALE</label>
+          <select
+            className="seq-select"
+            value={scaleType}
+            onChange={(e) => setScaleType(e.target.value)}
+          >
+            {Object.keys(SCALES).map((scale) => (
+              <option key={scale} value={scale}>
+                {scale.charAt(0).toUpperCase() + scale.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="seq-actions-simple">
+          <button className="seq-btn" onClick={randomizeSequence}>DICE</button>
+          <button className="seq-btn mutate" onClick={randomizeParams}>MUTATE</button>
+          <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
 
-      {/* Piano roll grid */}
-      <div className="piano-roll-container">
-        <div className="piano-roll">
-          {/* Note labels */}
-          <div className="note-labels">
-            {gridNotes.map((note) => (
-              <div
-                key={note}
-                className={`note-label ${isBlackKey(note) ? 'black' : 'white'} ${isInScale(note) ? 'in-scale' : ''}`}
-              >
-                {note}
-              </div>
-            ))}
-          </div>
+      {/* Step grid */}
+      <div className="melody-grid" ref={containerRef}>
+        {steps.map((step, index) => (
+          <MelodyStep
+            key={index}
+            step={step}
+            index={index}
+            isCurrentStep={currentStep === index}
+            scaleNotes={scaleNotes}
+            onToggle={() => toggleStep(index)}
+            onDrag={handleDrag}
+            synth={synth}
+          />
+        ))}
+      </div>
 
-          {/* Grid */}
-          <div className="grid-container">
-            {/* Step numbers */}
-            <div className="step-numbers">
-              {Array.from({ length: NUM_STEPS }, (_, i) => (
-                <div key={i} className={`step-number ${currentStep === i ? 'active' : ''}`}>
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-
-            {/* Note rows */}
-            <div className="grid-rows">
-              {gridNotes.map((note) => (
-                <div key={note} className={`grid-row ${isBlackKey(note) ? 'black-row' : 'white-row'}`}>
-                  {Array.from({ length: NUM_STEPS }, (_, stepIndex) => (
-                    <div
-                      key={stepIndex}
-                      className={`grid-cell
-                        ${sequence[stepIndex].has(note) ? 'active' : ''}
-                        ${currentStep === stepIndex ? 'current' : ''}
-                        ${isInScale(note) ? 'in-scale' : ''}
-                        ${stepIndex % 4 === 0 ? 'beat-start' : ''}
-                      `}
-                      onClick={() => toggleNote(stepIndex, note)}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
+      {/* Step numbers */}
+      <div className="step-indicators">
+        {steps.map((_, index) => (
+          <div
+            key={index}
+            className={`step-indicator ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
+          >
+            {index + 1}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 };
 
-// Waveform icons (smaller version)
+// Individual melody step component
+interface MelodyStepProps {
+  step: Step;
+  index: number;
+  isCurrentStep: boolean;
+  scaleNotes: string[];
+  onToggle: () => void;
+  onDrag: (index: number, startY: number, currentY: number, startNote: string) => void;
+  synth: MelodicSynth;
+}
+
+const MelodyStep: React.FC<MelodyStepProps> = ({
+  step,
+  index,
+  isCurrentStep,
+  scaleNotes,
+  onToggle,
+  onDrag,
+  synth,
+}) => {
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const startNote = useRef(step.note);
+  const lastNote = useRef(step.note);
+
+  // Calculate bar height based on note position in scale
+  const noteIndex = scaleNotes.indexOf(step.note);
+  const barHeight = step.active ? 20 + (noteIndex / scaleNotes.length) * 60 : 0;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!step.active) {
+      onToggle();
+      return;
+    }
+    isDragging.current = true;
+    startY.current = e.clientY;
+    startNote.current = step.note;
+    lastNote.current = step.note;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging.current) return;
+    onDrag(index, startY.current, e.clientY, startNote.current);
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging.current && step.note !== lastNote.current) {
+      synth.noteOn(step.note, 0.7);
+      setTimeout(() => synth.noteOff(step.note), 100);
+    }
+    isDragging.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!step.active) {
+      onToggle();
+      return;
+    }
+    isDragging.current = true;
+    startY.current = e.touches[0].clientY;
+    startNote.current = step.note;
+    lastNote.current = step.note;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current) return;
+    e.preventDefault();
+    onDrag(index, startY.current, e.touches[0].clientY, startNote.current);
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging.current && step.note !== lastNote.current) {
+      synth.noteOn(step.note, 0.7);
+      setTimeout(() => synth.noteOff(step.note), 100);
+    }
+    isDragging.current = false;
+  };
+
+  const handleDoubleClick = () => {
+    if (step.active) {
+      onToggle(); // Turn off on double click
+    }
+  };
+
+  return (
+    <div
+      className={`melody-step ${step.active ? 'active' : ''} ${isCurrentStep ? 'current' : ''} ${index % 4 === 0 ? 'beat-start' : ''}`}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onDoubleClick={handleDoubleClick}
+    >
+      <div className="step-bar-container">
+        <div
+          className="step-bar"
+          style={{ height: `${barHeight}%` }}
+        />
+        {step.active && (
+          <span className="step-note-label">{step.note}</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Waveform icons
 const WaveformIcon: React.FC<{ type: WaveformType }> = ({ type }) => {
   const paths: { [key: string]: string } = {
     sine: 'M2 12 Q8 2, 14 12 Q20 22, 26 12',
