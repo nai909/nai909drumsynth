@@ -113,6 +113,9 @@ export class Sequencer {
         case 'tom-high':
           this.drumSynth.triggerTom(time, adjustedVelocity, 'F3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
           break;
+        case 'rimshot':
+          this.drumSynth.triggerRimshot(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+          break;
         case 'fm':
           this.drumSynth.triggerFM(time, adjustedVelocity, 'C3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
           break;
