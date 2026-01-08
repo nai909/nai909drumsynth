@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { DrumTrack } from '../types';
 import { INSTRUMENT_DEFAULTS, generateRandomParams } from '../constants/instrumentDefaults';
 import { DrumIcons } from './DrumIcons';
@@ -10,6 +10,91 @@ interface TrackParamsProps {
   onParamChange: (param: keyof DrumTrack, value: number) => void;
   onTrigger?: (trackIndex: number) => void;
 }
+
+// Knob component for parameters
+interface ParamKnobProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  displayValue?: string;
+}
+
+const ParamKnob: React.FC<ParamKnobProps> = ({ label, value, onChange, min = 0, max = 1, displayValue }) => {
+  const knobRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startY = useRef(0);
+  const startValue = useRef(0);
+
+  const normalizedValue = (value - min) / (max - min);
+  const rotation = normalizedValue * 270 - 135;
+
+  const handleStart = (clientY: number) => {
+    isDragging.current = true;
+    startY.current = clientY;
+    startValue.current = value;
+  };
+
+  const handleMove = (clientY: number) => {
+    if (!isDragging.current) return;
+    const deltaY = startY.current - clientY;
+    const deltaValue = (deltaY / 100) * (max - min);
+    const newValue = Math.max(min, Math.min(max, startValue.current + deltaValue));
+    onChange(newValue);
+  };
+
+  const handleEnd = () => {
+    isDragging.current = false;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleStart(e.clientY);
+    const moveHandler = (e: MouseEvent) => handleMove(e.clientY);
+    const upHandler = () => {
+      handleEnd();
+      document.removeEventListener('mousemove', moveHandler);
+      document.removeEventListener('mouseup', upHandler);
+    };
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    handleStart(e.touches[0].clientY);
+    const moveHandler = (e: TouchEvent) => {
+      e.preventDefault();
+      handleMove(e.touches[0].clientY);
+    };
+    const endHandler = () => {
+      handleEnd();
+      document.removeEventListener('touchmove', moveHandler);
+      document.removeEventListener('touchend', endHandler);
+    };
+    document.addEventListener('touchmove', moveHandler, { passive: false });
+    document.addEventListener('touchend', endHandler);
+  };
+
+  const display = displayValue !== undefined ? displayValue : (value * 100).toFixed(0);
+
+  return (
+    <div className="param-knob-container">
+      <div className="param-knob-label">{label}</div>
+      <div
+        ref={knobRef}
+        className="param-knob"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+      >
+        <div className="param-knob-body" style={{ transform: `rotate(${rotation}deg)` }}>
+          <div className="param-knob-indicator" />
+        </div>
+      </div>
+      <div className="param-knob-value">{display}</div>
+    </div>
+  );
+};
 
 const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamChange, onTrigger }) => {
   const handleChange = (param: keyof DrumTrack, value: number) => {
@@ -30,6 +115,11 @@ const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamCha
         onParamChange(param as keyof DrumTrack, value);
       });
     }
+  };
+
+  const getPanDisplay = (pan: number) => {
+    if (pan === 0) return 'C';
+    return pan > 0 ? `R${(pan * 100).toFixed(0)}` : `L${Math.abs(pan * 100).toFixed(0)}`;
   };
 
   return (
@@ -64,156 +154,63 @@ const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamCha
         </div>
       </div>
 
-      <div className="params-grid">
-        <div className="param-row">
-          <div className="param-control">
-            <label className="param-label">TUNE</label>
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              step="0.01"
-              value={track.tune}
-              onChange={(e) => handleChange('tune', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.tune * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">DECAY</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.decay}
-              onChange={(e) => handleChange('decay', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.decay * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">ATTACK</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.attack}
-              onChange={(e) => handleChange('attack', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.attack * 100).toFixed(0)}</div>
-          </div>
-        </div>
-
-        <div className="param-row">
-          <div className="param-control">
-            <label className="param-label">TONE</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.tone}
-              onChange={(e) => handleChange('tone', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.tone * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">SNAP</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.snap}
-              onChange={(e) => handleChange('snap', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.snap * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">LEVEL</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.volume}
-              onChange={(e) => handleChange('volume', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.volume * 100).toFixed(0)}</div>
-          </div>
-        </div>
-
-        <div className="param-row">
-          <div className="param-control">
-            <label className="param-label">FILTER</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.filterCutoff}
-              onChange={(e) => handleChange('filterCutoff', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.filterCutoff * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">RESO</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.filterResonance}
-              onChange={(e) => handleChange('filterResonance', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.filterResonance * 100).toFixed(0)}</div>
-          </div>
-
-          <div className="param-control">
-            <label className="param-label">DRIVE</label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={track.drive}
-              onChange={(e) => handleChange('drive', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">{(track.drive * 100).toFixed(0)}</div>
-          </div>
-        </div>
-
-        <div className="param-row">
-          <div className="param-control param-pan">
-            <label className="param-label">PAN</label>
-            <input
-              type="range"
-              min="-1"
-              max="1"
-              step="0.01"
-              value={track.pan}
-              onChange={(e) => handleChange('pan', parseFloat(e.target.value))}
-              className="param-slider"
-            />
-            <div className="param-value">
-              {track.pan === 0 ? 'C' : track.pan > 0 ? `R${(track.pan * 100).toFixed(0)}` : `L${Math.abs(track.pan * 100).toFixed(0)}`}
-            </div>
-          </div>
-        </div>
+      <div className="params-knob-grid">
+        <ParamKnob
+          label="TUNE"
+          value={track.tune}
+          onChange={(v) => handleChange('tune', v)}
+          min={-1}
+          max={1}
+          displayValue={(track.tune * 100).toFixed(0)}
+        />
+        <ParamKnob
+          label="DECAY"
+          value={track.decay}
+          onChange={(v) => handleChange('decay', v)}
+        />
+        <ParamKnob
+          label="ATTACK"
+          value={track.attack}
+          onChange={(v) => handleChange('attack', v)}
+        />
+        <ParamKnob
+          label="TONE"
+          value={track.tone}
+          onChange={(v) => handleChange('tone', v)}
+        />
+        <ParamKnob
+          label="SNAP"
+          value={track.snap}
+          onChange={(v) => handleChange('snap', v)}
+        />
+        <ParamKnob
+          label="LEVEL"
+          value={track.volume}
+          onChange={(v) => handleChange('volume', v)}
+        />
+        <ParamKnob
+          label="FILTER"
+          value={track.filterCutoff}
+          onChange={(v) => handleChange('filterCutoff', v)}
+        />
+        <ParamKnob
+          label="RESO"
+          value={track.filterResonance}
+          onChange={(v) => handleChange('filterResonance', v)}
+        />
+        <ParamKnob
+          label="DRIVE"
+          value={track.drive}
+          onChange={(v) => handleChange('drive', v)}
+        />
+        <ParamKnob
+          label="PAN"
+          value={track.pan}
+          onChange={(v) => handleChange('pan', v)}
+          min={-1}
+          max={1}
+          displayValue={getPanDisplay(track.pan)}
+        />
       </div>
     </div>
   );
