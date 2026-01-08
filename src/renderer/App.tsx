@@ -413,20 +413,12 @@ const App: React.FC = () => {
                   SEQUENCE
                 </button>
               </div>
-              <div className="synth-toggle-group">
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
+              <button
+                  className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
                   onClick={() => { setMode('synth'); setSynthMode('keys'); }}
                 >
                   SYNTH
                 </button>
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
-                  onClick={() => { setMode('synth'); setSynthMode('seq'); }}
-                >
-                  SYNTH SEQ
-                </button>
-              </div>
             </div>
             {mode === 'synth' ? (
               melodicSynthRef.current && (
