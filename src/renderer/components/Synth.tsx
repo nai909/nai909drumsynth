@@ -140,12 +140,12 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
     }
   }, [synth, isRecording, loopLength, tempo]);
 
-  const togglePlayback = useCallback(() => {
+  const togglePlayback = useCallback(async () => {
     if (isLoopPlaying) {
       synth.stopPlayback();
       setIsLoopPlaying(false);
     } else {
-      synth.startPlayback(tempo);
+      await synth.startPlayback(tempo);
       setIsLoopPlaying(true);
     }
   }, [synth, isLoopPlaying, tempo]);

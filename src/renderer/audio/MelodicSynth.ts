@@ -647,8 +647,11 @@ export class MelodicSynth {
     }
   }
 
-  startPlayback(tempo: number) {
+  async startPlayback(tempo: number) {
     if (this.recordedNotes.length === 0) return;
+
+    // Make sure synth is initialized
+    await this.init();
 
     this.stopPlayback();
     this.isPlaying = true;
@@ -657,27 +660,22 @@ export class MelodicSynth {
     const loopDuration = this.loopLengthBars * secondsPerBar;
 
     const scheduleLoop = () => {
-      const now = Tone.now();
-
       this.recordedNotes.forEach(recordedNote => {
         const startOffset = recordedNote.startTime * secondsPerBar;
         const duration = recordedNote.duration * secondsPerBar;
 
-        // Schedule the note attack
-        const attackTime = now + startOffset;
-        const releaseTime = attackTime + duration;
-
         // Store scheduled event IDs so we can cancel them
         const attackId = window.setTimeout(() => {
           if (this.isPlaying && this.synth) {
-            this.synth.triggerAttack(recordedNote.note, undefined, recordedNote.velocity);
+            this.synth.triggerAttack(recordedNote.note, Tone.now(), recordedNote.velocity);
+            this.filterEnv.triggerAttack(Tone.now());
           }
         }, startOffset * 1000);
         this.scheduledEvents.push(attackId);
 
         const releaseId = window.setTimeout(() => {
           if (this.isPlaying && this.synth) {
-            this.synth.triggerRelease(recordedNote.note);
+            this.synth.triggerRelease(recordedNote.note, Tone.now());
           }
         }, (startOffset + duration) * 1000);
         this.scheduledEvents.push(releaseId);
