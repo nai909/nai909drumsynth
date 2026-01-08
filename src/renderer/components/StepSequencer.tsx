@@ -160,7 +160,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
                   onClick={() => onNoteRepeatModifierChange(mod)}
                   disabled={noteRepeat === 'off'}
                 >
-                  {mod === 'normal' ? '•' : mod === 'dotted' ? '•.' : '3'}
+                  {mod === 'normal' ? '•' : mod === 'dotted' ? '•.' : '•••'}
                 </button>
               ))}
             </div>
