@@ -102,6 +102,8 @@ export class MelodicSynth {
   private pendingNotes: Map<string, { velocity: number; startTime: number }> = new Map();
   private scheduledEvents: number[] = [];
   private loopId: number | null = null;
+  private recordingTimerId: number | null = null;
+  private onRecordingCompleteCallback: (() => void) | null = null;
 
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
@@ -529,10 +531,39 @@ export class MelodicSynth {
     this.pendingNotes.clear();
     // Store tempo for time calculations
     (this as any)._recordingTempo = tempo;
+
+    // Calculate loop duration and set auto-stop timer
+    const secondsPerBar = (60 / tempo) * 4; // 4 beats per bar
+    const loopDurationMs = this.loopLengthBars * secondsPerBar * 1000;
+
+    // Clear any existing timer
+    if (this.recordingTimerId !== null) {
+      clearTimeout(this.recordingTimerId);
+    }
+
+    // Auto-stop when loop length is reached
+    this.recordingTimerId = window.setTimeout(() => {
+      this.stopRecording();
+      if (this.onRecordingCompleteCallback) {
+        this.onRecordingCompleteCallback();
+      }
+    }, loopDurationMs);
+  }
+
+  // Set callback for when recording auto-completes
+  onRecordingComplete(callback: (() => void) | null) {
+    this.onRecordingCompleteCallback = callback;
   }
 
   stopRecording() {
     this.isRecording = false;
+
+    // Clear auto-stop timer
+    if (this.recordingTimerId !== null) {
+      clearTimeout(this.recordingTimerId);
+      this.recordingTimerId = null;
+    }
+
     // Finish any pending notes
     this.pendingNotes.forEach((noteData, note) => {
       const endTime = this.getCurrentRecordPosition();
@@ -553,6 +584,16 @@ export class MelodicSynth {
 
   isCurrentlyPlaying(): boolean {
     return this.isPlaying;
+  }
+
+  // Get recording progress as 0-1 (for progress bar)
+  getRecordingProgress(): number {
+    if (!this.isRecording) return 0;
+    const tempo = (this as any)._recordingTempo || 120;
+    const secondsPerBar = (60 / tempo) * 4;
+    const loopDuration = this.loopLengthBars * secondsPerBar;
+    const elapsed = Tone.now() - this.recordingStartTime;
+    return Math.min(1, elapsed / loopDuration);
   }
 
   clearRecording() {

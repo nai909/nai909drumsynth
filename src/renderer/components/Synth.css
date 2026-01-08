@@ -358,6 +358,44 @@
   color: #e0e0e0;
 }
 
+/* Recording progress bar */
+.loop-section {
+  min-width: 140px;
+}
+
+.recording-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.recording-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+.recording-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4444, #ff6666);
+  border-radius: 3px;
+  transition: width 0.05s linear;
+  box-shadow: 0 0 8px rgba(255, 50, 50, 0.5);
+}
+
+.recording-progress-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff4444;
+  min-width: 28px;
+  text-align: right;
+}
+
 /* LFO controls */
 .lfo-controls {
   display: flex;

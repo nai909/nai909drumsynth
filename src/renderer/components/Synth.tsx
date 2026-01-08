@@ -110,6 +110,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
   const [isLoopPlaying, setIsLoopPlaying] = useState(false);
   const [loopLength, setLoopLength] = useState(4);
   const [hasRecordedNotes, setHasRecordedNotes] = useState(false);
+  const [recordingProgress, setRecordingProgress] = useState(0);
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -129,11 +130,13 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
     if (isRecording) {
       synth.stopRecording();
       setIsRecording(false);
+      setRecordingProgress(0);
       setHasRecordedNotes(synth.hasRecordedNotes());
     } else {
       synth.setLoopLength(loopLength);
       synth.startRecording(tempo);
       setIsRecording(true);
+      setRecordingProgress(0);
     }
   }, [synth, isRecording, loopLength, tempo]);
 
@@ -158,13 +161,26 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
     synth.setLoopLength(bars);
   }, [synth]);
 
-  // Sync playback state with synth
+  // Set up recording complete callback
+  useEffect(() => {
+    synth.onRecordingComplete(() => {
+      setIsRecording(false);
+      setRecordingProgress(0);
+      setHasRecordedNotes(synth.hasRecordedNotes());
+    });
+    return () => synth.onRecordingComplete(null);
+  }, [synth]);
+
+  // Sync playback state with synth and update recording progress
   useEffect(() => {
     const checkState = () => {
       setIsLoopPlaying(synth.isCurrentlyPlaying());
       setHasRecordedNotes(synth.hasRecordedNotes());
+      if (synth.isCurrentlyRecording()) {
+        setRecordingProgress(synth.getRecordingProgress());
+      }
     };
-    const interval = setInterval(checkState, 100);
+    const interval = setInterval(checkState, 50); // Faster updates for smooth progress
     return () => clearInterval(interval);
   }, [synth]);
 
@@ -544,7 +560,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
         </div>
 
         {/* Loop Recording */}
-        <div className="synth-section">
+        <div className="synth-section loop-section">
           <div className="section-label">LOOP REC</div>
           <div className="loop-controls">
             <button
@@ -596,6 +612,19 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
               ))}
             </select>
           </div>
+          {isRecording && (
+            <div className="recording-progress">
+              <div className="recording-progress-bar">
+                <div
+                  className="recording-progress-fill"
+                  style={{ width: `${recordingProgress * 100}%` }}
+                />
+              </div>
+              <span className="recording-progress-text">
+                {Math.ceil(recordingProgress * loopLength)}/{loopLength}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Random - desktop only, mobile version is below keyboard */}
