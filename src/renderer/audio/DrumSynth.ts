@@ -432,69 +432,102 @@ export class DrumSynth {
 
   triggerRimshot(time: number, velocity: number = 1, tune: number = 0, decay: number = 0.1, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
     try {
-      // 808 rimshot: short, bright click with pitched sine body
-      const rimshotDecay = Math.max(0.03, decay * 0.15);
+      // Classic 808 rimshot: tight "tic" with woody resonance
+      // The 808 uses a bridged-T oscillator creating a damped sine around 200Hz
+      const rimshotDecay = Math.max(0.015, 0.02 + decay * 0.03); // Very tight: 15-50ms
 
       const disposables: any[] = [];
 
-      // Pitched body - short sine wave hit
-      const body = new Tone.Oscillator({
-        frequency: 350 + (tune * 100),
-        type: 'triangle',
+      // Fundamental tone - pure sine at ~200Hz (classic 808 frequency)
+      const baseFreq = 200 + (tune * 60);
+      const fundamental = new Tone.Oscillator({
+        frequency: baseFreq,
+        type: 'sine',
       });
 
-      const bodyEnv = new Tone.AmplitudeEnvelope({
-        attack: 0.001,
+      // Second harmonic for that woody 808 character
+      const harmonic = new Tone.Oscillator({
+        frequency: baseFreq * 2.4, // Slightly detuned harmonic adds character
+        type: 'sine',
+      });
+
+      // Sharp amplitude envelope - instant attack, fast decay
+      const fundEnv = new Tone.AmplitudeEnvelope({
+        attack: 0.0003,
         decay: rimshotDecay,
         sustain: 0,
-        release: 0.01,
+        release: 0.008,
       });
 
-      // High click/stick sound
+      const harmEnv = new Tone.AmplitudeEnvelope({
+        attack: 0.0003,
+        decay: rimshotDecay * 0.7, // Harmonic decays faster
+        sustain: 0,
+        release: 0.005,
+      });
+
+      // Transient click - very short noise burst for stick attack
       const click = new Tone.NoiseSynth({
         noise: { type: 'white' },
         envelope: {
-          attack: 0.0005,
-          decay: 0.015 + (snap * 0.01),
+          attack: 0.0001,
+          decay: 0.004 + (snap * 0.004), // 4-8ms click
           sustain: 0,
-          release: 0.005,
+          release: 0.002,
         },
       });
 
-      // Highpass for the click to make it bright and snappy
+      // Bandpass on click for that focused "tick" sound (not too hissy)
       const clickFilter = new Tone.Filter({
-        frequency: Math.max(4000, Math.min(10000, filterCutoff * 4000 + 4000)),
-        type: 'highpass',
-        Q: Math.max(0.5, Math.min(2, 1 + filterResonance)),
-      });
-
-      // Bandpass for body to keep it tight
-      const bodyFilter = new Tone.Filter({
-        frequency: Math.max(300, Math.min(800, 400 + (tone * 300))),
+        frequency: Math.max(2500, Math.min(5000, filterCutoff * 2000 + 2500)),
         type: 'bandpass',
-        Q: 2,
+        Q: 1.5,
       });
 
-      const distortion = new Tone.Distortion(Math.max(0.05, Math.min(0.4, 0.1 + drive * 0.3)));
-      const panner = new Tone.Panner(Math.max(-1, Math.min(1, pan)));
-      const merger = new Tone.Gain(0.7);
+      // Resonant bandpass on body for 808 ring
+      const bodyFilter = new Tone.Filter({
+        frequency: Math.max(180, Math.min(400, baseFreq + (tone * 100))),
+        type: 'bandpass',
+        Q: Math.max(3, Math.min(8, 4 + filterResonance * 4)), // Resonant!
+      });
 
-      body.connect(bodyEnv);
-      bodyEnv.connect(bodyFilter);
+      // Mix the oscillators
+      const oscMix = new Tone.Gain(0.6);
+      const harmGain = new Tone.Gain(0.25); // Harmonic is quieter
+      const clickGain = new Tone.Gain(0.5 + snap * 0.3);
+      const merger = new Tone.Gain(0.9);
+
+      // Light saturation for analog warmth
+      const distortion = new Tone.Distortion(Math.max(0.02, Math.min(0.2, 0.05 + drive * 0.15)));
+      const panner = new Tone.Panner(Math.max(-1, Math.min(1, pan)));
+
+      // Signal routing
+      fundamental.connect(fundEnv);
+      fundEnv.connect(oscMix);
+      harmonic.connect(harmEnv);
+      harmEnv.connect(harmGain);
+      harmGain.connect(oscMix);
+      oscMix.connect(bodyFilter);
       bodyFilter.connect(merger);
-      click.chain(clickFilter, merger);
+      click.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(merger);
       merger.chain(distortion, panner, this.masterGain);
 
-      disposables.push(body, bodyEnv, bodyFilter, click, clickFilter, distortion, panner, merger);
+      disposables.push(fundamental, harmonic, fundEnv, harmEnv, click, clickFilter, clickGain, bodyFilter, oscMix, harmGain, merger, distortion, panner);
 
-      body.start(time);
-      bodyEnv.triggerAttackRelease(rimshotDecay, time, Math.max(0.4, Math.min(1, velocity)));
-      click.triggerAttackRelease(0.02, time, Math.max(0.3, Math.min(0.8, velocity * 0.7)));
+      // Trigger everything
+      fundamental.start(time);
+      harmonic.start(time);
+      fundEnv.triggerAttackRelease(rimshotDecay, time, Math.max(0.5, Math.min(1, velocity)));
+      harmEnv.triggerAttackRelease(rimshotDecay * 0.7, time, Math.max(0.3, Math.min(0.8, velocity * 0.7)));
+      click.triggerAttackRelease(0.006, time, Math.max(0.4, Math.min(1, velocity)));
 
       setTimeout(() => {
-        body.stop();
+        fundamental.stop();
+        harmonic.stop();
         disposables.forEach(d => d.dispose());
-      }, 500);
+      }, 300);
     } catch (error) {
       console.error('Rimshot error:', error);
     }

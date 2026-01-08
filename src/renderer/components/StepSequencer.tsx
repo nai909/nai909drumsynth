@@ -1,5 +1,4 @@
 import React, { useRef, useCallback, useEffect } from 'react';
-import * as Tone from 'tone';
 import { DrumTrack } from '../types';
 import { DrumIcons } from './DrumIcons';
 import './StepSequencer.css';
@@ -20,17 +19,6 @@ interface StepSequencerProps {
   onClearSequence?: () => void;
 }
 
-// Get Tone.js note value for repeat rate
-const getRepeatNoteValue = (rate: NoteRepeatRate): string => {
-  const noteValues: { [key: string]: string } = {
-    '1/2': '2n',
-    '1/4': '4n',
-    '1/8': '8n',
-    '1/16': '16n',
-  };
-  return noteValues[rate] || '8n';
-};
-
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
 
 const StepSequencer: React.FC<StepSequencerProps> = ({
@@ -47,55 +35,63 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onClearSequence,
 }) => {
   const touchedRef = useRef<boolean>(false);
-  const repeatEventsRef = useRef<Map<number, number>>(new Map()); // trackIndex -> eventId
+  const repeatIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // trackIndex -> intervalId
 
-  // Clean up scheduled events on unmount
+  // Clean up intervals on unmount
   useEffect(() => {
     return () => {
-      repeatEventsRef.current.forEach((eventId) => {
-        Tone.Transport.clear(eventId);
+      repeatIntervalsRef.current.forEach((intervalId) => {
+        clearInterval(intervalId);
       });
-      repeatEventsRef.current.clear();
+      repeatIntervalsRef.current.clear();
     };
   }, []);
 
-  const startNoteRepeat = useCallback(async (trackIndex: number, velocity: number) => {
+  // Calculate interval in ms from note value and tempo
+  const getRepeatIntervalMs = useCallback((rate: NoteRepeatRate): number => {
+    const beatMs = 60000 / tempo; // ms per beat
+    switch (rate) {
+      case '1/2': return beatMs * 2;
+      case '1/4': return beatMs;
+      case '1/8': return beatMs / 2;
+      case '1/16': return beatMs / 4;
+      default: return beatMs;
+    }
+  }, [tempo]);
+
+  const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
     // Stop any existing repeat for this specific pad
-    if (repeatEventsRef.current.has(trackIndex)) {
-      Tone.Transport.clear(repeatEventsRef.current.get(trackIndex)!);
-      repeatEventsRef.current.delete(trackIndex);
+    if (repeatIntervalsRef.current.has(trackIndex)) {
+      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
+      repeatIntervalsRef.current.delete(trackIndex);
     }
 
     if (noteRepeat === 'off') return;
 
-    // Ensure audio context is started
-    await Tone.start();
+    const intervalMs = getRepeatIntervalMs(noteRepeat);
 
-    const noteValue = getRepeatNoteValue(noteRepeat);
+    // Use setTimeout for initial delay, then setInterval for repeats
+    const timeoutId = setTimeout(() => {
+      // Trigger first repeat
+      onPadTrigger(trackIndex, velocity);
 
-    // Start Transport if not already running (needed for note repeat to work)
-    if (Tone.Transport.state !== 'started') {
-      Tone.Transport.start();
-    }
+      // Set up interval for subsequent repeats
+      const intervalId = setInterval(() => {
+        onPadTrigger(trackIndex, velocity);
+      }, intervalMs);
 
-    // Use Tone.Transport.scheduleRepeat for precise timing synced to BPM
-    // Start after one full note value to avoid overlap with initial hit
-    const eventId = Tone.Transport.scheduleRepeat(
-      (time) => {
-        // Trigger the pad at the scheduled time, passing the exact time for precise audio
-        onPadTrigger(trackIndex, velocity, time);
-      },
-      noteValue,
-      `+${noteValue}` // Start after one full note value for clean separation
-    );
+      repeatIntervalsRef.current.set(trackIndex, intervalId);
+    }, intervalMs); // Wait one full interval before first repeat
 
-    repeatEventsRef.current.set(trackIndex, eventId);
-  }, [noteRepeat, onPadTrigger]);
+    // Store timeout as interval initially (will be replaced by actual interval)
+    repeatIntervalsRef.current.set(trackIndex, timeoutId as unknown as NodeJS.Timeout);
+  }, [noteRepeat, onPadTrigger, getRepeatIntervalMs]);
 
   const stopNoteRepeat = useCallback((trackIndex: number) => {
-    if (repeatEventsRef.current.has(trackIndex)) {
-      Tone.Transport.clear(repeatEventsRef.current.get(trackIndex)!);
-      repeatEventsRef.current.delete(trackIndex);
+    if (repeatIntervalsRef.current.has(trackIndex)) {
+      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
+      clearTimeout(repeatIntervalsRef.current.get(trackIndex)! as unknown as NodeJS.Timeout);
+      repeatIntervalsRef.current.delete(trackIndex);
     }
   }, []);
 
@@ -126,7 +122,10 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
       <div className="pad-mode-container">
         {/* Note Repeat Selector */}
         <div className="note-repeat-selector">
-          <span className="note-repeat-label">REPEAT</span>
+          <div className="note-repeat-label-group">
+            <span className="note-repeat-label">REPEAT</span>
+            <span className="note-repeat-hint">(Hold Pad)</span>
+          </div>
           <div className="note-repeat-buttons">
             {NOTE_REPEAT_RATES.map((rate) => (
               <button

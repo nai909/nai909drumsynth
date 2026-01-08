@@ -17,12 +17,24 @@
   border-radius: 8px;
 }
 
+.note-repeat-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .note-repeat-label {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--accent-secondary);
   text-transform: uppercase;
+}
+
+.note-repeat-hint {
+  font-size: 8px;
+  color: #666;
+  letter-spacing: 0.5px;
 }
 
 .note-repeat-buttons {
