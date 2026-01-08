@@ -264,6 +264,25 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   return (
     <div className="synth-container">
       <div className="synth-panel">
+        {/* Output */}
+        <div className="synth-section">
+          <div className="section-label">OUTPUT</div>
+          <div className="knob-row">
+            <SynthKnob
+              label="DETUNE"
+              value={params.detune}
+              onChange={(v) => handleParamChange('detune', v)}
+              min={-1}
+              max={1}
+            />
+            <SynthKnob
+              label="VOLUME"
+              value={params.volume}
+              onChange={(v) => handleParamChange('volume', v)}
+            />
+          </div>
+        </div>
+
         {/* Octave control */}
         <div className="synth-section">
           <div className="section-label">OCTAVE</div>
@@ -364,25 +383,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
               label="ENV"
               value={params.filterEnvAmount}
               onChange={(v) => handleParamChange('filterEnvAmount', v)}
-            />
-          </div>
-        </div>
-
-        {/* Output */}
-        <div className="synth-section">
-          <div className="section-label">OUTPUT</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="DETUNE"
-              value={params.detune}
-              onChange={(v) => handleParamChange('detune', v)}
-              min={-1}
-              max={1}
-            />
-            <SynthKnob
-              label="VOLUME"
-              value={params.volume}
-              onChange={(v) => handleParamChange('volume', v)}
             />
           </div>
         </div>
