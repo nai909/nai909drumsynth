@@ -116,6 +116,12 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     return scaleNotes.has(noteName);
   };
 
+  // Check if a note can be played (either scale is off, or note is in scale)
+  const canPlayNote = (note: string): boolean => {
+    if (!scaleEnabled) return true;
+    return isInScale(note);
+  };
+
   // Responsive octaves - 1 on mobile, 2 on desktop
   const numOctaves = isMobile ? 1 : 2;
   const keyboardNotes = getKeyboardNotes(numOctaves, octave);
@@ -224,9 +230,10 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
         return;
       }
 
-      // Only trigger if this key isn't already playing a note
+      // Only trigger if this key isn't already playing a note and note is playable
       if (keyMap[key] && !keysToNotes.current.has(key)) {
         const note = keyMap[key];
+        if (!canPlayNote(note)) return; // Skip if note is outside scale
         keysToNotes.current.set(key, note); // Remember which note this key triggered
         handleNoteOn(note);
       }
@@ -249,7 +256,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleNoteOn, handleNoteOff, keyMap, octaveUp, octaveDown]);
+  }, [handleNoteOn, handleNoteOff, keyMap, octaveUp, octaveDown, canPlayNote]);
 
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode | boolean) => {
     const newParams = { ...params, [param]: value };
@@ -514,61 +521,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       {/* Keyboard */}
       <div className="keyboard-container">
         <div className="keyboard">
-          {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => (
-            <div
-              key={noteObj.note}
-              className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
-              onMouseDown={() => {
-                mouseDownNote.current = noteObj.note;
-                handleNoteOn(noteObj.note);
-              }}
-              onMouseUp={() => {
-                if (mouseDownNote.current === noteObj.note) {
-                  mouseDownNote.current = null;
-                  handleNoteOff(noteObj.note);
-                }
-              }}
-              onMouseLeave={() => {
-                if (mouseDownNote.current === noteObj.note) {
-                  mouseDownNote.current = null;
-                  handleNoteOff(noteObj.note);
-                }
-              }}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                const touch = e.changedTouches[0];
-                handleNoteOn(noteObj.note, touch.identifier);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                const touch = e.changedTouches[0];
-                handleNoteOff(noteObj.note, touch.identifier);
-              }}
-              onTouchCancel={(e) => {
-                e.preventDefault();
-                const touch = e.changedTouches[0];
-                handleNoteOff(noteObj.note, touch.identifier);
-              }}
-            >
-              <span className="key-label">{noteObj.note}</span>
-            </div>
-          ))}
-          {keyboardNotes.filter((n) => n.isBlack).map((noteObj) => {
-            const baseNote = noteObj.note.replace('#', '').replace(/\d/, '');
-            const noteOctave = noteObj.note.slice(-1);
-            const whiteIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(baseNote);
-            const octaveOffset = (parseInt(noteOctave) - octave) * 7;
-            const position = whiteIndex + octaveOffset;
-            const keyWidth = 100 / numWhiteKeys;
-
-            // Position black key exactly on the boundary between white keys
-            // The boundary is at (position + 1) * keyWidth, centered with half black key width
+          {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => {
+            const playable = canPlayNote(noteObj.note);
             return (
               <div
                 key={noteObj.note}
-                className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
-                style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
+                className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 onMouseDown={() => {
+                  if (!playable) return;
                   mouseDownNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
                 }}
@@ -586,6 +546,61 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
+                  if (!playable) return;
+                  const touch = e.changedTouches[0];
+                  handleNoteOn(noteObj.note, touch.identifier);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
+                }}
+              >
+                <span className="key-label">{noteObj.note}</span>
+              </div>
+            );
+          })}
+          {keyboardNotes.filter((n) => n.isBlack).map((noteObj) => {
+            const baseNote = noteObj.note.replace('#', '').replace(/\d/, '');
+            const noteOctave = noteObj.note.slice(-1);
+            const whiteIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(baseNote);
+            const octaveOffset = (parseInt(noteOctave) - octave) * 7;
+            const position = whiteIndex + octaveOffset;
+            const keyWidth = 100 / numWhiteKeys;
+            const playable = canPlayNote(noteObj.note);
+
+            // Position black key exactly on the boundary between white keys
+            // The boundary is at (position + 1) * keyWidth, centered with half black key width
+            return (
+              <div
+                key={noteObj.note}
+                className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
+                style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
+                onMouseDown={() => {
+                  if (!playable) return;
+                  mouseDownNote.current = noteObj.note;
+                  handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  if (!playable) return;
                   const touch = e.changedTouches[0];
                   handleNoteOn(noteObj.note, touch.identifier);
                 }}

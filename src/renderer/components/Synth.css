@@ -455,6 +455,34 @@
   height: 83px;
 }
 
+/* Disabled keys (out of scale) */
+.white-key.disabled {
+  background: linear-gradient(180deg, #999 0%, #777 100%);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.white-key.disabled:hover {
+  background: linear-gradient(180deg, #999 0%, #777 100%);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.white-key.disabled .key-label {
+  color: #888;
+}
+
+.black-key.disabled {
+  background: linear-gradient(180deg, #222 0%, #111 100%);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.black-key.disabled:hover {
+  background: linear-gradient(180deg, #222 0%, #111 100%);
+}
+
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .synth-container {
