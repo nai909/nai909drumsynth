@@ -62,7 +62,7 @@ const Transport: React.FC<TransportProps> = ({
   const getTempoFromPosition = useCallback((clientX: number) => {
     if (!sliderRef.current) return tempo;
     const rect = sliderRef.current.getBoundingClientRect();
-    const thumbWidth = 28; // Width of the smiley thumb
+    const thumbWidth = 22; // Width of the smiley thumb
     const trackStart = rect.left + thumbWidth / 2;
     const trackEnd = rect.right - thumbWidth / 2;
     const trackWidth = trackEnd - trackStart;

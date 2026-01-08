@@ -1,10 +1,10 @@
 .transport {
   background: linear-gradient(180deg, rgba(31, 31, 31, 0.95) 0%, rgba(42, 42, 42, 0.95) 100%);
   border-top: 2px solid var(--accent-primary);
-  padding: 12px 15px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
   position: relative;
@@ -14,12 +14,12 @@
 
 .transport-controls {
   display: flex;
-  gap: 10px;
+  gap: 6px;
 }
 
 .transport-btn {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -32,8 +32,8 @@
 }
 
 .transport-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 @media (max-width: 768px) {
@@ -91,13 +91,13 @@
 .tempo-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
-  max-width: 400px;
+  max-width: 280px;
 }
 
 .tempo-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #888;
@@ -107,7 +107,7 @@
 /* Custom smiley slider */
 .tempo-slider-custom {
   flex: 1;
-  height: 40px;
+  height: 32px;
   position: relative;
   cursor: pointer;
   touch-action: none;
@@ -154,8 +154,8 @@
 }
 
 .tempo-smiley {
-  width: 28px;
-  height: 35px;
+  width: 22px;
+  height: 28px;
   pointer-events: none;
 }
 
@@ -198,33 +198,33 @@
 }
 
 .tempo-display {
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--accent-secondary);
-  min-width: 80px;
+  min-width: 70px;
   text-align: center;
-  padding: 8px 12px;
+  padding: 6px 8px;
   background: linear-gradient(145deg, var(--accent-bg-hover) 0%, var(--accent-bg) 50%, rgba(0,0,0,0.3) 100%);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 2px solid var(--accent-border-hover);
   border-top-color: var(--accent-primary);
   box-shadow:
-    4px 4px 8px rgba(0, 0, 0, 0.5),
-    -2px -2px 6px rgba(255, 255, 255, 0.05),
+    3px 3px 6px rgba(0, 0, 0, 0.5),
+    -1px -1px 4px rgba(255, 255, 255, 0.05),
     inset 1px 1px 2px rgba(255, 255, 255, 0.1),
-    0 0 15px var(--accent-glow);
-  text-shadow: 0 0 10px var(--accent-glow);
+    0 0 10px var(--accent-glow);
+  text-shadow: 0 0 8px var(--accent-glow);
 }
 
 /* Swing Control */
 .swing-control {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .swing-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 1px;
   color: #888;
@@ -232,8 +232,8 @@
 }
 
 .swing-knob {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
   user-select: none;
 }
@@ -260,20 +260,20 @@
 
 .swing-knob-indicator {
   position: absolute;
-  top: 6px;
+  top: 5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 3px;
-  height: 10px;
+  width: 2px;
+  height: 8px;
   background: var(--accent-primary);
   border-radius: 2px;
   box-shadow: 0 0 6px var(--accent-glow);
 }
 
 .swing-display {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--accent-secondary);
-  min-width: 40px;
+  min-width: 32px;
   text-align: center;
 }
