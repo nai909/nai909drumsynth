@@ -101,11 +101,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
-  const keyboardRef = useRef<HTMLDivElement>(null);
-
-  // Simplified slide tracking - just track the current mouse note
-  const currentMouseNote = useRef<string | null>(null);
-  const isMouseDown = useRef(false);
+  const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -148,8 +144,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     setActiveNotes(new Set());
     activeTouches.current.clear();
     keysToNotes.current.clear();
-    currentMouseNote.current = null;
-    isMouseDown.current = false;
+    mouseDownNote.current = null;
   }, [synth]);
 
   const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
@@ -172,61 +167,10 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     });
   }, [synth]);
 
-  // Get note from a point on screen (for slide functionality)
-  const getNoteFromPoint = useCallback((x: number, y: number): string | null => {
-    const element = document.elementFromPoint(x, y);
-    if (!element) return null;
-    const keyElement = element.closest('.key') as HTMLElement;
-    if (!keyElement) return null;
-    return keyElement.dataset.note || null;
-  }, []);
-
-  // Handle mouse sliding across keys
-  const handleMouseSlide = useCallback((x: number, y: number) => {
-    if (!isMouseDown.current) return;
-
-    const note = getNoteFromPoint(x, y);
-
-    // If no note found, just keep playing current note (don't release)
-    if (!note) return;
-
-    // Check if note is playable
-    if (!canPlayNote(note)) return;
-
-    // If it's a different note, switch
-    if (note !== currentMouseNote.current) {
-      // Release old note
-      if (currentMouseNote.current) {
-        handleNoteOff(currentMouseNote.current);
-      }
-      // Play new note
-      currentMouseNote.current = note;
-      handleNoteOn(note);
-    }
-  }, [getNoteFromPoint, canPlayNote, handleNoteOn, handleNoteOff]);
-
-  // Handle touch sliding across keys
-  const handleTouchSlide = useCallback((touch: Touch) => {
-    const note = getNoteFromPoint(touch.clientX, touch.clientY);
-    const currentNote = activeTouches.current.get(touch.identifier);
-
-    // If no note found, keep playing current note
-    if (!note) return;
-
-    if (!canPlayNote(note)) return;
-
-    if (note !== currentNote) {
-      // Release old, play new
-      if (currentNote) {
-        handleNoteOff(currentNote, touch.identifier);
-      }
-      handleNoteOn(note, touch.identifier);
-    }
-  }, [getNoteFromPoint, canPlayNote, handleNoteOn, handleNoteOff]);
-
-  // Global event handlers
+  // Global event handlers - catches any missed releases
   useEffect(() => {
     const handleGlobalTouchEnd = (e: TouchEvent) => {
+      // Check if any tracked touches are no longer active
       const currentTouchIds = new Set(Array.from(e.touches).map(t => t.identifier));
       activeTouches.current.forEach((note, touchId) => {
         if (!currentTouchIds.has(touchId)) {
@@ -236,15 +180,12 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     };
 
     const handleGlobalMouseUp = () => {
-      if (currentMouseNote.current) {
-        handleNoteOff(currentMouseNote.current);
-        currentMouseNote.current = null;
+      // Release any note held by mouse when mouse is released anywhere
+      if (mouseDownNote.current) {
+        const note = mouseDownNote.current;
+        mouseDownNote.current = null;
+        handleNoteOff(note);
       }
-      isMouseDown.current = false;
-    };
-
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      handleMouseSlide(e.clientX, e.clientY);
     };
 
     const handleVisibilityChange = () => {
@@ -260,7 +201,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     window.addEventListener('touchend', handleGlobalTouchEnd);
     window.addEventListener('touchcancel', handleGlobalTouchEnd);
     window.addEventListener('mouseup', handleGlobalMouseUp);
-    window.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
 
@@ -268,12 +208,11 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       window.removeEventListener('touchend', handleGlobalTouchEnd);
       window.removeEventListener('touchcancel', handleGlobalTouchEnd);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       releaseAllNotes();
     };
-  }, [handleNoteOff, releaseAllNotes, handleMouseSlide]);
+  }, [handleNoteOff, releaseAllNotes]);
 
   // Computer keyboard support
   useEffect(() => {
@@ -573,33 +512,45 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
 
       {/* Keyboard */}
       <div className="keyboard-container">
-        <div
-          ref={keyboardRef}
-          className="keyboard"
-          onTouchMove={(e) => {
-            Array.from(e.touches).forEach((touch) => {
-              handleTouchSlide(touch);
-            });
-          }}
-        >
+        <div className="keyboard">
           {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => {
             const playable = canPlayNote(noteObj.note);
             return (
               <div
                 key={noteObj.note}
-                data-note={noteObj.note}
                 className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 onMouseDown={() => {
                   if (!playable) return;
-                  isMouseDown.current = true;
-                  currentMouseNote.current = noteObj.note;
+                  mouseDownNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
                   if (!playable) return;
                   const touch = e.changedTouches[0];
                   handleNoteOn(noteObj.note, touch.identifier);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
                 }}
               >
                 <span className="key-label">{noteObj.note}</span>
@@ -615,23 +566,45 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
             const keyWidth = 100 / numWhiteKeys;
             const playable = canPlayNote(noteObj.note);
 
+            // Position black key exactly on the boundary between white keys
+            // The boundary is at (position + 1) * keyWidth, centered with half black key width
             return (
               <div
                 key={noteObj.note}
-                data-note={noteObj.note}
                 className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
                 onMouseDown={() => {
                   if (!playable) return;
-                  isMouseDown.current = true;
-                  currentMouseNote.current = noteObj.note;
+                  mouseDownNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
                   if (!playable) return;
                   const touch = e.changedTouches[0];
                   handleNoteOn(noteObj.note, touch.identifier);
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
+                }}
+                onTouchCancel={(e) => {
+                  e.preventDefault();
+                  const touch = e.changedTouches[0];
+                  handleNoteOff(noteObj.note, touch.identifier);
                 }}
               />
             );
