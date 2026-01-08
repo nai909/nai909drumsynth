@@ -461,6 +461,8 @@ const App: React.FC = () => {
                     synth={melodicSynthRef.current}
                     params={synthParams}
                     onParamsChange={handleSynthParamsChange}
+                    tempo={pattern.tempo}
+                    isTransportPlaying={isPlaying}
                   />
                 )
               )

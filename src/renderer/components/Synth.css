@@ -278,6 +278,86 @@
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
+/* Loop Recording controls */
+.loop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loop-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--accent-border);
+  border-radius: 8px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loop-btn:hover:not(:disabled) {
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+  background: var(--accent-bg);
+}
+
+.loop-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.loop-btn.record-btn.recording {
+  background: rgba(255, 50, 50, 0.3);
+  border-color: #ff4444;
+  color: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 50, 50, 0.5);
+  animation: pulse-record 1s ease-in-out infinite;
+}
+
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 50, 50, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(255, 50, 50, 0.8); }
+}
+
+.loop-btn.play-btn.playing {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.loop-length-select {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: var(--accent-secondary);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.loop-length-select:focus {
+  border-color: var(--accent-primary);
+}
+
+.loop-length-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loop-length-select option {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
 /* LFO controls */
 .lfo-controls {
   display: flex;

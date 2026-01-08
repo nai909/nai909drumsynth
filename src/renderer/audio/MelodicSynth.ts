@@ -4,6 +4,14 @@ export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 export type ArpMode = 'off' | 'up' | 'down' | 'updown' | 'random';
 export type LfoDestination = 'filter' | 'pitch' | 'volume';
 
+// Recorded note event
+export interface RecordedNote {
+  note: string;
+  velocity: number;
+  startTime: number; // Position in bars (0-8)
+  duration: number;  // Duration in bars
+}
+
 export interface SynthParams {
   waveform: WaveformType;
   attack: number;
@@ -84,6 +92,16 @@ export class MelodicSynth {
   private arpIndex: number = 0;
   private arpDirection: 1 | -1 = 1;
   private currentArpNote: string | null = null;
+
+  // Recording state
+  private isRecording: boolean = false;
+  private isPlaying: boolean = false;
+  private recordedNotes: RecordedNote[] = [];
+  private recordingStartTime: number = 0;
+  private loopLengthBars: number = 4;
+  private pendingNotes: Map<string, { velocity: number; startTime: number }> = new Map();
+  private scheduledEvents: number[] = [];
+  private loopId: number | null = null;
 
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
@@ -422,6 +440,9 @@ export class MelodicSynth {
     await this.init();
     if (!this.synth) return;
 
+    // Record if recording
+    this.recordNoteStart(note, velocity);
+
     // Add to held notes for arpeggiator
     if (!this.heldNotes.includes(note)) {
       this.heldNotes.push(note);
@@ -450,6 +471,9 @@ export class MelodicSynth {
 
   noteOff(note: string) {
     if (!this.synth) return;
+
+    // Record if recording
+    this.recordNoteEnd(note);
 
     // Remove from held notes
     this.heldNotes = this.heldNotes.filter(n => n !== note);
@@ -488,6 +512,145 @@ export class MelodicSynth {
 
   getWaveformData(): Float32Array {
     return this.analyser.getValue() as Float32Array;
+  }
+
+  // Recording methods
+  setLoopLength(bars: number) {
+    this.loopLengthBars = Math.max(1, Math.min(8, bars));
+  }
+
+  getLoopLength(): number {
+    return this.loopLengthBars;
+  }
+
+  startRecording(tempo: number) {
+    this.isRecording = true;
+    this.recordingStartTime = Tone.now();
+    this.pendingNotes.clear();
+    // Store tempo for time calculations
+    (this as any)._recordingTempo = tempo;
+  }
+
+  stopRecording() {
+    this.isRecording = false;
+    // Finish any pending notes
+    this.pendingNotes.forEach((noteData, note) => {
+      const endTime = this.getCurrentRecordPosition();
+      const duration = Math.max(0.01, endTime - noteData.startTime);
+      this.recordedNotes.push({
+        note,
+        velocity: noteData.velocity,
+        startTime: noteData.startTime,
+        duration,
+      });
+    });
+    this.pendingNotes.clear();
+  }
+
+  isCurrentlyRecording(): boolean {
+    return this.isRecording;
+  }
+
+  isCurrentlyPlaying(): boolean {
+    return this.isPlaying;
+  }
+
+  clearRecording() {
+    this.stopPlayback();
+    this.recordedNotes = [];
+    this.pendingNotes.clear();
+  }
+
+  getRecordedNotes(): RecordedNote[] {
+    return [...this.recordedNotes];
+  }
+
+  hasRecordedNotes(): boolean {
+    return this.recordedNotes.length > 0;
+  }
+
+  private getCurrentRecordPosition(): number {
+    const tempo = (this as any)._recordingTempo || 120;
+    const secondsPerBar = (60 / tempo) * 4; // 4 beats per bar
+    const elapsed = Tone.now() - this.recordingStartTime;
+    return (elapsed / secondsPerBar) % this.loopLengthBars;
+  }
+
+  // Called from noteOn when recording
+  private recordNoteStart(note: string, velocity: number) {
+    if (!this.isRecording) return;
+    const position = this.getCurrentRecordPosition();
+    this.pendingNotes.set(note, { velocity, startTime: position });
+  }
+
+  // Called from noteOff when recording
+  private recordNoteEnd(note: string) {
+    if (!this.isRecording) return;
+    const noteData = this.pendingNotes.get(note);
+    if (noteData) {
+      const endTime = this.getCurrentRecordPosition();
+      let duration = endTime - noteData.startTime;
+      // Handle wrap-around
+      if (duration < 0) {
+        duration += this.loopLengthBars;
+      }
+      duration = Math.max(0.01, duration);
+
+      this.recordedNotes.push({
+        note: note,
+        velocity: noteData.velocity,
+        startTime: noteData.startTime,
+        duration,
+      });
+      this.pendingNotes.delete(note);
+    }
+  }
+
+  startPlayback(tempo: number) {
+    if (this.recordedNotes.length === 0) return;
+
+    this.stopPlayback();
+    this.isPlaying = true;
+
+    const secondsPerBar = (60 / tempo) * 4;
+    const loopDuration = this.loopLengthBars * secondsPerBar;
+
+    const scheduleLoop = () => {
+      const now = Tone.now();
+
+      this.recordedNotes.forEach(recordedNote => {
+        const startOffset = recordedNote.startTime * secondsPerBar;
+        const duration = recordedNote.duration * secondsPerBar;
+
+        // Schedule the note
+        const attackTime = now + startOffset;
+        const releaseTime = attackTime + duration;
+
+        if (this.synth) {
+          this.synth.triggerAttack(recordedNote.note, attackTime, recordedNote.velocity);
+          this.synth.triggerRelease(recordedNote.note, releaseTime);
+        }
+      });
+
+      // Schedule next loop
+      this.loopId = window.setTimeout(() => {
+        if (this.isPlaying) {
+          scheduleLoop();
+        }
+      }, loopDuration * 1000);
+    };
+
+    scheduleLoop();
+  }
+
+  stopPlayback() {
+    this.isPlaying = false;
+    if (this.loopId !== null) {
+      clearTimeout(this.loopId);
+      this.loopId = null;
+    }
+    // Release any playing notes
+    this.synth?.releaseAll();
   }
 
   dispose() {
