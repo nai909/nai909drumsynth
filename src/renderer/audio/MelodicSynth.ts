@@ -41,6 +41,7 @@ export class MelodicSynth {
   private filterEnv: Tone.FrequencyEnvelope;
   private gain: Tone.Gain;
   private masterGain: Tone.Gain;
+  private analyser: Tone.Analyser;
   private params: SynthParams;
   private initialized: boolean = false;
   private activeNotes: Set<string> = new Set();
@@ -56,6 +57,7 @@ export class MelodicSynth {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
     this.masterGain = new Tone.Gain(0.8).toDestination();
     this.gain = new Tone.Gain(this.params.volume);
+    this.analyser = new Tone.Analyser('waveform', 256);
 
     this.filter = new Tone.Filter({
       frequency: this.getFilterFreq(),
@@ -73,7 +75,7 @@ export class MelodicSynth {
     });
 
     this.filterEnv.connect(this.filter.frequency);
-    this.gain.chain(this.filter, this.masterGain);
+    this.gain.chain(this.filter, this.analyser, this.masterGain);
   }
 
   private getFilterFreq(): number {
@@ -339,11 +341,16 @@ export class MelodicSynth {
     return { ...this.params };
   }
 
+  getWaveformData(): Float32Array {
+    return this.analyser.getValue() as Float32Array;
+  }
+
   dispose() {
     this.synth?.dispose();
     this.filter.dispose();
     this.filterEnv.dispose();
     this.gain.dispose();
     this.masterGain.dispose();
+    this.analyser.dispose();
   }
 }

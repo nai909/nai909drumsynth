@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MelodicSynth, SynthParams, WaveformType, ArpMode, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
+import WaveformVisualizer from './WaveformVisualizer';
 import './Synth.css';
 
 interface SynthProps {
@@ -519,22 +520,13 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
             const position = whiteIndex + octaveOffset;
             const keyWidth = 100 / numWhiteKeys;
 
-            // Realistic black key offsets (as percentage of white key width)
-            // Real pianos have black keys slightly off-center
-            const blackKeyOffsets: { [key: string]: number } = {
-              'C': -0.10,  // C# shifts toward C
-              'D': 0.10,   // D# shifts toward E
-              'F': -0.12,  // F# shifts toward F
-              'G': 0,      // G# roughly centered
-              'A': 0.10,   // A# shifts toward B
-            };
-            const offset = (blackKeyOffsets[baseNote] || 0) * keyWidth;
-
+            // Position black key exactly on the boundary between white keys
+            // The boundary is at (position + 1) * keyWidth, centered with half black key width
             return (
               <div
                 key={noteObj.note}
                 className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
-                style={{ left: `calc(${position * keyWidth}% + ${keyWidth / 2}% - 15px + ${offset}%)` }}
+                style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
                 onMouseDown={() => handleNoteOn(noteObj.note)}
                 onMouseUp={() => handleNoteOff(noteObj.note)}
                 onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
@@ -558,6 +550,9 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
           })}
         </div>
       </div>
+
+      {/* Waveform Visualizer */}
+      <WaveformVisualizer synth={synth} />
 
       {/* Random button - mobile only, below keyboard */}
       <button className="random-btn random-btn-mobile" onClick={randomizeParams}>
