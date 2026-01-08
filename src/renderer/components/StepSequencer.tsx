@@ -220,13 +220,6 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
 
   return (
     <div className="step-sequencer">
-      {onClearSequence && (
-        <div className="sequencer-toolbar">
-          <button className="clear-sequence-btn" onClick={onClearSequence}>
-            CLEAR
-          </button>
-        </div>
-      )}
       <div className="step-grid">
         {tracks.map((track, trackIndex) => (
           <div
@@ -261,6 +254,13 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
           </div>
         ))}
       </div>
+      {onClearSequence && (
+        <div className="sequencer-footer">
+          <button className="clear-sequence-btn" onClick={onClearSequence}>
+            CLEAR
+          </button>
+        </div>
+      )}
     </div>
   );
 };

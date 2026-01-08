@@ -4,12 +4,10 @@ import './Transport.css';
 interface TransportProps {
   isPlaying: boolean;
   tempo: number;
-  swing: number;
   onPlay: () => void;
   onPause: () => void;
   onStop: () => void;
   onTempoChange: (tempo: number) => void;
-  onSwingChange: (swing: number) => void;
 }
 
 // Drippy Smiley Slider Thumb
@@ -46,12 +44,10 @@ const SmileyThumb: React.FC = () => (
 const Transport: React.FC<TransportProps> = ({
   isPlaying,
   tempo,
-  swing,
   onPlay,
   onPause,
   onStop,
   onTempoChange,
-  onSwingChange,
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -156,92 +152,6 @@ const Transport: React.FC<TransportProps> = ({
           </div>
         </div>
         <div className="tempo-display">{tempo} BPM</div>
-      </div>
-
-      <div className="swing-control">
-        <label className="swing-label">SWING</label>
-        <SwingKnob value={swing} onChange={onSwingChange} />
-        <div className="swing-display">{Math.round(swing * 100)}%</div>
-      </div>
-    </div>
-  );
-};
-
-// Swing Knob component
-interface SwingKnobProps {
-  value: number;
-  onChange: (value: number) => void;
-}
-
-const SwingKnob: React.FC<SwingKnobProps> = ({ value, onChange }) => {
-  const knobRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startY = useRef(0);
-  const startValue = useRef(0);
-
-  const rotation = value * 270 - 135;
-
-  const handleStart = (clientY: number) => {
-    isDragging.current = true;
-    startY.current = clientY;
-    startValue.current = value;
-  };
-
-  const handleMove = (clientY: number) => {
-    if (!isDragging.current) return;
-    const deltaY = startY.current - clientY;
-    const deltaValue = deltaY / 100;
-    const newValue = Math.max(0, Math.min(1, startValue.current + deltaValue));
-    onChange(newValue);
-  };
-
-  const handleEnd = () => {
-    isDragging.current = false;
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    handleStart(e.clientY);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    handleMove(e.clientY);
-  };
-
-  const handleMouseUp = () => {
-    handleEnd();
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
-    handleStart(e.touches[0].clientY);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    e.preventDefault();
-    handleMove(e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = () => {
-    handleEnd();
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-  };
-
-  return (
-    <div
-      ref={knobRef}
-      className="swing-knob"
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-    >
-      <div className="swing-knob-body" style={{ transform: `rotate(${rotation}deg)` }}>
-        <div className="swing-knob-indicator" />
       </div>
     </div>
   );

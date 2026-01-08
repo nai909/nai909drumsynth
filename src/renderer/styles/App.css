@@ -113,6 +113,19 @@
 }
 
 
+/* Fixed header background to prevent scroll overlap */
+.app::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: linear-gradient(180deg, rgba(13, 13, 13, 1) 0%, rgba(13, 13, 13, 0.98) 60%, rgba(13, 13, 13, 0) 100%);
+  z-index: 50;
+  pointer-events: none;
+}
+
 /* Clickable theme smiley */
 .theme-smiley-btn {
   position: fixed;
