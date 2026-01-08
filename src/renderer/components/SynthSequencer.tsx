@@ -113,7 +113,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
     onStepsChange(newSteps);
   };
 
-  // Randomize synth params
+  // Randomize synth params (except output settings)
   const randomizeParams = () => {
     const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
     const newParams: SynthParams = {
@@ -125,8 +125,8 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       filterCutoff: 0.3 + Math.random() * 0.7,
       filterResonance: Math.random() * 0.5,
       filterEnvAmount: Math.random() * 0.7,
-      detune: (Math.random() - 0.5) * 0.2,
-      volume: 0.6 + Math.random() * 0.2,
+      detune: params.detune, // Keep current output settings
+      volume: params.volume, // Keep current output settings
       arpMode: 'off',
       arpRate: 0.5,
       mono: params.mono,

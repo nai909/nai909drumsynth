@@ -237,7 +237,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     onParamsChange(newParams);
   };
 
-  // Randomize all parameters
+  // Randomize all parameters (except output settings)
   const randomizeParams = () => {
     const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
     const newParams: SynthParams = {
@@ -249,8 +249,8 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       filterCutoff: 0.2 + Math.random() * 0.8,
       filterResonance: Math.random() * 0.7,
       filterEnvAmount: Math.random(),
-      detune: (Math.random() - 0.5) * 0.4,
-      volume: 0.5 + Math.random() * 0.3,
+      detune: params.detune, // Keep current output settings
+      volume: params.volume, // Keep current output settings
       arpMode: params.arpMode, // Keep current arp mode
       arpRate: params.arpRate, // Keep current arp rate
       mono: params.mono, // Keep current mono setting
