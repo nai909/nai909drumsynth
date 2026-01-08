@@ -4,10 +4,12 @@ import './Transport.css';
 interface TransportProps {
   isPlaying: boolean;
   tempo: number;
+  outputGain: number;
   onPlay: () => void;
   onPause: () => void;
   onStop: () => void;
   onTempoChange: (tempo: number) => void;
+  onOutputGainChange: (gain: number) => void;
 }
 
 // Drippy Smiley Slider Thumb
@@ -44,10 +46,12 @@ const SmileyThumb: React.FC = () => (
 const Transport: React.FC<TransportProps> = ({
   isPlaying,
   tempo,
+  outputGain,
   onPlay,
   onPause,
   onStop,
   onTempoChange,
+  onOutputGainChange,
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -152,6 +156,20 @@ const Transport: React.FC<TransportProps> = ({
           </div>
         </div>
         <div className="tempo-display">{tempo} BPM</div>
+      </div>
+
+      <div className="output-control">
+        <label className="output-label">OUTPUT</label>
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.01"
+          value={outputGain}
+          onChange={(e) => onOutputGainChange(parseFloat(e.target.value))}
+          className="output-slider"
+        />
+        <div className="output-display">{Math.round(outputGain * 100)}%</div>
       </div>
     </div>
   );
