@@ -77,10 +77,11 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ synth }) => {
 
     const sliceWidth = width / waveform.length;
     let x = 0;
+    const amplify = 2.5; // Amplify waveform for more pronounced motion
 
     for (let i = 0; i < waveform.length; i++) {
-      const v = waveform[i];
-      const y = ((1 - v) / 2) * height * 0.85 + height * 0.075;
+      const v = Math.max(-1, Math.min(1, waveform[i] * amplify)); // Amplify and clamp
+      const y = ((1 - v) / 2) * height * 0.9 + height * 0.05;
 
       if (i === 0) {
         ctx.moveTo(x, y);
@@ -101,8 +102,8 @@ const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({ synth }) => {
 
     x = 0;
     for (let i = 0; i < waveform.length; i++) {
-      const v = waveform[i];
-      const y = ((1 - v) / 2) * height * 0.85 + height * 0.075;
+      const v = Math.max(-1, Math.min(1, waveform[i] * amplify)); // Amplify and clamp
+      const y = ((1 - v) / 2) * height * 0.9 + height * 0.05;
 
       if (i === 0) {
         ctx.moveTo(x, y);
