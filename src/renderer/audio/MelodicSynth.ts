@@ -32,7 +32,7 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   volume: 0.7,
   arpMode: 'off',
   arpRate: 0.5,
-  mono: false,
+  mono: true,
 };
 
 export class MelodicSynth {
