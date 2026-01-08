@@ -594,9 +594,24 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 onMouseDown={() => {
                   if (!playable) return;
+                  // Enable sliding and track the note for both click and slide
                   isMouseSliding.current = true;
+                  mouseDownNote.current = noteObj.note;
                   lastSlideNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  // Release note on mouse up (for click without slide)
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    // Don't release here - let global handler do it to avoid double release
+                  }
+                }}
+                onMouseLeave={() => {
+                  // Clear mouseDownNote when leaving (slide will handle the note)
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -641,8 +656,19 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 onMouseDown={() => {
                   if (!playable) return;
                   isMouseSliding.current = true;
+                  mouseDownNote.current = noteObj.note;
                   lastSlideNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
