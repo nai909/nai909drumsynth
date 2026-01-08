@@ -395,8 +395,8 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
           </div>
         </div>
 
-        {/* Random */}
-        <div className="synth-section">
+        {/* Random - desktop only, mobile version is below keyboard */}
+        <div className="synth-section random-section-desktop">
           <button className="random-btn" onClick={randomizeParams}>
             RANDOM
           </button>
@@ -468,6 +468,11 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
           })}
         </div>
       </div>
+
+      {/* Random button - mobile only, below keyboard */}
+      <button className="random-btn random-btn-mobile" onClick={randomizeParams}>
+        RANDOM
+      </button>
     </div>
   );
 };

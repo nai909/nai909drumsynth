@@ -226,6 +226,15 @@
   transform: scale(0.95);
 }
 
+/* Mobile random button - hidden on desktop */
+.random-btn-mobile {
+  display: none;
+}
+
+.random-section-desktop {
+  display: flex;
+}
+
 /* Keyboard */
 .keyboard-container {
   padding: 15px;
@@ -394,16 +403,27 @@
     gap: 8px;
   }
 
+  /* Hide desktop random, show mobile random */
+  .random-section-desktop {
+    display: none;
+  }
+
+  .random-btn-mobile {
+    display: block;
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 13px;
+  }
+
   .keyboard-container {
     padding: 8px;
-    flex: 0 0 auto;
-    min-height: 120px;
-    max-height: 130px;
+    flex: 1;
+    min-height: 160px;
   }
 
   .keyboard {
     height: 100%;
-    min-height: 110px;
+    min-height: 150px;
     min-width: 100%;
   }
 
@@ -413,16 +433,16 @@
   }
 
   .white-key .key-label {
-    font-size: 7px;
+    font-size: 9px;
   }
 
   .black-key {
-    width: 22px;
-    height: 55%;
+    width: 28px;
+    height: 60%;
   }
 
   .black-key.active {
-    height: calc(55% - 2px);
+    height: calc(60% - 2px);
   }
 }
 
@@ -451,8 +471,7 @@
   }
 
   .keyboard-container {
-    min-height: 100px;
-    max-height: 110px;
+    min-height: 140px;
   }
 
   .keyboard {
