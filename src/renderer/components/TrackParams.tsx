@@ -156,6 +156,11 @@ const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamCha
 
       <div className="params-knob-grid">
         <ParamKnob
+          label="LEVEL"
+          value={track.volume}
+          onChange={(v) => handleChange('volume', v)}
+        />
+        <ParamKnob
           label="TUNE"
           value={track.tune}
           onChange={(v) => handleChange('tune', v)}
@@ -164,14 +169,14 @@ const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamCha
           displayValue={(track.tune * 100).toFixed(0)}
         />
         <ParamKnob
-          label="DECAY"
-          value={track.decay}
-          onChange={(v) => handleChange('decay', v)}
-        />
-        <ParamKnob
           label="ATTACK"
           value={track.attack}
           onChange={(v) => handleChange('attack', v)}
+        />
+        <ParamKnob
+          label="DECAY"
+          value={track.decay}
+          onChange={(v) => handleChange('decay', v)}
         />
         <ParamKnob
           label="TONE"
@@ -182,11 +187,6 @@ const TrackParams: React.FC<TrackParamsProps> = ({ track, trackIndex, onParamCha
           label="SNAP"
           value={track.snap}
           onChange={(v) => handleChange('snap', v)}
-        />
-        <ParamKnob
-          label="LEVEL"
-          value={track.volume}
-          onChange={(v) => handleChange('volume', v)}
         />
         <ParamKnob
           label="FILTER"

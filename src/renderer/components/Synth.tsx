@@ -305,16 +305,16 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
           <div className="section-label">OUTPUT</div>
           <div className="knob-row">
             <SynthKnob
+              label="VOLUME"
+              value={params.volume}
+              onChange={(v) => handleParamChange('volume', v)}
+            />
+            <SynthKnob
               label="DETUNE"
               value={params.detune}
               onChange={(v) => handleParamChange('detune', v)}
               min={-1}
               max={1}
-            />
-            <SynthKnob
-              label="VOLUME"
-              value={params.volume}
-              onChange={(v) => handleParamChange('volume', v)}
             />
           </div>
         </div>
