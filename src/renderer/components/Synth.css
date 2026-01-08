@@ -136,6 +136,53 @@
   text-transform: uppercase;
 }
 
+/* Octave controls */
+.octave-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.octave-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--accent-border);
+  border-radius: 8px;
+  color: var(--accent-secondary);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.octave-btn:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  background: var(--accent-bg);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.octave-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.octave-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.octave-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  min-width: 24px;
+  text-align: center;
+}
+
 /* Arpeggiator controls */
 .arp-controls {
   display: flex;
@@ -401,6 +448,16 @@
 
   .knob-row {
     gap: 8px;
+  }
+
+  .octave-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .octave-display {
+    font-size: 14px;
   }
 
   /* Hide desktop random, show mobile random */

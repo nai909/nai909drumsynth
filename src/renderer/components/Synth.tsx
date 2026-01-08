@@ -8,7 +8,9 @@ interface SynthProps {
 
 // Define keyboard notes
 const OCTAVE_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const BASE_OCTAVE = 3;
+const DEFAULT_OCTAVE = 3;
+const MIN_OCTAVE = 1;
+const MAX_OCTAVE = 6;
 
 // Scale definitions (intervals from root) - All Ableton scales
 const SCALES: { [key: string]: number[] } = {
@@ -69,9 +71,9 @@ const getScaleNotes = (root: string, scale: string): Set<string> => {
   return scaleNotes;
 };
 
-const getKeyboardNotes = (numOctaves: number) => {
+const getKeyboardNotes = (numOctaves: number, baseOctave: number) => {
   const notes: { note: string; isBlack: boolean }[] = [];
-  for (let octave = BASE_OCTAVE; octave < BASE_OCTAVE + numOctaves; octave++) {
+  for (let octave = baseOctave; octave < baseOctave + numOctaves; octave++) {
     OCTAVE_NOTES.forEach((note) => {
       notes.push({
         note: `${note}${octave}`,
@@ -82,18 +84,19 @@ const getKeyboardNotes = (numOctaves: number) => {
   return notes;
 };
 
-// Computer keyboard mapping
-const KEY_MAP: { [key: string]: string } = {
-  'a': 'C3', 'w': 'C#3', 's': 'D3', 'e': 'D#3', 'd': 'E3',
-  'f': 'F3', 't': 'F#3', 'g': 'G3', 'y': 'G#3', 'h': 'A3',
-  'u': 'A#3', 'j': 'B3', 'k': 'C4', 'o': 'C#4', 'l': 'D4',
-  'p': 'D#4', ';': 'E4', "'": 'F4',
-};
+// Computer keyboard mapping - returns mapping based on octave
+const getKeyMap = (baseOctave: number): { [key: string]: string } => ({
+  'a': `C${baseOctave}`, 'w': `C#${baseOctave}`, 's': `D${baseOctave}`, 'e': `D#${baseOctave}`, 'd': `E${baseOctave}`,
+  'f': `F${baseOctave}`, 't': `F#${baseOctave}`, 'g': `G${baseOctave}`, 'y': `G#${baseOctave}`, 'h': `A${baseOctave}`,
+  'u': `A#${baseOctave}`, 'j': `B${baseOctave}`, 'k': `C${baseOctave + 1}`, 'o': `C#${baseOctave + 1}`, 'l': `D${baseOctave + 1}`,
+  'p': `D#${baseOctave + 1}`, ';': `E${baseOctave + 1}`, "'": `F${baseOctave + 1}`,
+});
 
 const Synth: React.FC<SynthProps> = ({ synth }) => {
   const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [octave, setOctave] = useState(DEFAULT_OCTAVE);
   const keysPressed = useRef<Set<string>>(new Set());
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
 
@@ -112,8 +115,13 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
 
   // Responsive octaves - 1 on mobile, 2 on desktop
   const numOctaves = isMobile ? 1 : 2;
-  const keyboardNotes = getKeyboardNotes(numOctaves);
+  const keyboardNotes = getKeyboardNotes(numOctaves, octave);
   const numWhiteKeys = keyboardNotes.filter(n => !n.isBlack).length;
+  const keyMap = getKeyMap(octave);
+
+  // Octave controls
+  const octaveUp = () => setOctave(o => Math.min(MAX_OCTAVE, o + 1));
+  const octaveDown = () => setOctave(o => Math.max(MIN_OCTAVE, o - 1));
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -189,17 +197,28 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       const key = e.key.toLowerCase();
-      if (KEY_MAP[key] && !keysPressed.current.has(key)) {
+
+      // Octave controls with z and x keys
+      if (key === 'z') {
+        octaveDown();
+        return;
+      }
+      if (key === 'x') {
+        octaveUp();
+        return;
+      }
+
+      if (keyMap[key] && !keysPressed.current.has(key)) {
         keysPressed.current.add(key);
-        handleNoteOn(KEY_MAP[key]);
+        handleNoteOn(keyMap[key]);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (KEY_MAP[key]) {
+      if (keyMap[key]) {
         keysPressed.current.delete(key);
-        handleNoteOff(KEY_MAP[key]);
+        handleNoteOff(keyMap[key]);
       }
     };
 
@@ -210,7 +229,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handleNoteOn, handleNoteOff]);
+  }, [handleNoteOn, handleNoteOff, keyMap, octaveUp, octaveDown]);
 
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
     const newParams = { ...params, [param]: value };
@@ -245,6 +264,28 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
   return (
     <div className="synth-container">
       <div className="synth-panel">
+        {/* Octave control */}
+        <div className="synth-section">
+          <div className="section-label">OCTAVE</div>
+          <div className="octave-controls">
+            <button
+              className="octave-btn"
+              onClick={octaveDown}
+              disabled={octave <= MIN_OCTAVE}
+            >
+              -
+            </button>
+            <span className="octave-display">{octave}</span>
+            <button
+              className="octave-btn"
+              onClick={octaveUp}
+              disabled={octave >= MAX_OCTAVE}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
         {/* Waveform selector */}
         <div className="synth-section">
           <div className="section-label">WAVEFORM</div>
@@ -434,9 +475,9 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
           ))}
           {keyboardNotes.filter((n) => n.isBlack).map((noteObj) => {
             const baseNote = noteObj.note.replace('#', '').replace(/\d/, '');
-            const octave = noteObj.note.slice(-1);
+            const noteOctave = noteObj.note.slice(-1);
             const whiteIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(baseNote);
-            const octaveOffset = (parseInt(octave) - BASE_OCTAVE) * 7;
+            const octaveOffset = (parseInt(noteOctave) - octave) * 7;
             const position = whiteIndex + octaveOffset;
             const keyWidth = 100 / numWhiteKeys;
 
