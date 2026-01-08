@@ -38,23 +38,24 @@
 
 @media (max-width: 768px) {
   .transport {
-    padding: 10px;
-    gap: 10px;
-    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
   }
 
   .transport-controls {
-    gap: 8px;
+    gap: 6px;
   }
 
   .transport-btn {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
   .transport-btn svg {
-    width: 22px;
-    height: 22px;
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -173,27 +174,34 @@
 
 @media (max-width: 768px) {
   .tempo-control {
-    width: 100%;
-    max-width: 100%;
-    gap: 8px;
+    flex: 1;
+    max-width: none;
+    gap: 4px;
   }
 
   .tempo-label {
-    font-size: 9px;
+    display: none;
   }
 
   .tempo-slider-custom {
-    height: 50px;
+    height: 28px;
+    min-width: 60px;
   }
 
   .tempo-slider-track,
   .tempo-slider-fill {
-    height: 8px;
+    height: 4px;
   }
 
   .tempo-smiley {
-    width: 32px;
-    height: 40px;
+    width: 18px;
+    height: 22px;
+  }
+
+  .tempo-display {
+    font-size: 12px;
+    min-width: 58px;
+    padding: 4px 6px;
   }
 }
 
@@ -276,4 +284,30 @@
   color: var(--accent-secondary);
   min-width: 32px;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .swing-control {
+    gap: 4px;
+  }
+
+  .swing-label {
+    display: none;
+  }
+
+  .swing-knob {
+    width: 28px;
+    height: 28px;
+  }
+
+  .swing-knob-indicator {
+    top: 4px;
+    width: 2px;
+    height: 6px;
+  }
+
+  .swing-display {
+    font-size: 10px;
+    min-width: 28px;
+  }
 }
