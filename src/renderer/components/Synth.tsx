@@ -4,6 +4,8 @@ import './Synth.css';
 
 interface SynthProps {
   synth: MelodicSynth;
+  params: SynthParams;
+  onParamsChange: (params: SynthParams) => void;
 }
 
 // Define keyboard notes
@@ -92,8 +94,7 @@ const getKeyMap = (baseOctave: number): { [key: string]: string } => ({
   'p': `D#${baseOctave + 1}`, ';': `E${baseOctave + 1}`, "'": `F${baseOctave + 1}`,
 });
 
-const Synth: React.FC<SynthProps> = ({ synth }) => {
-  const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
+const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
@@ -233,8 +234,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
 
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode | boolean) => {
     const newParams = { ...params, [param]: value };
-    setParams(newParams);
-    synth.updateParams({ [param]: value } as Partial<SynthParams>);
+    onParamsChange(newParams);
   };
 
   // Randomize all parameters
@@ -255,8 +255,7 @@ const Synth: React.FC<SynthProps> = ({ synth }) => {
       arpRate: params.arpRate, // Keep current arp rate
       mono: params.mono, // Keep current mono setting
     };
-    setParams(newParams);
-    synth.updateParams(newParams);
+    onParamsChange(newParams);
   };
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];

@@ -14,6 +14,8 @@ interface SynthSequencerProps {
   tempo: number;
   steps: Step[];
   onStepsChange: (steps: Step[]) => void;
+  params: SynthParams;
+  onParamsChange: (params: SynthParams) => void;
 }
 
 const NUM_STEPS = 16;
@@ -57,8 +59,7 @@ const getScaleNotes = (root: string, scale: string): string[] => {
   return scaleNotes;
 };
 
-const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange }) => {
-  const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
+const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange }) => {
   const [currentStep, setCurrentStep] = useState(-1);
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('pentatonic');
@@ -72,11 +73,13 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   const toggleStep = (index: number) => {
     const newSteps = [...steps];
     newSteps[index] = { ...newSteps[index], active: !newSteps[index].active };
-    if (newSteps[index].active) {
-      // Play preview
-      synth.noteOn(newSteps[index].note, 0.8);
-      setTimeout(() => synth.noteOff(newSteps[index].note), 150);
-    }
+    onStepsChange(newSteps);
+  };
+
+  // Activate step with a specific note (called when clicking empty step)
+  const activateWithNote = (index: number, note: string) => {
+    const newSteps = [...steps];
+    newSteps[index] = { active: true, note };
     onStepsChange(newSteps);
   };
 
@@ -98,8 +101,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   // Handle synth param changes
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
     const newParams = { ...params, [param]: value };
-    setParams(newParams);
-    synth.updateParams({ [param]: value } as Partial<SynthParams>);
+    onParamsChange(newParams);
   };
 
   // Randomize sequence
@@ -129,8 +131,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       arpRate: 0.5,
       mono: params.mono,
     };
-    setParams(newParams);
-    synth.updateParams(newParams);
+    onParamsChange(newParams);
   };
 
   // Clear sequence
@@ -277,6 +278,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
             isCurrentStep={currentStep === index}
             scaleNotes={scaleNotes}
             onToggle={() => toggleStep(index)}
+            onActivateWithNote={activateWithNote}
             onDrag={handleDrag}
             synth={synth}
           />
@@ -305,6 +307,7 @@ interface MelodyStepProps {
   isCurrentStep: boolean;
   scaleNotes: string[];
   onToggle: () => void;
+  onActivateWithNote: (index: number, note: string) => void;
   onDrag: (index: number, startY: number, currentY: number, startNote: string) => void;
   synth: MelodicSynth;
 }
@@ -315,10 +318,13 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
   isCurrentStep,
   scaleNotes,
   onToggle,
+  onActivateWithNote,
   onDrag,
   synth,
 }) => {
+  const stepRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const hasDragged = useRef(false);
   const startY = useRef(0);
   const startNote = useRef(step.note);
   const lastNote = useRef(step.note);
@@ -327,12 +333,29 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
   const noteIndex = scaleNotes.indexOf(step.note);
   const barHeight = step.active ? 20 + (noteIndex / scaleNotes.length) * 60 : 0;
 
+  // Calculate note from Y position within the step element
+  const getNoteFromPosition = (clientY: number): string => {
+    if (!stepRef.current) return scaleNotes[Math.floor(scaleNotes.length / 2)];
+    const rect = stepRef.current.getBoundingClientRect();
+    const relativeY = clientY - rect.top;
+    const percentage = 1 - (relativeY / rect.height); // Invert so top = high note
+    const noteIdx = Math.floor(percentage * scaleNotes.length);
+    const clampedIdx = Math.max(0, Math.min(scaleNotes.length - 1, noteIdx));
+    return scaleNotes[clampedIdx];
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!step.active) {
-      onToggle();
+      // Activate with note based on click position
+      const note = getNoteFromPosition(e.clientY);
+      onActivateWithNote(index, note);
+      synth.noteOn(note, 0.8);
+      setTimeout(() => synth.noteOff(note), 150);
       return;
     }
+    // Active step - start drag or prepare for toggle
     isDragging.current = true;
+    hasDragged.current = false;
     startY.current = e.clientY;
     startNote.current = step.note;
     lastNote.current = step.note;
@@ -342,25 +365,40 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging.current) return;
+    const deltaY = Math.abs(e.clientY - startY.current);
+    if (deltaY > 5) hasDragged.current = true; // Threshold to distinguish drag from click
     onDrag(index, startY.current, e.clientY, startNote.current);
   };
 
   const handleMouseUp = () => {
-    if (isDragging.current && step.note !== lastNote.current) {
-      synth.noteOn(step.note, 0.7);
-      setTimeout(() => synth.noteOff(step.note), 100);
+    if (isDragging.current) {
+      if (!hasDragged.current) {
+        // No drag occurred - this was a click, so toggle off
+        onToggle();
+      } else if (step.note !== lastNote.current) {
+        // Drag occurred and note changed - play preview
+        synth.noteOn(step.note, 0.7);
+        setTimeout(() => synth.noteOff(step.note), 100);
+      }
     }
     isDragging.current = false;
+    hasDragged.current = false;
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!step.active) {
-      onToggle();
+      // Activate with note based on touch position
+      const note = getNoteFromPosition(e.touches[0].clientY);
+      onActivateWithNote(index, note);
+      synth.noteOn(note, 0.8);
+      setTimeout(() => synth.noteOff(note), 150);
       return;
     }
+    // Active step - start drag or prepare for toggle
     isDragging.current = true;
+    hasDragged.current = false;
     startY.current = e.touches[0].clientY;
     startNote.current = step.note;
     lastNote.current = step.note;
@@ -369,31 +407,34 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging.current) return;
     e.preventDefault();
+    const deltaY = Math.abs(e.touches[0].clientY - startY.current);
+    if (deltaY > 5) hasDragged.current = true;
     onDrag(index, startY.current, e.touches[0].clientY, startNote.current);
   };
 
   const handleTouchEnd = () => {
-    if (isDragging.current && step.note !== lastNote.current) {
-      synth.noteOn(step.note, 0.7);
-      setTimeout(() => synth.noteOff(step.note), 100);
+    if (isDragging.current) {
+      if (!hasDragged.current) {
+        // No drag occurred - this was a tap, so toggle off
+        onToggle();
+      } else if (step.note !== lastNote.current) {
+        // Drag occurred and note changed - play preview
+        synth.noteOn(step.note, 0.7);
+        setTimeout(() => synth.noteOff(step.note), 100);
+      }
     }
     isDragging.current = false;
-  };
-
-  const handleDoubleClick = () => {
-    if (step.active) {
-      onToggle(); // Turn off on double click
-    }
+    hasDragged.current = false;
   };
 
   return (
     <div
+      ref={stepRef}
       className={`melody-step ${step.active ? 'active' : ''} ${isCurrentStep ? 'current' : ''} ${index % 4 === 0 ? 'beat-start' : ''}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onDoubleClick={handleDoubleClick}
     >
       <div className="step-bar-container">
         <div

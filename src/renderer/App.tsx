@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import { DrumSynth } from './audio/DrumSynth';
 import { Sequencer } from './audio/Sequencer';
-import { MelodicSynth } from './audio/MelodicSynth';
+import { MelodicSynth, SynthParams, DEFAULT_SYNTH_PARAMS } from './audio/MelodicSynth';
 import { Pattern, DrumTrack } from './types';
 import StepSequencer from './components/StepSequencer';
 import Transport from './components/Transport';
@@ -232,6 +232,7 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
+  const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
@@ -368,6 +369,14 @@ const App: React.FC = () => {
     }
   };
 
+  // Handle synth params change (shared between Synth and SynthSequencer)
+  const handleSynthParamsChange = (newParams: SynthParams) => {
+    setSynthParams(newParams);
+    if (melodicSynthRef.current) {
+      melodicSynthRef.current.updateParams(newParams);
+    }
+  };
+
   // Randomly change to a different theme
   const handleThemeChange = () => {
     const otherThemes = THEMES.filter(t => t !== theme);
@@ -428,9 +437,15 @@ const App: React.FC = () => {
                     tempo={pattern.tempo}
                     steps={synthSequence}
                     onStepsChange={setSynthSequence}
+                    params={synthParams}
+                    onParamsChange={handleSynthParamsChange}
                   />
                 ) : (
-                  <Synth synth={melodicSynthRef.current} />
+                  <Synth
+                    synth={melodicSynthRef.current}
+                    params={synthParams}
+                    onParamsChange={handleSynthParamsChange}
+                  />
                 )
               )
             ) : mode === 'params' ? (
