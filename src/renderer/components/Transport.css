@@ -104,14 +104,71 @@
   white-space: nowrap;
 }
 
-.tempo-slider {
+/* Custom smiley slider */
+.tempo-slider-custom {
   flex: 1;
+  height: 40px;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.tempo-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
   height: 6px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
-  outline: none;
-  -webkit-appearance: none;
-  touch-action: none;
+  transform: translateY(-50%);
+}
+
+.tempo-slider-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 6px;
+  background: var(--accent-primary);
+  border-radius: 3px;
+  transform: translateY(-50%);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.tempo-slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+  transition: filter 0.2s;
+}
+
+.tempo-slider-thumb:hover {
+  filter: drop-shadow(0 0 12px var(--accent-glow));
+}
+
+.tempo-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.tempo-smiley {
+  width: 28px;
+  height: 35px;
+  pointer-events: none;
+}
+
+.tempo-smiley-face {
+  fill: var(--accent-primary);
+}
+
+.tempo-smiley-eye {
+  fill: rgba(0, 0, 0, 0.7);
+}
+
+.tempo-smiley-mouth {
+  stroke: rgba(0, 0, 0, 0.7);
 }
 
 @media (max-width: 768px) {
@@ -125,29 +182,19 @@
     font-size: 9px;
   }
 
-  .tempo-slider {
+  .tempo-slider-custom {
+    height: 50px;
+  }
+
+  .tempo-slider-track,
+  .tempo-slider-fill {
     height: 8px;
   }
-}
 
-.tempo-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  cursor: pointer;
-  box-shadow: 0 0 5px var(--accent-glow);
-}
-
-.tempo-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 0 5px var(--accent-glow);
+  .tempo-smiley {
+    width: 32px;
+    height: 40px;
+  }
 }
 
 .tempo-display {
