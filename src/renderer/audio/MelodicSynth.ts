@@ -655,8 +655,21 @@ export class MelodicSynth {
 
         const id = window.setTimeout(() => {
           if (!this._isPlayingLoop || !this.synth) return;
-          console.log('Triggering:', note.note);
-          this.synth.triggerAttackRelease(note.note, note.duration, Tone.now(), note.velocity);
+          console.log('Triggering:', note.note, 'duration:', note.duration);
+
+          // Trigger synth and filter envelope
+          const now = Tone.now();
+          this.synth.triggerAttack(note.note, now, note.velocity);
+          this.filterEnv.triggerAttack(now);
+
+          // Schedule release
+          const releaseId = window.setTimeout(() => {
+            if (this.synth) {
+              this.synth.triggerRelease(note.note, Tone.now());
+              this.filterEnv.triggerRelease(Tone.now());
+            }
+          }, note.duration * 1000);
+          this._playbackTimeouts.push(releaseId);
         }, delayMs);
 
         this._playbackTimeouts.push(id);
