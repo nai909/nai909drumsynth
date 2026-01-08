@@ -20,6 +20,10 @@ interface StepSequencerProps {
   onNoteRepeatModifierChange: (modifier: NoteRepeatModifier) => void;
   tempo: number;
   onClearSequence?: () => void;
+  loopBars: 1 | 2 | 3 | 4;
+  onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
@@ -39,6 +43,10 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onNoteRepeatModifierChange,
   tempo,
   onClearSequence,
+  loopBars,
+  onLoopBarsChange,
+  currentPage,
+  onPageChange,
 }) => {
   const touchedRef = useRef<boolean>(false);
   const repeatIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // trackIndex -> intervalId
@@ -218,8 +226,55 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     );
   }
 
+  // Calculate which steps to show based on current page
+  const pageStartStep = currentPage * 16;
+  const pageEndStep = pageStartStep + 16;
+  const totalSteps = loopBars * 16;
+
   return (
     <div className="step-sequencer">
+      {/* Page navigation and loop length selector */}
+      <div className="sequencer-header">
+        <div className="loop-bars-selector">
+          <span className="loop-bars-label">BARS</span>
+          <div className="loop-bars-buttons">
+            {([1, 2, 3, 4] as const).map((bars) => (
+              <button
+                key={bars}
+                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                onClick={() => onLoopBarsChange(bars)}
+              >
+                {bars}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="page-navigation">
+          <button
+            className="page-nav-btn"
+            onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+          >
+            ◀
+          </button>
+          <div className="page-dots">
+            {Array.from({ length: loopBars }, (_, i) => (
+              <button
+                key={i}
+                className={`page-dot ${i === currentPage ? 'active' : ''}`}
+                onClick={() => onPageChange(i)}
+              />
+            ))}
+          </div>
+          <button
+            className="page-nav-btn"
+            onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
+            disabled={currentPage >= loopBars - 1}
+          >
+            ▶
+          </button>
+        </div>
+      </div>
       <div className="step-grid">
         {tracks.map((track, trackIndex) => (
           <div
@@ -239,17 +294,21 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
               )}
             </button>
             <div className="step-buttons">
-              {track.steps.map((active, stepIndex) => (
-                <button
-                  key={stepIndex}
-                  className={`step-btn ${active ? 'active' : ''} ${
-                    stepIndex === currentStep ? 'current' : ''
-                  } ${stepIndex % 4 === 0 ? 'beat' : ''}`}
-                  onClick={() => onStepToggle(trackIndex, stepIndex)}
-                >
-                  <div className="step-led" />
-                </button>
-              ))}
+              {track.steps.slice(pageStartStep, pageEndStep).map((active, localStepIndex) => {
+                const globalStepIndex = pageStartStep + localStepIndex;
+                const isCurrentStep = globalStepIndex === (currentStep % totalSteps);
+                return (
+                  <button
+                    key={localStepIndex}
+                    className={`step-btn ${active ? 'active' : ''} ${
+                      isCurrentStep ? 'current' : ''
+                    } ${localStepIndex % 4 === 0 ? 'beat' : ''}`}
+                    onClick={() => onStepToggle(trackIndex, globalStepIndex)}
+                  >
+                    <div className="step-led" />
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}

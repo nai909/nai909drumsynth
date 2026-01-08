@@ -49,6 +49,8 @@ const ThemeSmiley: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   </button>
 );
 
+const MAX_STEPS = 64; // 4 bars of 16 steps
+
 const createInitialPattern = (): Pattern => {
   const tracks: DrumTrack[] = [
     {
@@ -56,8 +58,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Kick',
       type: 'analog',
       soundEngine: 'kick',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.8,
@@ -76,8 +78,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Snare',
       type: 'analog',
       soundEngine: 'snare',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.7,
@@ -96,8 +98,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Closed HH',
       type: 'analog',
       soundEngine: 'hihat-closed',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.6,
@@ -116,8 +118,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Open HH',
       type: 'analog',
       soundEngine: 'hihat-open',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.5,
@@ -136,8 +138,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Clap',
       type: 'analog',
       soundEngine: 'clap',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.7,
@@ -156,8 +158,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Tom Low',
       type: 'analog',
       soundEngine: 'tom-low',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.7,
@@ -176,8 +178,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Tom Mid',
       type: 'analog',
       soundEngine: 'tom-mid',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.7,
@@ -196,8 +198,8 @@ const createInitialPattern = (): Pattern => {
       name: 'Rimshot',
       type: 'analog',
       soundEngine: 'rimshot',
-      steps: new Array(16).fill(false),
-      velocity: new Array(16).fill(1),
+      steps: new Array(MAX_STEPS).fill(false),
+      velocity: new Array(MAX_STEPS).fill(1),
       muted: false,
       solo: false,
       volume: 0.7,
@@ -233,6 +235,8 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('pad');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [noteRepeatModifier, setNoteRepeatModifier] = useState<'normal' | 'dotted' | 'triplet'>('normal');
+  const [loopBars, setLoopBars] = useState<1 | 2 | 3 | 4>(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
@@ -337,8 +341,34 @@ const App: React.FC = () => {
     const newPattern = { ...pattern };
     newPattern.tracks = newPattern.tracks.map(track => ({
       ...track,
-      steps: new Array(16).fill(false),
+      steps: new Array(MAX_STEPS).fill(false),
     }));
+    setPattern(newPattern);
+  };
+
+  // Auto-advance page to follow playhead
+  useEffect(() => {
+    if (isPlaying) {
+      const totalSteps = loopBars * 16;
+      const stepInLoop = currentStep % totalSteps;
+      const targetPage = Math.floor(stepInLoop / 16);
+      if (targetPage !== currentPage && targetPage < loopBars) {
+        setCurrentPage(targetPage);
+      }
+    }
+  }, [currentStep, isPlaying, loopBars, currentPage]);
+
+  // Reset page if it exceeds loop length
+  useEffect(() => {
+    if (currentPage >= loopBars) {
+      setCurrentPage(0);
+    }
+  }, [loopBars, currentPage]);
+
+  const handleLoopBarsChange = (bars: 1 | 2 | 3 | 4) => {
+    setLoopBars(bars);
+    // Update pattern step count for sequencer
+    const newPattern = { ...pattern, steps: bars * 16 };
     setPattern(newPattern);
   };
 
@@ -494,6 +524,10 @@ const App: React.FC = () => {
                 onNoteRepeatModifierChange={setNoteRepeatModifier}
                 tempo={pattern.tempo}
                 onClearSequence={handleClearSequence}
+                loopBars={loopBars}
+                onLoopBarsChange={handleLoopBarsChange}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
               />
             )}
           </div>

@@ -253,6 +253,127 @@
   min-height: 0;
 }
 
+/* Sequencer Header - Page Navigation & Loop Bars */
+.sequencer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 4px;
+  gap: 12px;
+}
+
+.loop-bars-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loop-bars-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--accent-secondary);
+  text-transform: uppercase;
+}
+
+.loop-bars-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.loop-bars-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loop-bars-btn:hover {
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+}
+
+.loop-bars-btn.active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.page-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-nav-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: var(--accent-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent-border-hover);
+  background: var(--accent-bg-hover);
+}
+
+.page-nav-btn:active:not(:disabled) {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.page-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.page-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-dot:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.page-dot.active {
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
 /* Sequencer Footer */
 .sequencer-footer {
   display: flex;
@@ -434,6 +555,36 @@
     max-height: 100%;
     overflow: visible;
     padding: 8px;
+  }
+
+  .sequencer-header {
+    padding: 4px 2px;
+    gap: 8px;
+  }
+
+  .loop-bars-label {
+    font-size: 9px;
+  }
+
+  .loop-bars-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .page-nav-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .page-dots {
+    gap: 4px;
+  }
+
+  .page-dot {
+    width: 8px;
+    height: 8px;
   }
 
   .step-grid {
