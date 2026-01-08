@@ -102,6 +102,9 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
+  const keyboardRef = useRef<HTMLDivElement>(null);
+  const isMouseSliding = useRef(false); // track if mouse is sliding across keys
+  const lastSlideNote = useRef<string | null>(null); // last note triggered by sliding
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -145,7 +148,52 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     activeTouches.current.clear();
     keysToNotes.current.clear();
     mouseDownNote.current = null;
+    isMouseSliding.current = false;
+    lastSlideNote.current = null;
   }, [synth]);
+
+  // Get note from a point on screen (for slide functionality)
+  const getNoteFromPoint = useCallback((x: number, y: number): string | null => {
+    const element = document.elementFromPoint(x, y);
+    if (!element) return null;
+
+    // Check if it's a key element or inside one
+    const keyElement = element.closest('.key') as HTMLElement;
+    if (!keyElement) return null;
+
+    // Get note from data-note attribute
+    return keyElement.dataset.note || null;
+  }, []);
+
+  // Handle slide/glide across keys
+  const handleSlideMove = useCallback((x: number, y: number, touchId?: number) => {
+    const note = getNoteFromPoint(x, y);
+    if (!note) return;
+    if (!canPlayNote(note)) return;
+
+    // Check if this is a different note than what's currently playing
+    const currentNote = touchId !== undefined
+      ? activeTouches.current.get(touchId)
+      : lastSlideNote.current;
+
+    if (note !== currentNote) {
+      // Release the previous note
+      if (currentNote) {
+        if (touchId !== undefined) {
+          handleNoteOff(currentNote, touchId);
+        } else {
+          handleNoteOff(currentNote);
+        }
+      }
+      // Play the new note
+      if (touchId !== undefined) {
+        handleNoteOn(note, touchId);
+      } else {
+        lastSlideNote.current = note;
+        handleNoteOn(note);
+      }
+    }
+  }, [getNoteFromPoint, canPlayNote, handleNoteOn, handleNoteOff]);
 
   const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
     if (touchId !== undefined) {
@@ -186,6 +234,19 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
         mouseDownNote.current = null;
         handleNoteOff(note);
       }
+      // Release slide note
+      if (lastSlideNote.current) {
+        const note = lastSlideNote.current;
+        lastSlideNote.current = null;
+        handleNoteOff(note);
+      }
+      isMouseSliding.current = false;
+    };
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isMouseSliding.current) {
+        handleSlideMove(e.clientX, e.clientY);
+      }
     };
 
     const handleVisibilityChange = () => {
@@ -201,6 +262,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     window.addEventListener('touchend', handleGlobalTouchEnd);
     window.addEventListener('touchcancel', handleGlobalTouchEnd);
     window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
 
@@ -208,11 +270,12 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       window.removeEventListener('touchend', handleGlobalTouchEnd);
       window.removeEventListener('touchcancel', handleGlobalTouchEnd);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       releaseAllNotes();
     };
-  }, [handleNoteOff, releaseAllNotes]);
+  }, [handleNoteOff, releaseAllNotes, handleSlideMove]);
 
   // Computer keyboard support
   useEffect(() => {
@@ -512,29 +575,28 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
 
       {/* Keyboard */}
       <div className="keyboard-container">
-        <div className="keyboard">
+        <div
+          ref={keyboardRef}
+          className="keyboard"
+          onTouchMove={(e) => {
+            // Handle slide across keys
+            Array.from(e.touches).forEach((touch) => {
+              handleSlideMove(touch.clientX, touch.clientY, touch.identifier);
+            });
+          }}
+        >
           {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => {
             const playable = canPlayNote(noteObj.note);
             return (
               <div
                 key={noteObj.note}
+                data-note={noteObj.note}
                 className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 onMouseDown={() => {
                   if (!playable) return;
-                  mouseDownNote.current = noteObj.note;
+                  isMouseSliding.current = true;
+                  lastSlideNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
-                }}
-                onMouseUp={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
-                    handleNoteOff(noteObj.note);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
-                    handleNoteOff(noteObj.note);
-                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -545,12 +607,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 onTouchEnd={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  const note = activeTouches.current.get(touch.identifier);
+                  if (note) handleNoteOff(note, touch.identifier);
                 }}
                 onTouchCancel={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  const note = activeTouches.current.get(touch.identifier);
+                  if (note) handleNoteOff(note, touch.identifier);
                 }}
               >
                 <span className="key-label">{noteObj.note}</span>
@@ -571,24 +635,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
             return (
               <div
                 key={noteObj.note}
+                data-note={noteObj.note}
                 className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
                 onMouseDown={() => {
                   if (!playable) return;
-                  mouseDownNote.current = noteObj.note;
+                  isMouseSliding.current = true;
+                  lastSlideNote.current = noteObj.note;
                   handleNoteOn(noteObj.note);
-                }}
-                onMouseUp={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
-                    handleNoteOff(noteObj.note);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
-                    handleNoteOff(noteObj.note);
-                  }
                 }}
                 onTouchStart={(e) => {
                   e.preventDefault();
@@ -599,12 +653,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 onTouchEnd={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  const note = activeTouches.current.get(touch.identifier);
+                  if (note) handleNoteOff(note, touch.identifier);
                 }}
                 onTouchCancel={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  const note = activeTouches.current.get(touch.identifier);
+                  if (note) handleNoteOff(note, touch.identifier);
                 }}
               />
             );

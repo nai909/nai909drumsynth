@@ -51,6 +51,77 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   const touchedRef = useRef<boolean>(false);
   const repeatIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // trackIndex -> intervalId
 
+  // Slide/paint support for step grid
+  const isSliding = useRef<boolean>(false);
+  const slidePaintMode = useRef<boolean | null>(null); // true = paint on, false = paint off
+  const slidedSteps = useRef<Set<string>>(new Set()); // track which steps already toggled during this slide
+  const stepGridRef = useRef<HTMLDivElement>(null);
+
+  // Get step info from a point on screen
+  const getStepFromPoint = useCallback((x: number, y: number): { trackIndex: number; stepIndex: number } | null => {
+    const element = document.elementFromPoint(x, y);
+    if (!element) return null;
+
+    const stepBtn = element.closest('.step-btn') as HTMLElement;
+    if (!stepBtn) return null;
+
+    const trackIndex = parseInt(stepBtn.dataset.track || '-1');
+    const stepIndex = parseInt(stepBtn.dataset.step || '-1');
+
+    if (trackIndex >= 0 && stepIndex >= 0) {
+      return { trackIndex, stepIndex };
+    }
+    return null;
+  }, []);
+
+  // Handle slide move
+  const handleSlideMove = useCallback((x: number, y: number) => {
+    if (!isSliding.current) return;
+
+    const stepInfo = getStepFromPoint(x, y);
+    if (!stepInfo) return;
+
+    const stepKey = `${stepInfo.trackIndex}-${stepInfo.stepIndex}`;
+    if (slidedSteps.current.has(stepKey)) return; // Already toggled this step
+
+    slidedSteps.current.add(stepKey);
+
+    // If this is the first step in the slide, determine paint mode
+    if (slidePaintMode.current === null) {
+      const currentState = tracks[stepInfo.trackIndex].steps[stepInfo.stepIndex];
+      slidePaintMode.current = !currentState; // Will paint opposite of first step's state
+    }
+
+    // Only toggle if the step doesn't match paint mode
+    const currentState = tracks[stepInfo.trackIndex].steps[stepInfo.stepIndex];
+    if (currentState !== slidePaintMode.current) {
+      onStepToggle(stepInfo.trackIndex, stepInfo.stepIndex);
+    }
+  }, [getStepFromPoint, onStepToggle, tracks]);
+
+  // Global mouse handlers for step grid sliding
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isSliding.current) {
+        handleSlideMove(e.clientX, e.clientY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isSliding.current = false;
+      slidePaintMode.current = null;
+      slidedSteps.current.clear();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleSlideMove]);
+
   // Clean up intervals on unmount
   useEffect(() => {
     return () => {
@@ -275,7 +346,27 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
           </button>
         </div>
       </div>
-      <div className="step-grid">
+      <div
+        ref={stepGridRef}
+        className="step-grid"
+        onTouchMove={(e) => {
+          // Handle slide across steps on touch
+          if (isSliding.current) {
+            const touch = e.touches[0];
+            handleSlideMove(touch.clientX, touch.clientY);
+          }
+        }}
+        onTouchEnd={() => {
+          isSliding.current = false;
+          slidePaintMode.current = null;
+          slidedSteps.current.clear();
+        }}
+        onTouchCancel={() => {
+          isSliding.current = false;
+          slidePaintMode.current = null;
+          slidedSteps.current.clear();
+        }}
+      >
         {tracks.map((track, trackIndex) => (
           <div
             key={track.id}
@@ -300,10 +391,28 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
                 return (
                   <button
                     key={localStepIndex}
+                    data-track={trackIndex}
+                    data-step={globalStepIndex}
                     className={`step-btn ${active ? 'active' : ''} ${
                       isCurrentStep ? 'current' : ''
                     } ${localStepIndex % 4 === 0 ? 'beat' : ''}`}
-                    onClick={() => onStepToggle(trackIndex, globalStepIndex)}
+                    onMouseDown={() => {
+                      // Start sliding and toggle this step
+                      isSliding.current = true;
+                      slidePaintMode.current = !active; // Paint opposite of current state
+                      slidedSteps.current.clear();
+                      slidedSteps.current.add(`${trackIndex}-${globalStepIndex}`);
+                      onStepToggle(trackIndex, globalStepIndex);
+                    }}
+                    onTouchStart={(e) => {
+                      e.preventDefault();
+                      // Start sliding and toggle this step
+                      isSliding.current = true;
+                      slidePaintMode.current = !active;
+                      slidedSteps.current.clear();
+                      slidedSteps.current.add(`${trackIndex}-${globalStepIndex}`);
+                      onStepToggle(trackIndex, globalStepIndex);
+                    }}
                   >
                     <div className="step-led" />
                   </button>
