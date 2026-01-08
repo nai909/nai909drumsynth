@@ -526,19 +526,26 @@ export class MelodicSynth {
   }
 
   startRecording(tempo: number) {
+    console.log('=== START RECORDING ===');
+    console.log('Tempo:', tempo, 'Loop length:', this.loopLengthBars, 'bars');
+
     // Stop any current playback and clear previous recording
     this.stopPlayback();
     this.recordedNotes = [];
     this.pendingNotes.clear();
 
-    this.isRecording = true;
-    this.recordingStartTime = Tone.now();
     // Store tempo for time calculations
     (this as any)._recordingTempo = tempo;
+    this.recordingStartTime = Tone.now();
+
+    // Set recording flag AFTER clearing
+    this.isRecording = true;
+    console.log('isRecording set to:', this.isRecording);
 
     // Calculate loop duration and set auto-stop timer
     const secondsPerBar = (60 / tempo) * 4; // 4 beats per bar
     const loopDurationMs = this.loopLengthBars * secondsPerBar * 1000;
+    console.log('Loop duration:', loopDurationMs, 'ms');
 
     // Clear any existing timer
     if (this.recordingTimerId !== null) {
@@ -547,6 +554,7 @@ export class MelodicSynth {
 
     // Auto-stop when loop length is reached
     this.recordingTimerId = window.setTimeout(() => {
+      console.log('Auto-stop timer fired');
       this.stopRecording();
       if (this.onRecordingCompleteCallback) {
         this.onRecordingCompleteCallback();
@@ -626,9 +634,11 @@ export class MelodicSynth {
 
   // Called from noteOn when recording
   private recordNoteStart(note: string, velocity: number) {
+    console.log('recordNoteStart called, isRecording:', this.isRecording, 'note:', note);
     if (!this.isRecording) return;
     const position = this.getCurrentRecordPosition();
     this.pendingNotes.set(note, { velocity, startTime: position });
+    console.log('Note start recorded at position:', position);
   }
 
   // Called from noteOff when recording

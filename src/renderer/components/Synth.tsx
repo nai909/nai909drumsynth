@@ -127,12 +127,15 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
 
   // Recording controls
   const toggleRecording = useCallback(() => {
+    console.log('toggleRecording called, current isRecording:', isRecording);
     if (isRecording) {
+      console.log('Stopping recording...');
       synth.stopRecording();
       setIsRecording(false);
       setRecordingProgress(0);
       setHasRecordedNotes(synth.hasRecordedNotes());
     } else {
+      console.log('Starting recording with loopLength:', loopLength, 'tempo:', tempo);
       synth.setLoopLength(loopLength);
       synth.startRecording(tempo);
       setIsRecording(true);
@@ -141,10 +144,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
   }, [synth, isRecording, loopLength, tempo]);
 
   const togglePlayback = useCallback(async () => {
+    console.log('togglePlayback called, current isLoopPlaying:', isLoopPlaying);
+    console.log('hasRecordedNotes:', synth.hasRecordedNotes());
     if (isLoopPlaying) {
+      console.log('Stopping playback...');
       synth.stopPlayback();
       setIsLoopPlaying(false);
     } else {
+      console.log('Starting playback with tempo:', tempo);
       await synth.startPlayback(tempo);
       setIsLoopPlaying(true);
     }
