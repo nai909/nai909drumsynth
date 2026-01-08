@@ -46,7 +46,7 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   arpRate: 0.5,
   mono: true,
   // Effects defaults
-  reverbMix: 0,
+  reverbMix: 0.25,
   reverbDecay: 0.3,
   delayMix: 0,
   delayTime: 0.3,
