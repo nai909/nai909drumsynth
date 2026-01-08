@@ -4,6 +4,7 @@ import { DrumIcons } from './DrumIcons';
 import './StepSequencer.css';
 
 type NoteRepeatRate = 'off' | '1/2' | '1/4' | '1/8' | '1/16';
+type NoteRepeatModifier = 'normal' | 'dotted' | 'triplet';
 
 interface StepSequencerProps {
   tracks: DrumTrack[];
@@ -15,11 +16,14 @@ interface StepSequencerProps {
   onPadTrigger: (trackIndex: number, velocity?: number, time?: number) => void;
   noteRepeat: NoteRepeatRate;
   onNoteRepeatChange: (rate: NoteRepeatRate) => void;
+  noteRepeatModifier: NoteRepeatModifier;
+  onNoteRepeatModifierChange: (modifier: NoteRepeatModifier) => void;
   tempo: number;
   onClearSequence?: () => void;
 }
 
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
+const NOTE_REPEAT_MODIFIERS: NoteRepeatModifier[] = ['normal', 'dotted', 'triplet'];
 
 const StepSequencer: React.FC<StepSequencerProps> = ({
   tracks,
@@ -31,6 +35,8 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onPadTrigger,
   noteRepeat,
   onNoteRepeatChange,
+  noteRepeatModifier,
+  onNoteRepeatModifierChange,
   tempo,
   onClearSequence,
 }) => {
@@ -47,17 +53,25 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     };
   }, []);
 
-  // Calculate interval in ms from note value and tempo
+  // Calculate interval in ms from note value, tempo, and modifier
   const getRepeatIntervalMs = useCallback((rate: NoteRepeatRate): number => {
     const beatMs = 60000 / tempo; // ms per beat
+    let baseInterval: number;
     switch (rate) {
-      case '1/2': return beatMs * 2;
-      case '1/4': return beatMs;
-      case '1/8': return beatMs / 2;
-      case '1/16': return beatMs / 4;
-      default: return beatMs;
+      case '1/2': baseInterval = beatMs * 2; break;
+      case '1/4': baseInterval = beatMs; break;
+      case '1/8': baseInterval = beatMs / 2; break;
+      case '1/16': baseInterval = beatMs / 4; break;
+      default: baseInterval = beatMs;
     }
-  }, [tempo]);
+
+    // Apply modifier
+    switch (noteRepeatModifier) {
+      case 'dotted': return baseInterval * 1.5; // Dotted = 1.5x longer
+      case 'triplet': return baseInterval * (2/3); // Triplet = 2/3 duration (3 in space of 2)
+      default: return baseInterval;
+    }
+  }, [tempo, noteRepeatModifier]);
 
   const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
     // Stop any existing repeat for this specific pad
@@ -126,16 +140,30 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
             <span className="note-repeat-label">REPEAT</span>
             <span className="note-repeat-hint">(Hold Pad)</span>
           </div>
-          <div className="note-repeat-buttons">
-            {NOTE_REPEAT_RATES.map((rate) => (
-              <button
-                key={rate}
-                className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
-                onClick={() => onNoteRepeatChange(rate)}
-              >
-                {rate === 'off' ? 'OFF' : rate}
-              </button>
-            ))}
+          <div className="note-repeat-controls">
+            <div className="note-repeat-buttons">
+              {NOTE_REPEAT_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
+                  onClick={() => onNoteRepeatChange(rate)}
+                >
+                  {rate === 'off' ? 'OFF' : rate}
+                </button>
+              ))}
+            </div>
+            <div className="note-repeat-modifiers">
+              {NOTE_REPEAT_MODIFIERS.map((mod) => (
+                <button
+                  key={mod}
+                  className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
+                  onClick={() => onNoteRepeatModifierChange(mod)}
+                  disabled={noteRepeat === 'off'}
+                >
+                  {mod === 'normal' ? '•' : mod === 'dotted' ? '•.' : '3'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

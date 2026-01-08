@@ -37,9 +37,54 @@
   letter-spacing: 0.5px;
 }
 
+.note-repeat-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .note-repeat-buttons {
   display: flex;
   gap: 6px;
+}
+
+.note-repeat-modifiers {
+  display: flex;
+  gap: 4px;
+}
+
+.note-repeat-mod-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-repeat-mod-btn:hover:not(.disabled) {
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+}
+
+.note-repeat-mod-btn.active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.note-repeat-mod-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .note-repeat-btn {
