@@ -8,6 +8,7 @@ import StepSequencer from './components/StepSequencer';
 import Transport from './components/Transport';
 import TrackParams from './components/TrackParams';
 import Synth from './components/Synth';
+import SynthEffects from './components/SynthEffects';
 import SynthSequencer, { Step as SynthStep } from './components/SynthSequencer';
 import PsychedelicBackground from './components/PsychedelicBackground';
 import './styles/App.css';
@@ -229,7 +230,7 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState(0);
-  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
+  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('pad');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
@@ -331,6 +332,15 @@ const App: React.FC = () => {
     setPattern(newPattern);
   };
 
+  const handleClearSequence = () => {
+    const newPattern = { ...pattern };
+    newPattern.tracks = newPattern.tracks.map(track => ({
+      ...track,
+      steps: new Array(16).fill(false),
+    }));
+    setPattern(newPattern);
+  };
+
   const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8, scheduledTime?: number) => {
     if (!drumSynthRef.current) return;
     await drumSynthRef.current.init();
@@ -415,12 +425,20 @@ const App: React.FC = () => {
                   SEQUENCE
                 </button>
               </div>
-              <button
+              <div className="synth-toggle-group">
+                <button
                   className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
                   onClick={() => { setMode('synth'); setSynthMode('keys'); }}
                 >
                   SYNTH
                 </button>
+                <button
+                  className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
+                  onClick={() => setMode('effects')}
+                >
+                  EFFECTS
+                </button>
+              </div>
             </div>
             {mode === 'synth' ? (
               melodicSynthRef.current && (
@@ -442,6 +460,11 @@ const App: React.FC = () => {
                   />
                 )
               )
+            ) : mode === 'effects' ? (
+              <SynthEffects
+                params={synthParams}
+                onParamsChange={handleSynthParamsChange}
+              />
             ) : mode === 'params' ? (
               <TrackParams
                 track={pattern.tracks[selectedTrack]}
@@ -461,6 +484,7 @@ const App: React.FC = () => {
                 noteRepeat={noteRepeat}
                 onNoteRepeatChange={setNoteRepeat}
                 tempo={pattern.tempo}
+                onClearSequence={handleClearSequence}
               />
             )}
           </div>

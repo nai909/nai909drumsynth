@@ -17,6 +17,7 @@ interface StepSequencerProps {
   noteRepeat: NoteRepeatRate;
   onNoteRepeatChange: (rate: NoteRepeatRate) => void;
   tempo: number;
+  onClearSequence?: () => void;
 }
 
 // Get Tone.js note value for repeat rate
@@ -43,6 +44,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   noteRepeat,
   onNoteRepeatChange,
   tempo,
+  onClearSequence,
 }) => {
   const touchedRef = useRef<boolean>(false);
   const repeatEventsRef = useRef<Map<number, number>>(new Map()); // trackIndex -> eventId
@@ -71,23 +73,23 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
 
     const noteValue = getRepeatNoteValue(noteRepeat);
 
+    // Start Transport if not already running (needed for note repeat to work)
+    if (Tone.Transport.state !== 'started') {
+      Tone.Transport.start();
+    }
+
     // Use Tone.Transport.scheduleRepeat for precise timing synced to BPM
-    // Start after a short delay to avoid double-triggering with initial note
+    // Start after one full note value to avoid overlap with initial hit
     const eventId = Tone.Transport.scheduleRepeat(
       (time) => {
         // Trigger the pad at the scheduled time, passing the exact time for precise audio
         onPadTrigger(trackIndex, velocity, time);
       },
       noteValue,
-      '+0.05' // Start 50ms after initial trigger to avoid overlap
+      `+${noteValue}` // Start after one full note value for clean separation
     );
 
     repeatEventsRef.current.set(trackIndex, eventId);
-
-    // Start Transport if not already running (needed for note repeat to work)
-    if (Tone.Transport.state !== 'started') {
-      Tone.Transport.start();
-    }
   }, [noteRepeat, onPadTrigger]);
 
   const stopNoteRepeat = useCallback((trackIndex: number) => {
@@ -191,6 +193,13 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
 
   return (
     <div className="step-sequencer">
+      {onClearSequence && (
+        <div className="sequencer-toolbar">
+          <button className="clear-sequence-btn" onClick={onClearSequence}>
+            CLEAR
+          </button>
+        </div>
+      )}
       <div className="step-grid">
         {tracks.map((track, trackIndex) => (
           <div

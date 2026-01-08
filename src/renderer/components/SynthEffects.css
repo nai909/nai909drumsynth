@@ -1,0 +1,172 @@
+.synth-effects-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.effects-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+}
+
+.effect-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+}
+
+.effect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.effect-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-secondary);
+  text-transform: uppercase;
+}
+
+.effect-description {
+  font-size: 11px;
+  color: #666;
+  margin-top: -4px;
+}
+
+.effect-toggle {
+  padding: 6px 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.effect-toggle:hover {
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+}
+
+.effect-toggle.active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Knobs */
+.knob-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.effect-knob-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.effect-knob {
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.effect-knob .knob-body {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  border-radius: 50%;
+  border: 3px solid var(--accent-border);
+  position: relative;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.effect-knob:hover .knob-body {
+  border-color: var(--accent-border-hover);
+  box-shadow:
+    0 4px 12px var(--accent-glow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.effect-knob .knob-indicator {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 14px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.effect-knob-container .knob-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .synth-effects-container {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .effects-panel {
+    gap: 15px;
+    padding: 5px;
+  }
+
+  .effect-section {
+    padding: 15px;
+  }
+
+  .effect-label {
+    font-size: 12px;
+  }
+
+  .effect-knob {
+    width: 50px;
+    height: 50px;
+  }
+
+  .effect-knob .knob-indicator {
+    top: 6px;
+    width: 3px;
+    height: 12px;
+  }
+
+  .knob-row {
+    gap: 15px;
+  }
+}

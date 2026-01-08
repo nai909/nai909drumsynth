@@ -476,68 +476,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
           </div>
         </div>
 
-        {/* LFO (Wobble) */}
-        <div className="synth-section">
-          <div className="section-label">LFO</div>
-          <div className="lfo-controls">
-            <button
-              className={`lfo-toggle ${params.lfoEnabled ? 'active' : ''}`}
-              onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
-            >
-              {params.lfoEnabled ? 'ON' : 'OFF'}
-            </button>
-            <SynthKnob
-              label="RATE"
-              value={params.lfoRate}
-              onChange={(v) => handleParamChange('lfoRate', v)}
-            />
-            <SynthKnob
-              label="DEPTH"
-              value={params.lfoDepth}
-              onChange={(v) => handleParamChange('lfoDepth', v)}
-            />
-          </div>
-        </div>
-
-        {/* Reverb */}
-        <div className="synth-section">
-          <div className="section-label">REVERB</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="MIX"
-              value={params.reverbMix}
-              onChange={(v) => handleParamChange('reverbMix', v)}
-            />
-            <SynthKnob
-              label="DECAY"
-              value={params.reverbDecay}
-              onChange={(v) => handleParamChange('reverbDecay', v)}
-            />
-          </div>
-        </div>
-
-        {/* Delay */}
-        <div className="synth-section">
-          <div className="section-label">DELAY</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="MIX"
-              value={params.delayMix}
-              onChange={(v) => handleParamChange('delayMix', v)}
-            />
-            <SynthKnob
-              label="TIME"
-              value={params.delayTime}
-              onChange={(v) => handleParamChange('delayTime', v)}
-            />
-            <SynthKnob
-              label="FDBK"
-              value={params.delayFeedback}
-              onChange={(v) => handleParamChange('delayFeedback', v)}
-            />
-          </div>
-        </div>
-
         {/* Random - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="random-btn" onClick={randomizeParams}>
