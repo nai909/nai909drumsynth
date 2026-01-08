@@ -11,7 +11,10 @@
     "build": "npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "package": "electron-builder"
+    "package": "electron-builder",
+    "build:ios": "npm run build:renderer && npx cap sync ios",
+    "open:ios": "npx cap open ios",
+    "sync:ios": "npx cap sync ios"
   },
   "keywords": [
     "drum",
@@ -35,6 +38,9 @@
     "vite-plugin-electron": "^0.28.0"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tone": "^14.7.77"
