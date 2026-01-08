@@ -8,6 +8,7 @@ import StepSequencer from './components/StepSequencer';
 import Transport from './components/Transport';
 import TrackParams from './components/TrackParams';
 import Synth from './components/Synth';
+import SynthSequencer from './components/SynthSequencer';
 import PsychedelicBackground from './components/PsychedelicBackground';
 import './styles/App.css';
 
@@ -226,6 +227,7 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState(0);
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
+  const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
@@ -398,15 +400,33 @@ const App: React.FC = () => {
                   SEQUENCE
                 </button>
               </div>
-              <button
-                className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
-                onClick={() => setMode('synth')}
-              >
-                SYNTH
-              </button>
+              <div className="synth-toggle-group">
+                <button
+                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
+                  onClick={() => { setMode('synth'); setSynthMode('keys'); }}
+                >
+                  SYNTH
+                </button>
+                <button
+                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
+                  onClick={() => { setMode('synth'); setSynthMode('seq'); }}
+                >
+                  SYNTH SEQ
+                </button>
+              </div>
             </div>
             {mode === 'synth' ? (
-              melodicSynthRef.current && <Synth synth={melodicSynthRef.current} />
+              melodicSynthRef.current && (
+                synthMode === 'seq' ? (
+                  <SynthSequencer
+                    synth={melodicSynthRef.current}
+                    isPlaying={isPlaying}
+                    tempo={pattern.tempo}
+                  />
+                ) : (
+                  <Synth synth={melodicSynthRef.current} />
+                )
+              )
             ) : mode === 'params' ? (
               <TrackParams
                 track={pattern.tracks[selectedTrack]}
