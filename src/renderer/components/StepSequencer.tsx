@@ -72,13 +72,14 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     const noteValue = getRepeatNoteValue(noteRepeat);
 
     // Use Tone.Transport.scheduleRepeat for precise timing synced to BPM
+    // Start after a short delay to avoid double-triggering with initial note
     const eventId = Tone.Transport.scheduleRepeat(
       (time) => {
         // Trigger the pad at the scheduled time
         onPadTrigger(trackIndex, velocity);
       },
       noteValue,
-      Tone.Transport.immediate() // Start immediately
+      '+0.05' // Start 50ms after initial trigger to avoid overlap
     );
 
     repeatEventsRef.current.set(trackIndex, eventId);
@@ -109,9 +110,14 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
       }
     }
 
+    // Always play the initial note immediately
     onPadTrigger(trackIndex, velocity);
-    startNoteRepeat(trackIndex, velocity);
-  }, [onSelectTrack, onPadTrigger, startNoteRepeat]);
+
+    // Start note repeat if enabled (will handle subsequent triggers)
+    if (noteRepeat !== 'off') {
+      startNoteRepeat(trackIndex, velocity);
+    }
+  }, [onSelectTrack, onPadTrigger, startNoteRepeat, noteRepeat]);
 
   if (mode === 'pad') {
     return (
