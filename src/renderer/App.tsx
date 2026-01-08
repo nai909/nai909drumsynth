@@ -464,10 +464,13 @@ const App: React.FC = () => {
                 )
               )
             ) : mode === 'effects' ? (
-              <SynthEffects
-                params={synthParams}
-                onParamsChange={handleSynthParamsChange}
-              />
+              melodicSynthRef.current && (
+                <SynthEffects
+                  synth={melodicSynthRef.current}
+                  params={synthParams}
+                  onParamsChange={handleSynthParamsChange}
+                />
+              )
             ) : mode === 'params' ? (
               <TrackParams
                 track={pattern.tracks[selectedTrack]}

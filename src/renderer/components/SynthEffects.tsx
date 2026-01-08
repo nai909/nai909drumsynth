@@ -1,17 +1,36 @@
-import React, { useRef } from 'react';
-import { SynthParams } from '../audio/MelodicSynth';
+import React, { useRef, useCallback } from 'react';
+import { MelodicSynth, SynthParams } from '../audio/MelodicSynth';
 import './SynthEffects.css';
 
 interface SynthEffectsProps {
+  synth: MelodicSynth;
   params: SynthParams;
   onParamsChange: (params: SynthParams) => void;
 }
 
-const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) => {
+// Piano icon component
+const PianoIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+    <rect x="6" y="4" width="3" height="10" fill="currentColor"/>
+    <rect x="11" y="4" width="3" height="10" fill="currentColor"/>
+    <rect x="16" y="4" width="3" height="10" fill="currentColor"/>
+  </svg>
+);
+
+const SynthEffects: React.FC<SynthEffectsProps> = ({ synth, params, onParamsChange }) => {
   const handleParamChange = (param: keyof SynthParams, value: number | boolean) => {
     const newParams = { ...params, [param]: value };
     onParamsChange(newParams);
   };
+
+  // Play a test note to hear the effects
+  const playTestNote = useCallback(() => {
+    synth.noteOn('C4', 0.7);
+    setTimeout(() => {
+      synth.noteOff('C4');
+    }, 400);
+  }, [synth]);
 
   return (
     <div className="synth-effects-container">
@@ -20,6 +39,9 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
         <div className="effect-section">
           <div className="effect-header">
             <span className="effect-label">REVERB</span>
+            <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+              <PianoIcon className="effect-test-icon" />
+            </button>
           </div>
           <div className="effect-description">Adds space and atmosphere</div>
           <div className="knob-row">
@@ -40,6 +62,9 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
         <div className="effect-section">
           <div className="effect-header">
             <span className="effect-label">DELAY</span>
+            <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+              <PianoIcon className="effect-test-icon" />
+            </button>
           </div>
           <div className="effect-description">Echo and rhythmic repeats</div>
           <div className="knob-row">
@@ -65,12 +90,17 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
         <div className="effect-section">
           <div className="effect-header">
             <span className="effect-label">LFO</span>
-            <button
-              className={`effect-toggle ${params.lfoEnabled ? 'active' : ''}`}
-              onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
-            >
-              {params.lfoEnabled ? 'ON' : 'OFF'}
-            </button>
+            <div className="effect-header-buttons">
+              <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+                <PianoIcon className="effect-test-icon" />
+              </button>
+              <button
+                className={`effect-toggle ${params.lfoEnabled ? 'active' : ''}`}
+                onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
+              >
+                {params.lfoEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
           </div>
           <div className="effect-description">Modulates filter for wobble</div>
           <div className="knob-row">

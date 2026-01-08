@@ -34,6 +34,45 @@
   justify-content: space-between;
 }
 
+.effect-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.effect-test-btn {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--accent-border);
+  border-radius: 6px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.effect-test-btn:hover {
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+  background: var(--accent-bg-hover);
+}
+
+.effect-test-btn:active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(0.95);
+}
+
+.effect-test-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .effect-label {
   font-size: 14px;
   font-weight: 700;
