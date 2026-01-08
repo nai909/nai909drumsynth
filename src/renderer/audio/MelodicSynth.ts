@@ -526,9 +526,13 @@ export class MelodicSynth {
   }
 
   startRecording(tempo: number) {
+    // Stop any current playback and clear previous recording
+    this.stopPlayback();
+    this.recordedNotes = [];
+    this.pendingNotes.clear();
+
     this.isRecording = true;
     this.recordingStartTime = Tone.now();
-    this.pendingNotes.clear();
     // Store tempo for time calculations
     (this as any)._recordingTempo = tempo;
 
@@ -576,6 +580,9 @@ export class MelodicSynth {
       });
     });
     this.pendingNotes.clear();
+
+    console.log('Recording stopped. Total notes recorded:', this.recordedNotes.length);
+    console.log('Recorded notes:', this.recordedNotes);
   }
 
   isCurrentlyRecording(): boolean {
@@ -637,65 +644,82 @@ export class MelodicSynth {
       }
       duration = Math.max(0.01, duration);
 
-      this.recordedNotes.push({
+      const recordedNote = {
         note: note,
         velocity: noteData.velocity,
         startTime: noteData.startTime,
         duration,
-      });
+      };
+      this.recordedNotes.push(recordedNote);
       this.pendingNotes.delete(note);
+      console.log('Recorded note:', recordedNote);
     }
   }
 
   async startPlayback(tempo: number) {
-    if (this.recordedNotes.length === 0) return;
+    if (this.recordedNotes.length === 0) {
+      console.log('No recorded notes to play');
+      return;
+    }
+
+    console.log('Starting playback with', this.recordedNotes.length, 'notes');
 
     // Make sure synth is initialized
     await this.init();
 
+    // First stop any existing playback
     this.stopPlayback();
+
+    // Set playing state
     this.isPlaying = true;
 
     const secondsPerBar = (60 / tempo) * 4;
     const loopDuration = this.loopLengthBars * secondsPerBar;
 
     const scheduleLoop = () => {
+      if (!this.isPlaying) return;
+
+      console.log('Scheduling loop, notes:', this.recordedNotes.length);
+
       this.recordedNotes.forEach(recordedNote => {
         const startOffset = recordedNote.startTime * secondsPerBar;
-        const duration = recordedNote.duration * secondsPerBar;
+        const duration = Math.max(0.05, recordedNote.duration * secondsPerBar);
 
-        // Store scheduled event IDs so we can cancel them
-        const attackId = window.setTimeout(() => {
+        // Schedule note using triggerAttackRelease for reliability
+        const noteId = window.setTimeout(() => {
           if (this.isPlaying && this.synth) {
-            this.synth.triggerAttack(recordedNote.note, Tone.now(), recordedNote.velocity);
+            console.log('Playing note:', recordedNote.note);
+            this.synth.triggerAttackRelease(recordedNote.note, duration, Tone.now(), recordedNote.velocity);
             this.filterEnv.triggerAttack(Tone.now());
+            // Schedule filter release
+            setTimeout(() => {
+              if (this.filterEnv) {
+                this.filterEnv.triggerRelease(Tone.now());
+              }
+            }, duration * 1000);
           }
         }, startOffset * 1000);
-        this.scheduledEvents.push(attackId);
-
-        const releaseId = window.setTimeout(() => {
-          if (this.isPlaying && this.synth) {
-            this.synth.triggerRelease(recordedNote.note, Tone.now());
-          }
-        }, (startOffset + duration) * 1000);
-        this.scheduledEvents.push(releaseId);
+        this.scheduledEvents.push(noteId);
       });
 
-      // Schedule next loop
-      this.loopId = window.setTimeout(() => {
+      // Schedule next loop iteration
+      const loopTimerId = window.setTimeout(() => {
         if (this.isPlaying) {
           scheduleLoop();
         }
       }, loopDuration * 1000);
+      this.scheduledEvents.push(loopTimerId);
     };
 
+    // Start first loop immediately
     scheduleLoop();
   }
 
   stopPlayback() {
+    console.log('Stopping playback');
     this.isPlaying = false;
 
-    // Cancel all scheduled note events
+    // Cancel all scheduled events
     this.scheduledEvents.forEach(id => clearTimeout(id));
     this.scheduledEvents = [];
 
@@ -703,8 +727,11 @@ export class MelodicSynth {
       clearTimeout(this.loopId);
       this.loopId = null;
     }
+
     // Release any playing notes
-    this.synth?.releaseAll();
+    if (this.synth) {
+      this.synth.releaseAll();
+    }
   }
 
   dispose() {
