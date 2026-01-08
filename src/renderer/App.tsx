@@ -230,6 +230,7 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTrack, setSelectedTrack] = useState(0);
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
+  const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
@@ -456,6 +457,9 @@ const App: React.FC = () => {
                 onSelectTrack={setSelectedTrack}
                 mode={mode === 'pad' ? 'pad' : 'sequencer'}
                 onPadTrigger={handlePadTrigger}
+                noteRepeat={noteRepeat}
+                onNoteRepeatChange={setNoteRepeat}
+                tempo={pattern.tempo}
               />
             )}
           </div>

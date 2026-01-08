@@ -1,7 +1,9 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { DrumTrack } from '../types';
 import { DrumIcons } from './DrumIcons';
 import './StepSequencer.css';
+
+type NoteRepeatRate = 'off' | '1/2' | '1/4' | '1/8' | '1/16';
 
 interface StepSequencerProps {
   tracks: DrumTrack[];
@@ -11,7 +13,25 @@ interface StepSequencerProps {
   onSelectTrack: (trackIndex: number) => void;
   mode: 'sequencer' | 'pad';
   onPadTrigger: (trackIndex: number, velocity?: number) => void;
+  noteRepeat: NoteRepeatRate;
+  onNoteRepeatChange: (rate: NoteRepeatRate) => void;
+  tempo: number;
 }
+
+// Calculate interval in ms for note repeat
+const getRepeatInterval = (rate: NoteRepeatRate, tempo: number): number => {
+  if (rate === 'off') return 0;
+  const beatMs = 60000 / tempo; // ms per beat
+  const divisions: { [key: string]: number } = {
+    '1/2': 2,
+    '1/4': 1,
+    '1/8': 0.5,
+    '1/16': 0.25,
+  };
+  return beatMs * divisions[rate];
+};
+
+const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
 
 const StepSequencer: React.FC<StepSequencerProps> = ({
   tracks,
@@ -21,8 +41,49 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onSelectTrack,
   mode,
   onPadTrigger,
+  noteRepeat,
+  onNoteRepeatChange,
+  tempo,
 }) => {
   const touchedRef = useRef<boolean>(false);
+  const repeatIntervalRef = useRef<number | null>(null);
+  const activeRepeatPad = useRef<number | null>(null);
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (repeatIntervalRef.current) {
+        clearInterval(repeatIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
+    // Stop any existing repeat
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+
+    if (noteRepeat === 'off') return;
+
+    activeRepeatPad.current = trackIndex;
+    const interval = getRepeatInterval(noteRepeat, tempo);
+
+    repeatIntervalRef.current = window.setInterval(() => {
+      if (activeRepeatPad.current === trackIndex) {
+        onPadTrigger(trackIndex, velocity);
+      }
+    }, interval);
+  }, [noteRepeat, tempo, onPadTrigger]);
+
+  const stopNoteRepeat = useCallback(() => {
+    if (repeatIntervalRef.current) {
+      clearInterval(repeatIntervalRef.current);
+      repeatIntervalRef.current = null;
+    }
+    activeRepeatPad.current = null;
+  }, []);
 
   const handlePadTrigger = useCallback((trackIndex: number, e?: React.TouchEvent) => {
     onSelectTrack(trackIndex);
@@ -38,42 +99,75 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     }
 
     onPadTrigger(trackIndex, velocity);
-  }, [onSelectTrack, onPadTrigger]);
+    startNoteRepeat(trackIndex, velocity);
+  }, [onSelectTrack, onPadTrigger, startNoteRepeat]);
 
   if (mode === 'pad') {
     return (
-      <div className="drum-pads">
-        {tracks.map((track, trackIndex) => (
-          <button
-            key={track.id}
-            className={`drum-pad ${trackIndex === selectedTrack ? 'selected' : ''}`}
-            onClick={() => {
-              // Only trigger on click if not touched (prevents double trigger on mobile)
-              if (!touchedRef.current) {
-                handlePadTrigger(trackIndex);
-              }
-              touchedRef.current = false;
-            }}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              touchedRef.current = true;
-              handlePadTrigger(trackIndex, e);
-            }}
-            onTouchEnd={() => {
-              // Reset after a short delay to allow click to be blocked
-              setTimeout(() => {
+      <div className="pad-mode-container">
+        {/* Note Repeat Selector */}
+        <div className="note-repeat-selector">
+          <span className="note-repeat-label">REPEAT</span>
+          <div className="note-repeat-buttons">
+            {NOTE_REPEAT_RATES.map((rate) => (
+              <button
+                key={rate}
+                className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
+                onClick={() => onNoteRepeatChange(rate)}
+              >
+                {rate === 'off' ? 'OFF' : rate}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="drum-pads">
+          {tracks.map((track, trackIndex) => (
+            <button
+              key={track.id}
+              className={`drum-pad ${trackIndex === selectedTrack ? 'selected' : ''}`}
+              onMouseDown={() => {
+                // Only trigger on mousedown if not touched (prevents double trigger on mobile)
+                if (!touchedRef.current) {
+                  handlePadTrigger(trackIndex);
+                }
+              }}
+              onMouseUp={() => {
+                if (!touchedRef.current) {
+                  stopNoteRepeat();
+                }
+              }}
+              onMouseLeave={() => {
+                if (!touchedRef.current) {
+                  stopNoteRepeat();
+                }
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                touchedRef.current = true;
+                handlePadTrigger(trackIndex, e);
+              }}
+              onTouchEnd={() => {
+                stopNoteRepeat();
+                // Reset after a short delay to allow click to be blocked
+                setTimeout(() => {
+                  touchedRef.current = false;
+                }, 100);
+              }}
+              onTouchCancel={() => {
+                stopNoteRepeat();
                 touchedRef.current = false;
-              }, 100);
-            }}
-          >
-            {DrumIcons[track.soundEngine] && (
-              <span className="drum-pad-icon">
-                {React.createElement(DrumIcons[track.soundEngine], { className: 'pad-icon-svg' })}
-              </span>
-            )}
-            <span className="drum-pad-name">{track.name}</span>
-          </button>
-        ))}
+              }}
+            >
+              {DrumIcons[track.soundEngine] && (
+                <span className="drum-pad-icon">
+                  {React.createElement(DrumIcons[track.soundEngine], { className: 'pad-icon-svg' })}
+                </span>
+              )}
+              <span className="drum-pad-name">{track.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
