@@ -8,7 +8,7 @@ import StepSequencer from './components/StepSequencer';
 import Transport from './components/Transport';
 import TrackParams from './components/TrackParams';
 import Synth from './components/Synth';
-import SynthSequencer from './components/SynthSequencer';
+import SynthSequencer, { Step as SynthStep } from './components/SynthSequencer';
 import PsychedelicBackground from './components/PsychedelicBackground';
 import './styles/App.css';
 
@@ -221,6 +221,9 @@ const createInitialPattern = (): Pattern => {
   };
 };
 
+const createInitialSynthSequence = (): SynthStep[] =>
+  Array.from({ length: 16 }, () => ({ active: false, note: 'C4' }));
+
 const App: React.FC = () => {
   const [pattern, setPattern] = useState<Pattern>(createInitialPattern());
   const [isPlaying, setIsPlaying] = useState(false);
@@ -228,6 +231,7 @@ const App: React.FC = () => {
   const [selectedTrack, setSelectedTrack] = useState(0);
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth'>('pad');
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
+  const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
@@ -422,6 +426,8 @@ const App: React.FC = () => {
                     synth={melodicSynthRef.current}
                     isPlaying={isPlaying}
                     tempo={pattern.tempo}
+                    steps={synthSequence}
+                    onStepsChange={setSynthSequence}
                   />
                 ) : (
                   <Synth synth={melodicSynthRef.current} />

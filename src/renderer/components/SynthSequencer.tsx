@@ -3,10 +3,17 @@ import * as Tone from 'tone';
 import { MelodicSynth, SynthParams, WaveformType, ArpMode, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
 import './SynthSequencer.css';
 
+export interface Step {
+  active: boolean;
+  note: string;
+}
+
 interface SynthSequencerProps {
   synth: MelodicSynth;
   isPlaying: boolean;
   tempo: number;
+  steps: Step[];
+  onStepsChange: (steps: Step[]) => void;
 }
 
 const NUM_STEPS = 16;
@@ -50,16 +57,8 @@ const getScaleNotes = (root: string, scale: string): string[] => {
   return scaleNotes;
 };
 
-interface Step {
-  active: boolean;
-  note: string;
-}
-
-const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo }) => {
+const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange }) => {
   const [params, setParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
-  const [steps, setSteps] = useState<Step[]>(() =>
-    Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' }))
-  );
   const [currentStep, setCurrentStep] = useState(-1);
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('pentatonic');
@@ -71,16 +70,14 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
 
   // Toggle step on/off
   const toggleStep = (index: number) => {
-    setSteps(prev => {
-      const newSteps = [...prev];
-      newSteps[index] = { ...newSteps[index], active: !newSteps[index].active };
-      if (newSteps[index].active) {
-        // Play preview
-        synth.noteOn(newSteps[index].note, 0.8);
-        setTimeout(() => synth.noteOff(newSteps[index].note), 150);
-      }
-      return newSteps;
-    });
+    const newSteps = [...steps];
+    newSteps[index] = { ...newSteps[index], active: !newSteps[index].active };
+    if (newSteps[index].active) {
+      // Play preview
+      synth.noteOn(newSteps[index].note, 0.8);
+      setTimeout(() => synth.noteOff(newSteps[index].note), 150);
+    }
+    onStepsChange(newSteps);
   };
 
   // Change note pitch via drag
@@ -91,14 +88,12 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
     const newIndex = Math.max(0, Math.min(scaleNotes.length - 1, startIndex + noteSteps));
     const newNote = scaleNotes[newIndex];
 
-    setSteps(prev => {
-      const newSteps = [...prev];
-      if (newSteps[index].note !== newNote) {
-        newSteps[index] = { ...newSteps[index], note: newNote };
-      }
-      return newSteps;
-    });
-  }, [scaleNotes]);
+    if (steps[index].note !== newNote) {
+      const newSteps = [...steps];
+      newSteps[index] = { ...newSteps[index], note: newNote };
+      onStepsChange(newSteps);
+    }
+  }, [scaleNotes, steps, onStepsChange]);
 
   // Handle synth param changes
   const handleParamChange = (param: keyof SynthParams, value: number | WaveformType | ArpMode) => {
@@ -113,7 +108,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       active: Math.random() < 0.5,
       note: scaleNotes[Math.floor(Math.random() * Math.min(scaleNotes.length, 24)) + Math.floor(scaleNotes.length / 4)],
     }));
-    setSteps(newSteps);
+    onStepsChange(newSteps);
   };
 
   // Randomize synth params
@@ -140,12 +135,12 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
 
   // Clear sequence
   const clearSequence = () => {
-    setSteps(Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' })));
+    onStepsChange(Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' })));
   };
 
   // Snap existing notes to new scale
   useEffect(() => {
-    setSteps(prev => prev.map(step => {
+    const snappedSteps = steps.map(step => {
       if (!step.active) return step;
       // Find closest note in new scale
       const currentIndex = ALL_NOTES.indexOf(step.note);
@@ -159,8 +154,12 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         }
       });
       return { ...step, note: closestNote };
-    }));
-  }, [scaleRoot, scaleType]);
+    });
+    // Only update if something changed
+    if (JSON.stringify(snappedSteps) !== JSON.stringify(steps)) {
+      onStepsChange(snappedSteps);
+    }
+  }, [scaleRoot, scaleType, scaleNotes]);
 
   // Sequencer playback
   useEffect(() => {
