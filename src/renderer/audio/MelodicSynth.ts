@@ -129,10 +129,10 @@ export class MelodicSynth {
     // LFO gain scales the depth of modulation
     this.lfoGain = new Tone.Gain(0);
 
-    // Wet/dry mixing gains
-    this.dryGain = new Tone.Gain(1);
-    this.reverbWet = new Tone.Gain(0);
-    this.delayWet = new Tone.Gain(0);
+    // Wet/dry mixing gains - use defaults so reverb is on from start
+    this.dryGain = new Tone.Gain(1 - this.params.reverbMix * 0.5);
+    this.reverbWet = new Tone.Gain(this.params.reverbMix);
+    this.delayWet = new Tone.Gain(this.params.delayMix);
 
     // Connect the audio chain
     // synth -> gain -> filter -> dry path + effects -> analyser -> master

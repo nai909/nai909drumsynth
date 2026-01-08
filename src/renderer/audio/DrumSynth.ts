@@ -9,12 +9,12 @@ export class DrumSynth {
   private initialized: boolean = false;
 
   constructor() {
-    // Master gain for internal mixing (keeps headroom)
-    this.masterGain = new Tone.Gain(0.8);
-    // Output gain for user-controlled volume boost (can go up to 2x)
-    this.outputGain = new Tone.Gain(1.0);
-    // Limiter prevents clipping/distortion when output is cranked up
-    this.limiter = new Tone.Limiter(-1);
+    // Master gain for internal mixing - boosted for fuller sound
+    this.masterGain = new Tone.Gain(1.2);
+    // Output gain for additional headroom
+    this.outputGain = new Tone.Gain(1.3);
+    // Limiter prevents clipping/distortion at high volumes
+    this.limiter = new Tone.Limiter(-0.5);
 
     this.masterGain.chain(this.outputGain, this.limiter, Tone.getDestination());
   }
