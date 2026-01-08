@@ -46,43 +46,41 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   tempo,
 }) => {
   const touchedRef = useRef<boolean>(false);
-  const repeatIntervalRef = useRef<number | null>(null);
-  const activeRepeatPad = useRef<number | null>(null);
+  const repeatIntervalsRef = useRef<Map<number, number>>(new Map());
 
-  // Clean up interval on unmount
+  // Clean up intervals on unmount
   useEffect(() => {
     return () => {
-      if (repeatIntervalRef.current) {
-        clearInterval(repeatIntervalRef.current);
-      }
+      repeatIntervalsRef.current.forEach((intervalId) => {
+        clearInterval(intervalId);
+      });
+      repeatIntervalsRef.current.clear();
     };
   }, []);
 
   const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
-    // Stop any existing repeat
-    if (repeatIntervalRef.current) {
-      clearInterval(repeatIntervalRef.current);
-      repeatIntervalRef.current = null;
+    // Stop any existing repeat for this specific pad
+    if (repeatIntervalsRef.current.has(trackIndex)) {
+      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
+      repeatIntervalsRef.current.delete(trackIndex);
     }
 
     if (noteRepeat === 'off') return;
 
-    activeRepeatPad.current = trackIndex;
     const interval = getRepeatInterval(noteRepeat, tempo);
 
-    repeatIntervalRef.current = window.setInterval(() => {
-      if (activeRepeatPad.current === trackIndex) {
-        onPadTrigger(trackIndex, velocity);
-      }
+    const intervalId = window.setInterval(() => {
+      onPadTrigger(trackIndex, velocity);
     }, interval);
+
+    repeatIntervalsRef.current.set(trackIndex, intervalId);
   }, [noteRepeat, tempo, onPadTrigger]);
 
-  const stopNoteRepeat = useCallback(() => {
-    if (repeatIntervalRef.current) {
-      clearInterval(repeatIntervalRef.current);
-      repeatIntervalRef.current = null;
+  const stopNoteRepeat = useCallback((trackIndex: number) => {
+    if (repeatIntervalsRef.current.has(trackIndex)) {
+      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
+      repeatIntervalsRef.current.delete(trackIndex);
     }
-    activeRepeatPad.current = null;
   }, []);
 
   const handlePadTrigger = useCallback((trackIndex: number, e?: React.TouchEvent) => {
@@ -134,12 +132,12 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
               }}
               onMouseUp={() => {
                 if (!touchedRef.current) {
-                  stopNoteRepeat();
+                  stopNoteRepeat(trackIndex);
                 }
               }}
               onMouseLeave={() => {
                 if (!touchedRef.current) {
-                  stopNoteRepeat();
+                  stopNoteRepeat(trackIndex);
                 }
               }}
               onTouchStart={(e) => {
@@ -148,14 +146,14 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
                 handlePadTrigger(trackIndex, e);
               }}
               onTouchEnd={() => {
-                stopNoteRepeat();
+                stopNoteRepeat(trackIndex);
                 // Reset after a short delay to allow click to be blocked
                 setTimeout(() => {
                   touchedRef.current = false;
                 }, 100);
               }}
               onTouchCancel={() => {
-                stopNoteRepeat();
+                stopNoteRepeat(trackIndex);
                 touchedRef.current = false;
               }}
             >
