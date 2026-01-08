@@ -93,17 +93,17 @@ export class MelodicSynth {
   private arpDirection: 1 | -1 = 1;
   private currentArpNote: string | null = null;
 
-  // Recording state
-  private isRecording: boolean = false;
-  private isPlaying: boolean = false;
-  private recordedNotes: RecordedNote[] = [];
-  private recordingStartTime: number = 0;
-  private loopLengthBars: number = 4;
-  private pendingNotes: Map<string, { velocity: number; startTime: number }> = new Map();
-  private scheduledEvents: number[] = [];
-  private loopId: number | null = null;
-  private recordingTimerId: number | null = null;
-  private onRecordingCompleteCallback: (() => void) | null = null;
+  // Recording state - simplified
+  private _isRecording: boolean = false;
+  private _isPlayingLoop: boolean = false;
+  private _recordedNotes: RecordedNote[] = [];
+  private _recordStartTime: number = 0;
+  private _loopBars: number = 4;
+  private _tempo: number = 120;
+  private _noteStartTimes: Map<string, number> = new Map();
+  private _playbackTimeouts: number[] = [];
+  private _recordTimeout: number | null = null;
+  private _onRecordDone: (() => void) | null = null;
 
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
@@ -516,232 +516,168 @@ export class MelodicSynth {
     return this.analyser.getValue() as Float32Array;
   }
 
-  // Recording methods
+  // Recording methods - simplified
   setLoopLength(bars: number) {
-    this.loopLengthBars = Math.max(1, Math.min(8, bars));
+    this._loopBars = Math.max(1, Math.min(8, bars));
   }
 
   getLoopLength(): number {
-    return this.loopLengthBars;
+    return this._loopBars;
   }
 
   startRecording(tempo: number) {
-    console.log('=== START RECORDING ===');
-    console.log('Tempo:', tempo, 'Loop length:', this.loopLengthBars, 'bars');
+    console.log('=== START RECORDING ===', { tempo, bars: this._loopBars });
 
-    // Stop any current playback and clear previous recording
+    // Stop playback and clear old recording
     this.stopPlayback();
-    this.recordedNotes = [];
-    this.pendingNotes.clear();
+    this._recordedNotes = [];
+    this._noteStartTimes.clear();
+    this._tempo = tempo;
+    this._recordStartTime = Date.now();
+    this._isRecording = true;
 
-    // Store tempo for time calculations
-    (this as any)._recordingTempo = tempo;
-    this.recordingStartTime = Tone.now();
+    // Clear existing timer
+    if (this._recordTimeout) clearTimeout(this._recordTimeout);
 
-    // Set recording flag AFTER clearing
-    this.isRecording = true;
-    console.log('isRecording set to:', this.isRecording);
+    // Calculate loop duration in ms
+    const msPerBar = (60000 / tempo) * 4;
+    const loopMs = this._loopBars * msPerBar;
+    console.log('Loop duration:', loopMs, 'ms');
 
-    // Calculate loop duration and set auto-stop timer
-    const secondsPerBar = (60 / tempo) * 4; // 4 beats per bar
-    const loopDurationMs = this.loopLengthBars * secondsPerBar * 1000;
-    console.log('Loop duration:', loopDurationMs, 'ms');
-
-    // Clear any existing timer
-    if (this.recordingTimerId !== null) {
-      clearTimeout(this.recordingTimerId);
-    }
-
-    // Auto-stop when loop length is reached
-    this.recordingTimerId = window.setTimeout(() => {
-      console.log('Auto-stop timer fired');
-      this.stopRecording();
-      if (this.onRecordingCompleteCallback) {
-        this.onRecordingCompleteCallback();
-      }
-    }, loopDurationMs);
+    // Auto-stop after loop duration
+    this._recordTimeout = window.setTimeout(() => {
+      console.log('Recording auto-stop');
+      this._isRecording = false;
+      if (this._onRecordDone) this._onRecordDone();
+    }, loopMs);
   }
 
-  // Set callback for when recording auto-completes
   onRecordingComplete(callback: (() => void) | null) {
-    this.onRecordingCompleteCallback = callback;
+    this._onRecordDone = callback;
   }
 
   stopRecording() {
-    this.isRecording = false;
-
-    // Clear auto-stop timer
-    if (this.recordingTimerId !== null) {
-      clearTimeout(this.recordingTimerId);
-      this.recordingTimerId = null;
+    console.log('stopRecording called');
+    this._isRecording = false;
+    if (this._recordTimeout) {
+      clearTimeout(this._recordTimeout);
+      this._recordTimeout = null;
     }
-
-    // Finish any pending notes
-    this.pendingNotes.forEach((noteData, note) => {
-      const endTime = this.getCurrentRecordPosition();
-      const duration = Math.max(0.01, endTime - noteData.startTime);
-      this.recordedNotes.push({
-        note,
-        velocity: noteData.velocity,
-        startTime: noteData.startTime,
-        duration,
-      });
+    // Finalize any held notes
+    this._noteStartTimes.forEach((startMs, note) => {
+      const duration = (Date.now() - startMs) / 1000;
+      const startTime = (startMs - this._recordStartTime) / 1000;
+      this._recordedNotes.push({ note, velocity: 0.8, startTime, duration: Math.max(0.05, duration) });
     });
-    this.pendingNotes.clear();
-
-    console.log('Recording stopped. Total notes recorded:', this.recordedNotes.length);
-    console.log('Recorded notes:', this.recordedNotes);
+    this._noteStartTimes.clear();
+    console.log('Recording stopped. Notes:', this._recordedNotes.length, this._recordedNotes);
   }
 
   isCurrentlyRecording(): boolean {
-    return this.isRecording;
+    return this._isRecording;
   }
 
   isCurrentlyPlaying(): boolean {
-    return this.isPlaying;
+    return this._isPlayingLoop;
   }
 
-  // Get recording progress as 0-1 (for progress bar)
   getRecordingProgress(): number {
-    if (!this.isRecording) return 0;
-    const tempo = (this as any)._recordingTempo || 120;
-    const secondsPerBar = (60 / tempo) * 4;
-    const loopDuration = this.loopLengthBars * secondsPerBar;
-    const elapsed = Tone.now() - this.recordingStartTime;
-    return Math.min(1, elapsed / loopDuration);
+    if (!this._isRecording) return 0;
+    const msPerBar = (60000 / this._tempo) * 4;
+    const loopMs = this._loopBars * msPerBar;
+    const elapsed = Date.now() - this._recordStartTime;
+    return Math.min(1, elapsed / loopMs);
   }
 
   clearRecording() {
     this.stopPlayback();
-    this.recordedNotes = [];
-    this.pendingNotes.clear();
+    this._recordedNotes = [];
+    this._noteStartTimes.clear();
   }
 
   getRecordedNotes(): RecordedNote[] {
-    return [...this.recordedNotes];
+    return [...this._recordedNotes];
   }
 
   hasRecordedNotes(): boolean {
-    return this.recordedNotes.length > 0;
+    return this._recordedNotes.length > 0;
   }
 
-  private getCurrentRecordPosition(): number {
-    const tempo = (this as any)._recordingTempo || 120;
-    const secondsPerBar = (60 / tempo) * 4; // 4 beats per bar
-    const elapsed = Tone.now() - this.recordingStartTime;
-    return (elapsed / secondsPerBar) % this.loopLengthBars;
-  }
-
-  // Called from noteOn when recording
+  // Called when a note is pressed during recording
   private recordNoteStart(note: string, velocity: number) {
-    console.log('recordNoteStart called, isRecording:', this.isRecording, 'note:', note);
-    if (!this.isRecording) return;
-    const position = this.getCurrentRecordPosition();
-    this.pendingNotes.set(note, { velocity, startTime: position });
-    console.log('Note start recorded at position:', position);
+    console.log('recordNoteStart', { note, isRecording: this._isRecording });
+    if (!this._isRecording) return;
+    this._noteStartTimes.set(note, Date.now());
   }
 
-  // Called from noteOff when recording
+  // Called when a note is released during recording
   private recordNoteEnd(note: string) {
-    if (!this.isRecording) return;
-    const noteData = this.pendingNotes.get(note);
-    if (noteData) {
-      const endTime = this.getCurrentRecordPosition();
-      let duration = endTime - noteData.startTime;
-      // Handle wrap-around
-      if (duration < 0) {
-        duration += this.loopLengthBars;
-      }
-      duration = Math.max(0.01, duration);
+    console.log('recordNoteEnd', { note, isRecording: this._isRecording });
+    if (!this._isRecording) return;
 
-      const recordedNote = {
-        note: note,
-        velocity: noteData.velocity,
-        startTime: noteData.startTime,
-        duration,
-      };
-      this.recordedNotes.push(recordedNote);
-      this.pendingNotes.delete(note);
-      console.log('Recorded note:', recordedNote);
+    const startMs = this._noteStartTimes.get(note);
+    if (startMs !== undefined) {
+      const startTime = (startMs - this._recordStartTime) / 1000; // seconds from loop start
+      const duration = Math.max(0.05, (Date.now() - startMs) / 1000); // duration in seconds
+
+      this._recordedNotes.push({
+        note,
+        velocity: 0.8,
+        startTime,
+        duration
+      });
+      this._noteStartTimes.delete(note);
+      console.log('Note recorded:', { note, startTime, duration });
     }
   }
 
   async startPlayback(tempo: number) {
-    if (this.recordedNotes.length === 0) {
-      console.log('No recorded notes to play');
+    console.log('startPlayback', { tempo, notes: this._recordedNotes.length });
+
+    if (this._recordedNotes.length === 0) {
+      console.log('No notes to play');
       return;
     }
 
-    console.log('Starting playback with', this.recordedNotes.length, 'notes');
-
-    // Make sure synth is initialized
     await this.init();
-
-    // First stop any existing playback
     this.stopPlayback();
+    this._isPlayingLoop = true;
 
-    // Set playing state
-    this.isPlaying = true;
+    const msPerBar = (60000 / tempo) * 4;
+    const loopMs = this._loopBars * msPerBar;
 
-    const secondsPerBar = (60 / tempo) * 4;
-    const loopDuration = this.loopLengthBars * secondsPerBar;
+    const playLoop = () => {
+      if (!this._isPlayingLoop) return;
+      console.log('Playing loop iteration');
 
-    const scheduleLoop = () => {
-      if (!this.isPlaying) return;
+      this._recordedNotes.forEach(note => {
+        const delayMs = note.startTime * 1000;
 
-      console.log('Scheduling loop, notes:', this.recordedNotes.length);
+        const id = window.setTimeout(() => {
+          if (!this._isPlayingLoop || !this.synth) return;
+          console.log('Triggering:', note.note);
+          this.synth.triggerAttackRelease(note.note, note.duration, Tone.now(), note.velocity);
+        }, delayMs);
 
-      this.recordedNotes.forEach(recordedNote => {
-        const startOffset = recordedNote.startTime * secondsPerBar;
-        const duration = Math.max(0.05, recordedNote.duration * secondsPerBar);
-
-        // Schedule note using triggerAttackRelease for reliability
-        const noteId = window.setTimeout(() => {
-          if (this.isPlaying && this.synth) {
-            console.log('Playing note:', recordedNote.note);
-            this.synth.triggerAttackRelease(recordedNote.note, duration, Tone.now(), recordedNote.velocity);
-            this.filterEnv.triggerAttack(Tone.now());
-            // Schedule filter release
-            setTimeout(() => {
-              if (this.filterEnv) {
-                this.filterEnv.triggerRelease(Tone.now());
-              }
-            }, duration * 1000);
-          }
-        }, startOffset * 1000);
-        this.scheduledEvents.push(noteId);
+        this._playbackTimeouts.push(id);
       });
 
-      // Schedule next loop iteration
-      const loopTimerId = window.setTimeout(() => {
-        if (this.isPlaying) {
-          scheduleLoop();
-        }
-      }, loopDuration * 1000);
-      this.scheduledEvents.push(loopTimerId);
+      // Schedule next loop
+      const loopId = window.setTimeout(() => {
+        if (this._isPlayingLoop) playLoop();
+      }, loopMs);
+      this._playbackTimeouts.push(loopId);
     };
 
-    // Start first loop immediately
-    scheduleLoop();
+    playLoop();
   }
 
   stopPlayback() {
-    console.log('Stopping playback');
-    this.isPlaying = false;
-
-    // Cancel all scheduled events
-    this.scheduledEvents.forEach(id => clearTimeout(id));
-    this.scheduledEvents = [];
-
-    if (this.loopId !== null) {
-      clearTimeout(this.loopId);
-      this.loopId = null;
-    }
-
-    // Release any playing notes
-    if (this.synth) {
-      this.synth.releaseAll();
-    }
+    console.log('stopPlayback');
+    this._isPlayingLoop = false;
+    this._playbackTimeouts.forEach(id => clearTimeout(id));
+    this._playbackTimeouts = [];
+    this.synth?.releaseAll();
   }
 
   dispose() {
