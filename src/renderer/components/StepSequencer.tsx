@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useEffect } from 'react';
+import * as Tone from 'tone';
 import { DrumTrack } from '../types';
 import { DrumIcons } from './DrumIcons';
 import './StepSequencer.css';
@@ -18,17 +19,15 @@ interface StepSequencerProps {
   tempo: number;
 }
 
-// Calculate interval in ms for note repeat
-const getRepeatInterval = (rate: NoteRepeatRate, tempo: number): number => {
-  if (rate === 'off') return 0;
-  const beatMs = 60000 / tempo; // ms per beat
-  const divisions: { [key: string]: number } = {
-    '1/2': 2,
-    '1/4': 1,
-    '1/8': 0.5,
-    '1/16': 0.25,
+// Get Tone.js note value for repeat rate
+const getRepeatNoteValue = (rate: NoteRepeatRate): string => {
+  const noteValues: { [key: string]: string } = {
+    '1/2': '2n',
+    '1/4': '4n',
+    '1/8': '8n',
+    '1/16': '16n',
   };
-  return beatMs * divisions[rate];
+  return noteValues[rate] || '8n';
 };
 
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
@@ -46,40 +45,54 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   tempo,
 }) => {
   const touchedRef = useRef<boolean>(false);
-  const repeatIntervalsRef = useRef<Map<number, number>>(new Map());
+  const repeatEventsRef = useRef<Map<number, number>>(new Map()); // trackIndex -> eventId
 
-  // Clean up intervals on unmount
+  // Clean up scheduled events on unmount
   useEffect(() => {
     return () => {
-      repeatIntervalsRef.current.forEach((intervalId) => {
-        clearInterval(intervalId);
+      repeatEventsRef.current.forEach((eventId) => {
+        Tone.Transport.clear(eventId);
       });
-      repeatIntervalsRef.current.clear();
+      repeatEventsRef.current.clear();
     };
   }, []);
 
-  const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
+  const startNoteRepeat = useCallback(async (trackIndex: number, velocity: number) => {
     // Stop any existing repeat for this specific pad
-    if (repeatIntervalsRef.current.has(trackIndex)) {
-      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
-      repeatIntervalsRef.current.delete(trackIndex);
+    if (repeatEventsRef.current.has(trackIndex)) {
+      Tone.Transport.clear(repeatEventsRef.current.get(trackIndex)!);
+      repeatEventsRef.current.delete(trackIndex);
     }
 
     if (noteRepeat === 'off') return;
 
-    const interval = getRepeatInterval(noteRepeat, tempo);
+    // Ensure audio context is started
+    await Tone.start();
 
-    const intervalId = window.setInterval(() => {
-      onPadTrigger(trackIndex, velocity);
-    }, interval);
+    const noteValue = getRepeatNoteValue(noteRepeat);
 
-    repeatIntervalsRef.current.set(trackIndex, intervalId);
-  }, [noteRepeat, tempo, onPadTrigger]);
+    // Use Tone.Transport.scheduleRepeat for precise timing synced to BPM
+    const eventId = Tone.Transport.scheduleRepeat(
+      (time) => {
+        // Trigger the pad at the scheduled time
+        onPadTrigger(trackIndex, velocity);
+      },
+      noteValue,
+      Tone.Transport.immediate() // Start immediately
+    );
+
+    repeatEventsRef.current.set(trackIndex, eventId);
+
+    // Start Transport if not already running (needed for note repeat to work)
+    if (Tone.Transport.state !== 'started') {
+      Tone.Transport.start();
+    }
+  }, [noteRepeat, onPadTrigger]);
 
   const stopNoteRepeat = useCallback((trackIndex: number) => {
-    if (repeatIntervalsRef.current.has(trackIndex)) {
-      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
-      repeatIntervalsRef.current.delete(trackIndex);
+    if (repeatEventsRef.current.has(trackIndex)) {
+      Tone.Transport.clear(repeatEventsRef.current.get(trackIndex)!);
+      repeatEventsRef.current.delete(trackIndex);
     }
   }, []);
 
