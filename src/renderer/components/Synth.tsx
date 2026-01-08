@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { MelodicSynth, SynthParams, WaveformType, ArpMode, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
+import { MelodicSynth, SynthParams, WaveformType, ArpMode } from '../audio/MelodicSynth';
 import WaveformVisualizer from './WaveformVisualizer';
 import './Synth.css';
 
@@ -99,8 +99,9 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
-  const keysPressed = useRef<Set<string>>(new Set());
+  const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
+  const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -136,6 +137,8 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     synth.releaseAll();
     setActiveNotes(new Set());
     activeTouches.current.clear();
+    keysToNotes.current.clear();
+    mouseDownNote.current = null;
   }, [synth]);
 
   const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
@@ -158,7 +161,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     });
   }, [synth]);
 
-  // Global touch end handler - catches any missed touch releases
+  // Global event handlers - catches any missed releases
   useEffect(() => {
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       // Check if any tracked touches are no longer active
@@ -168,6 +171,15 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
           handleNoteOff(note, touchId);
         }
       });
+    };
+
+    const handleGlobalMouseUp = () => {
+      // Release any note held by mouse when mouse is released anywhere
+      if (mouseDownNote.current) {
+        const note = mouseDownNote.current;
+        mouseDownNote.current = null;
+        handleNoteOff(note);
+      }
     };
 
     const handleVisibilityChange = () => {
@@ -182,12 +194,14 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
 
     window.addEventListener('touchend', handleGlobalTouchEnd);
     window.addEventListener('touchcancel', handleGlobalTouchEnd);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       window.removeEventListener('touchend', handleGlobalTouchEnd);
       window.removeEventListener('touchcancel', handleGlobalTouchEnd);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       releaseAllNotes();
@@ -210,17 +224,21 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
         return;
       }
 
-      if (keyMap[key] && !keysPressed.current.has(key)) {
-        keysPressed.current.add(key);
-        handleNoteOn(keyMap[key]);
+      // Only trigger if this key isn't already playing a note
+      if (keyMap[key] && !keysToNotes.current.has(key)) {
+        const note = keyMap[key];
+        keysToNotes.current.set(key, note); // Remember which note this key triggered
+        handleNoteOn(note);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (keyMap[key]) {
-        keysPressed.current.delete(key);
-        handleNoteOff(keyMap[key]);
+      // Release the note that was originally triggered by this key
+      const note = keysToNotes.current.get(key);
+      if (note) {
+        keysToNotes.current.delete(key);
+        handleNoteOff(note);
       }
     };
 
@@ -238,7 +256,7 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     onParamsChange(newParams);
   };
 
-  // Randomize all parameters (except output settings)
+  // Randomize all parameters (except output and effect settings)
   const randomizeParams = () => {
     const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
     const newParams: SynthParams = {
@@ -255,6 +273,16 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       arpMode: params.arpMode, // Keep current arp mode
       arpRate: params.arpRate, // Keep current arp rate
       mono: params.mono, // Keep current mono setting
+      // Keep current effect settings
+      reverbMix: params.reverbMix,
+      reverbDecay: params.reverbDecay,
+      delayMix: params.delayMix,
+      delayTime: params.delayTime,
+      delayFeedback: params.delayFeedback,
+      lfoRate: params.lfoRate,
+      lfoDepth: params.lfoDepth,
+      lfoEnabled: params.lfoEnabled,
+      lfoDestination: params.lfoDestination,
     };
     onParamsChange(newParams);
   };
@@ -448,6 +476,68 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
           </div>
         </div>
 
+        {/* LFO (Wobble) */}
+        <div className="synth-section">
+          <div className="section-label">LFO</div>
+          <div className="lfo-controls">
+            <button
+              className={`lfo-toggle ${params.lfoEnabled ? 'active' : ''}`}
+              onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
+            >
+              {params.lfoEnabled ? 'ON' : 'OFF'}
+            </button>
+            <SynthKnob
+              label="RATE"
+              value={params.lfoRate}
+              onChange={(v) => handleParamChange('lfoRate', v)}
+            />
+            <SynthKnob
+              label="DEPTH"
+              value={params.lfoDepth}
+              onChange={(v) => handleParamChange('lfoDepth', v)}
+            />
+          </div>
+        </div>
+
+        {/* Reverb */}
+        <div className="synth-section">
+          <div className="section-label">REVERB</div>
+          <div className="knob-row">
+            <SynthKnob
+              label="MIX"
+              value={params.reverbMix}
+              onChange={(v) => handleParamChange('reverbMix', v)}
+            />
+            <SynthKnob
+              label="DECAY"
+              value={params.reverbDecay}
+              onChange={(v) => handleParamChange('reverbDecay', v)}
+            />
+          </div>
+        </div>
+
+        {/* Delay */}
+        <div className="synth-section">
+          <div className="section-label">DELAY</div>
+          <div className="knob-row">
+            <SynthKnob
+              label="MIX"
+              value={params.delayMix}
+              onChange={(v) => handleParamChange('delayMix', v)}
+            />
+            <SynthKnob
+              label="TIME"
+              value={params.delayTime}
+              onChange={(v) => handleParamChange('delayTime', v)}
+            />
+            <SynthKnob
+              label="FDBK"
+              value={params.delayFeedback}
+              onChange={(v) => handleParamChange('delayFeedback', v)}
+            />
+          </div>
+        </div>
+
         {/* Random - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="random-btn" onClick={randomizeParams}>
@@ -490,9 +580,22 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
             <div
               key={noteObj.note}
               className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
-              onMouseDown={() => handleNoteOn(noteObj.note)}
-              onMouseUp={() => handleNoteOff(noteObj.note)}
-              onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
+              onMouseDown={() => {
+                mouseDownNote.current = noteObj.note;
+                handleNoteOn(noteObj.note);
+              }}
+              onMouseUp={() => {
+                if (mouseDownNote.current === noteObj.note) {
+                  mouseDownNote.current = null;
+                  handleNoteOff(noteObj.note);
+                }
+              }}
+              onMouseLeave={() => {
+                if (mouseDownNote.current === noteObj.note) {
+                  mouseDownNote.current = null;
+                  handleNoteOff(noteObj.note);
+                }
+              }}
               onTouchStart={(e) => {
                 e.preventDefault();
                 const touch = e.changedTouches[0];
@@ -527,9 +630,22 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
                 key={noteObj.note}
                 className={`key black-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''}`}
                 style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
-                onMouseDown={() => handleNoteOn(noteObj.note)}
-                onMouseUp={() => handleNoteOff(noteObj.note)}
-                onMouseLeave={() => activeNotes.has(noteObj.note) && handleNoteOff(noteObj.note)}
+                onMouseDown={() => {
+                  mouseDownNote.current = noteObj.note;
+                  handleNoteOn(noteObj.note);
+                }}
+                onMouseUp={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (mouseDownNote.current === noteObj.note) {
+                    mouseDownNote.current = null;
+                    handleNoteOff(noteObj.note);
+                  }
+                }}
                 onTouchStart={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];

@@ -331,12 +331,13 @@ const App: React.FC = () => {
     setPattern(newPattern);
   };
 
-  const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8) => {
+  const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8, scheduledTime?: number) => {
     if (!drumSynthRef.current) return;
     await drumSynthRef.current.init();
 
     const track = pattern.tracks[trackIndex];
-    const time = Tone.now();
+    // Use scheduled time if provided (for note repeat), otherwise use current time
+    const time = scheduledTime ?? Tone.now();
     const { volume, tune, decay, filterCutoff, pan, attack, tone, snap, filterResonance, drive } = track;
 
     // Combine track volume with touch velocity

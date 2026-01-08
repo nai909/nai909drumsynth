@@ -13,7 +13,7 @@ interface StepSequencerProps {
   onStepToggle: (trackIndex: number, stepIndex: number) => void;
   onSelectTrack: (trackIndex: number) => void;
   mode: 'sequencer' | 'pad';
-  onPadTrigger: (trackIndex: number, velocity?: number) => void;
+  onPadTrigger: (trackIndex: number, velocity?: number, time?: number) => void;
   noteRepeat: NoteRepeatRate;
   onNoteRepeatChange: (rate: NoteRepeatRate) => void;
   tempo: number;
@@ -75,8 +75,8 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     // Start after a short delay to avoid double-triggering with initial note
     const eventId = Tone.Transport.scheduleRepeat(
       (time) => {
-        // Trigger the pad at the scheduled time
-        onPadTrigger(trackIndex, velocity);
+        // Trigger the pad at the scheduled time, passing the exact time for precise audio
+        onPadTrigger(trackIndex, velocity, time);
       },
       noteValue,
       '+0.05' // Start 50ms after initial trigger to avoid overlap

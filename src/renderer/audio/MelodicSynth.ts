@@ -2,6 +2,7 @@ import * as Tone from 'tone';
 
 export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 export type ArpMode = 'off' | 'up' | 'down' | 'updown' | 'random';
+export type LfoDestination = 'filter' | 'pitch' | 'volume';
 
 export interface SynthParams {
   waveform: WaveformType;
@@ -17,6 +18,17 @@ export interface SynthParams {
   arpMode: ArpMode;
   arpRate: number; // 0-1, maps to different speeds
   mono: boolean; // true = monophonic, false = polyphonic
+  // Effects
+  reverbMix: number; // 0-1 wet/dry mix
+  reverbDecay: number; // 0-1 maps to 0.1-10 seconds
+  delayMix: number; // 0-1 wet/dry mix
+  delayTime: number; // 0-1 maps to 0.05-1 seconds
+  delayFeedback: number; // 0-1
+  // LFO for wobble
+  lfoRate: number; // 0-1 maps to 0.1-20 Hz
+  lfoDepth: number; // 0-1 amount of modulation
+  lfoEnabled: boolean;
+  lfoDestination: LfoDestination;
 }
 
 export const DEFAULT_SYNTH_PARAMS: SynthParams = {
@@ -33,6 +45,17 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   arpMode: 'off',
   arpRate: 0.5,
   mono: true,
+  // Effects defaults
+  reverbMix: 0,
+  reverbDecay: 0.3,
+  delayMix: 0,
+  delayTime: 0.3,
+  delayFeedback: 0.3,
+  // LFO defaults
+  lfoRate: 0.3,
+  lfoDepth: 0,
+  lfoEnabled: false,
+  lfoDestination: 'filter',
 };
 
 export class MelodicSynth {
@@ -45,6 +68,15 @@ export class MelodicSynth {
   private params: SynthParams;
   private initialized: boolean = false;
   private activeNotes: Set<string> = new Set();
+
+  // Effects
+  private reverb: Tone.Reverb;
+  private delay: Tone.FeedbackDelay;
+  private lfo: Tone.LFO;
+  private lfoGain: Tone.Gain; // Scales LFO output for filter modulation
+  private dryGain: Tone.Gain;
+  private reverbWet: Tone.Gain;
+  private delayWet: Tone.Gain;
 
   // Arpeggiator state
   private heldNotes: string[] = [];
@@ -74,12 +106,82 @@ export class MelodicSynth {
       octaves: this.params.filterEnvAmount * 4,
     });
 
+    // Create effects
+    this.reverb = new Tone.Reverb({
+      decay: this.getReverbDecay(),
+      wet: 1, // We control wet/dry with separate gains
+    });
+
+    this.delay = new Tone.FeedbackDelay({
+      delayTime: this.getDelayTime(),
+      feedback: this.params.delayFeedback,
+      wet: 1, // We control wet/dry with separate gains
+    });
+
+    // LFO for wobble bass - modulates filter cutoff
+    this.lfo = new Tone.LFO({
+      frequency: this.getLfoRate(),
+      min: 0,
+      max: 1,
+      type: 'sine',
+    });
+
+    // LFO gain scales the depth of modulation
+    this.lfoGain = new Tone.Gain(0);
+
+    // Wet/dry mixing gains
+    this.dryGain = new Tone.Gain(1);
+    this.reverbWet = new Tone.Gain(0);
+    this.delayWet = new Tone.Gain(0);
+
+    // Connect the audio chain
+    // synth -> gain -> filter -> dry path + effects -> analyser -> master
     this.filterEnv.connect(this.filter.frequency);
-    this.gain.chain(this.filter, this.analyser, this.masterGain);
+
+    // Dry path
+    this.gain.connect(this.filter);
+    this.filter.connect(this.dryGain);
+    this.dryGain.connect(this.analyser);
+
+    // Reverb path
+    this.filter.connect(this.reverb);
+    this.reverb.connect(this.reverbWet);
+    this.reverbWet.connect(this.analyser);
+
+    // Delay path
+    this.filter.connect(this.delay);
+    this.delay.connect(this.delayWet);
+    this.delayWet.connect(this.analyser);
+
+    this.analyser.connect(this.masterGain);
+
+    // LFO -> lfoGain -> filter frequency (for wobble)
+    this.lfo.connect(this.lfoGain);
+    this.lfoGain.connect(this.filter.frequency);
   }
 
   private getFilterFreq(): number {
     return Math.pow(this.params.filterCutoff, 2) * 18000 + 100;
+  }
+
+  private getReverbDecay(): number {
+    // Map 0-1 to 0.1-10 seconds
+    return 0.1 + this.params.reverbDecay * 9.9;
+  }
+
+  private getDelayTime(): number {
+    // Map 0-1 to 0.05-1 seconds
+    return 0.05 + this.params.delayTime * 0.95;
+  }
+
+  private getLfoRate(): number {
+    // Map 0-1 to 0.1-20 Hz (exponential for better feel)
+    return 0.1 * Math.pow(200, this.params.lfoRate);
+  }
+
+  private getLfoDepthFreq(): number {
+    // LFO modulation depth in Hz - up to 8000 Hz swing for wobble
+    return this.params.lfoDepth * 8000;
   }
 
   async init() {
@@ -176,6 +278,49 @@ export class MelodicSynth {
     if (params.arpRate !== undefined && this.params.arpMode !== 'off' && this.heldNotes.length > 0) {
       // Restart with new rate
       this.startArpeggiator();
+    }
+
+    // Effect parameters
+    if (params.reverbMix !== undefined) {
+      // Adjust dry/wet balance
+      this.reverbWet.gain.value = params.reverbMix;
+      this.dryGain.gain.value = 1 - Math.max(params.reverbMix, this.params.delayMix) * 0.5;
+    }
+
+    if (params.reverbDecay !== undefined) {
+      this.reverb.decay = this.getReverbDecay();
+    }
+
+    if (params.delayMix !== undefined) {
+      this.delayWet.gain.value = params.delayMix;
+      this.dryGain.gain.value = 1 - Math.max(this.params.reverbMix, params.delayMix) * 0.5;
+    }
+
+    if (params.delayTime !== undefined) {
+      this.delay.delayTime.value = this.getDelayTime();
+    }
+
+    if (params.delayFeedback !== undefined) {
+      this.delay.feedback.value = params.delayFeedback;
+    }
+
+    // LFO parameters
+    if (params.lfoRate !== undefined) {
+      this.lfo.frequency.value = this.getLfoRate();
+    }
+
+    if (params.lfoDepth !== undefined) {
+      this.lfoGain.gain.value = this.getLfoDepthFreq();
+    }
+
+    if (params.lfoEnabled !== undefined) {
+      if (params.lfoEnabled) {
+        this.lfo.start();
+        this.lfoGain.gain.value = this.getLfoDepthFreq();
+      } else {
+        this.lfo.stop();
+        this.lfoGain.gain.value = 0;
+      }
     }
   }
 
@@ -352,5 +497,12 @@ export class MelodicSynth {
     this.gain.dispose();
     this.masterGain.dispose();
     this.analyser.dispose();
+    this.reverb.dispose();
+    this.delay.dispose();
+    this.lfo.dispose();
+    this.lfoGain.dispose();
+    this.dryGain.dispose();
+    this.reverbWet.dispose();
+    this.delayWet.dispose();
   }
 }

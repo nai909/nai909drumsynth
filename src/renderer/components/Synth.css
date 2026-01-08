@@ -250,7 +250,8 @@
   justify-content: center;
 }
 
-.scale-toggle {
+.scale-toggle,
+.lfo-toggle {
   padding: 6px 12px;
   background: rgba(0, 0, 0, 0.4);
   border: 2px solid var(--accent-border);
@@ -263,16 +264,25 @@
   transition: all 0.2s;
 }
 
-.scale-toggle:hover {
+.scale-toggle:hover,
+.lfo-toggle:hover {
   border-color: var(--accent-border-hover);
   color: var(--accent-secondary);
 }
 
-.scale-toggle.active {
+.scale-toggle.active,
+.lfo-toggle.active {
   background: var(--accent-bg-active);
   border-color: var(--accent-primary);
   color: var(--accent-secondary);
   box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* LFO controls */
+.lfo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Random button */
