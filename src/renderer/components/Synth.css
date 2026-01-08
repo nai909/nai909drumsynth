@@ -336,6 +336,7 @@
 /* Mobile random button - hidden on desktop */
 .random-btn-mobile {
   display: none;
+  text-align: center;
 }
 
 .random-section-desktop {
