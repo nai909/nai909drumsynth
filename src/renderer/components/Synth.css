@@ -312,6 +312,11 @@
 .mutate-smiley {
   width: 22px;
   height: 28px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.random-section-desktop .mutate-smiley {
   margin-left: 0;
   margin-top: 6px;
 }
