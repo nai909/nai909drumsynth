@@ -38,6 +38,12 @@ export class Sequencer {
     return this.tempo;
   }
 
+  setSwing(swing: number) {
+    // Swing value from 0-1, where 0 is straight and 1 is maximum swing
+    Tone.Transport.swing = swing;
+    Tone.Transport.swingSubdivision = '16n'; // Apply swing to 16th notes
+  }
+
   private rebuild() {
     const wasPlaying = this.isPlaying;
 

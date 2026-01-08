@@ -215,3 +215,65 @@
     0 0 15px var(--accent-glow);
   text-shadow: 0 0 10px var(--accent-glow);
 }
+
+/* Swing Control */
+.swing-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.swing-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #888;
+  white-space: nowrap;
+}
+
+.swing-knob {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.swing-knob-body {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  border-radius: 50%;
+  border: 2px solid var(--accent-border);
+  position: relative;
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.swing-knob:hover .swing-knob-body {
+  border-color: var(--accent-border-hover);
+  box-shadow:
+    0 3px 8px var(--accent-glow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.05);
+}
+
+.swing-knob-indicator {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 10px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.swing-display {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  min-width: 40px;
+  text-align: center;
+}

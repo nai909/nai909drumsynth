@@ -63,7 +63,7 @@ const createInitialPattern = (): Pattern => {
       volume: 0.8,
       pan: 0,
       tune: 0,
-      decay: 0.4,
+      decay: 0,
       attack: 0.001,
       tone: 0.5,
       snap: 0.3,
@@ -233,6 +233,7 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('pad');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [noteRepeatModifier, setNoteRepeatModifier] = useState<'normal' | 'dotted' | 'triplet'>('normal');
+  const [swing, setSwing] = useState(0);
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
@@ -318,6 +319,13 @@ const App: React.FC = () => {
     setPattern({ ...pattern, tempo });
     if (sequencerRef.current) {
       sequencerRef.current.setTempo(tempo);
+    }
+  };
+
+  const handleSwingChange = (newSwing: number) => {
+    setSwing(newSwing);
+    if (sequencerRef.current) {
+      sequencerRef.current.setSwing(newSwing);
     }
   };
 
@@ -502,10 +510,12 @@ const App: React.FC = () => {
       <Transport
         isPlaying={isPlaying}
         tempo={pattern.tempo}
+        swing={swing}
         onPlay={handlePlay}
         onPause={handlePause}
         onStop={handleStop}
         onTempoChange={handleTempoChange}
+        onSwingChange={handleSwingChange}
       />
     </div>
   );
