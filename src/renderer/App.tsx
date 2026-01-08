@@ -193,9 +193,9 @@ const createInitialPattern = (): Pattern => {
     },
     {
       id: '8',
-      name: 'Tom High',
+      name: 'Rimshot',
       type: 'analog',
-      soundEngine: 'tom-high',
+      soundEngine: 'rimshot',
       steps: new Array(16).fill(false),
       velocity: new Array(16).fill(1),
       muted: false,
@@ -203,13 +203,13 @@ const createInitialPattern = (): Pattern => {
       volume: 0.7,
       pan: 0.3,
       tune: 0,
-      decay: 0.2,
+      decay: 0.1,
       attack: 0.001,
       tone: 0.5,
-      snap: 0.2,
-      filterCutoff: 0.8,
-      filterResonance: 0.15,
-      drive: 0,
+      snap: 0.5,
+      filterCutoff: 0.9,
+      filterResonance: 0.2,
+      drive: 0.1,
     },
   ];
 
@@ -377,6 +377,9 @@ const App: React.FC = () => {
         break;
       case 'tom-high':
         drumSynthRef.current.triggerTom(time, finalVelocity, 'F3', tune, decay, filterCutoff, pan, attack, tone, snap, filterResonance, drive);
+        break;
+      case 'rimshot':
+        drumSynthRef.current.triggerRimshot(time, finalVelocity, tune, decay, filterCutoff, pan, attack, tone, snap, filterResonance, drive);
         break;
     }
   };

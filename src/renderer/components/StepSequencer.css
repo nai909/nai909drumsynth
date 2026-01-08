@@ -211,13 +211,15 @@
 }
 
 .clear-sequence-btn:hover {
-  border-color: #ff4444;
-  color: #ff6666;
-  background: rgba(255, 68, 68, 0.1);
+  border-color: var(--accent-border-hover);
+  color: var(--accent-secondary);
+  background: var(--accent-bg-hover);
 }
 
 .clear-sequence-btn:active {
-  background: rgba(255, 68, 68, 0.2);
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
   transform: scale(0.98);
 }
 

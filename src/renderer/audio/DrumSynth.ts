@@ -430,6 +430,76 @@ export class DrumSynth {
     }
   }
 
+  triggerRimshot(time: number, velocity: number = 1, tune: number = 0, decay: number = 0.1, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
+    try {
+      // 808 rimshot: short, bright click with pitched sine body
+      const rimshotDecay = Math.max(0.03, decay * 0.15);
+
+      const disposables: any[] = [];
+
+      // Pitched body - short sine wave hit
+      const body = new Tone.Oscillator({
+        frequency: 350 + (tune * 100),
+        type: 'triangle',
+      });
+
+      const bodyEnv = new Tone.AmplitudeEnvelope({
+        attack: 0.001,
+        decay: rimshotDecay,
+        sustain: 0,
+        release: 0.01,
+      });
+
+      // High click/stick sound
+      const click = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: {
+          attack: 0.0005,
+          decay: 0.015 + (snap * 0.01),
+          sustain: 0,
+          release: 0.005,
+        },
+      });
+
+      // Highpass for the click to make it bright and snappy
+      const clickFilter = new Tone.Filter({
+        frequency: Math.max(4000, Math.min(10000, filterCutoff * 4000 + 4000)),
+        type: 'highpass',
+        Q: Math.max(0.5, Math.min(2, 1 + filterResonance)),
+      });
+
+      // Bandpass for body to keep it tight
+      const bodyFilter = new Tone.Filter({
+        frequency: Math.max(300, Math.min(800, 400 + (tone * 300))),
+        type: 'bandpass',
+        Q: 2,
+      });
+
+      const distortion = new Tone.Distortion(Math.max(0.05, Math.min(0.4, 0.1 + drive * 0.3)));
+      const panner = new Tone.Panner(Math.max(-1, Math.min(1, pan)));
+      const merger = new Tone.Gain(0.7);
+
+      body.connect(bodyEnv);
+      bodyEnv.connect(bodyFilter);
+      bodyFilter.connect(merger);
+      click.chain(clickFilter, merger);
+      merger.chain(distortion, panner, this.masterGain);
+
+      disposables.push(body, bodyEnv, bodyFilter, click, clickFilter, distortion, panner, merger);
+
+      body.start(time);
+      bodyEnv.triggerAttackRelease(rimshotDecay, time, Math.max(0.4, Math.min(1, velocity)));
+      click.triggerAttackRelease(0.02, time, Math.max(0.3, Math.min(0.8, velocity * 0.7)));
+
+      setTimeout(() => {
+        body.stop();
+        disposables.forEach(d => d.dispose());
+      }, 500);
+    } catch (error) {
+      console.error('Rimshot error:', error);
+    }
+  }
+
   triggerTom(time: number, velocity: number = 1, basePitch: string = 'G2', tune: number = 0, decay: number = 0.3, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
     try {
       const tom = new Tone.MembraneSynth({

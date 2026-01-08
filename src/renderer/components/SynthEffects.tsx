@@ -27,7 +27,7 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
               {params.lfoEnabled ? 'ON' : 'OFF'}
             </button>
           </div>
-          <div className="effect-description">Modulates filter for wobble bass</div>
+          <div className="effect-description">Modulates filter for wobble</div>
           <div className="knob-row">
             <EffectKnob
               label="RATE"

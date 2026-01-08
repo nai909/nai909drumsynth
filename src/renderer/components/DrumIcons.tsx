@@ -85,4 +85,15 @@ export const DrumIcons: Record<string, React.FC<{ className?: string }>> = {
       <text x="32" y="40" textAnchor="middle" fill="currentColor" fontSize="14" fontWeight="bold">H</text>
     </svg>
   ),
+  'rimshot': ({ className }) => (
+    <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Drum rim - top view */}
+      <ellipse cx="32" cy="32" rx="26" ry="20" stroke="currentColor" strokeWidth="3"/>
+      <ellipse cx="32" cy="32" rx="20" ry="14" stroke="currentColor" strokeWidth="2"/>
+      {/* Stick hitting the rim */}
+      <line x1="50" y1="8" x2="38" y2="24" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/>
+      {/* Impact lines */}
+      <path d="M44 20L52 16M46 26L54 24M40 18L46 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
 };
