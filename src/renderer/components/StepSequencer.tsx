@@ -396,17 +396,30 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
                     className={`step-btn ${active ? 'active' : ''} ${
                       isCurrentStep ? 'current' : ''
                     } ${localStepIndex % 4 === 0 ? 'beat' : ''}`}
+                    onClick={() => {
+                      // Simple click toggles the step
+                      if (!isSliding.current) {
+                        onStepToggle(trackIndex, globalStepIndex);
+                      }
+                    }}
                     onMouseDown={() => {
-                      // Start sliding and toggle this step
-                      isSliding.current = true;
-                      slidePaintMode.current = !active; // Paint opposite of current state
+                      // Prepare for potential slide
+                      isSliding.current = false; // Will be set true on mouse move
+                      slidePaintMode.current = !active;
                       slidedSteps.current.clear();
-                      slidedSteps.current.add(`${trackIndex}-${globalStepIndex}`);
-                      onStepToggle(trackIndex, globalStepIndex);
+                    }}
+                    onMouseMove={() => {
+                      // If mouse moves while down, start sliding
+                      if (!isSliding.current && slidePaintMode.current !== null) {
+                        isSliding.current = true;
+                        // Toggle this step as the first in the slide
+                        slidedSteps.current.add(`${trackIndex}-${globalStepIndex}`);
+                        onStepToggle(trackIndex, globalStepIndex);
+                      }
                     }}
                     onTouchStart={(e) => {
                       e.preventDefault();
-                      // Start sliding and toggle this step
+                      // Start sliding and toggle this step immediately for touch
                       isSliding.current = true;
                       slidePaintMode.current = !active;
                       slidedSteps.current.clear();

@@ -187,14 +187,8 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
 
     const note = getNoteFromPoint(x, y);
 
-    // If we moved off all keys, release current note
-    if (!note) {
-      if (currentMouseNote.current) {
-        handleNoteOff(currentMouseNote.current);
-        currentMouseNote.current = null;
-      }
-      return;
-    }
+    // If no note found, just keep playing current note (don't release)
+    if (!note) return;
 
     // Check if note is playable
     if (!canPlayNote(note)) return;
@@ -216,13 +210,8 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     const note = getNoteFromPoint(touch.clientX, touch.clientY);
     const currentNote = activeTouches.current.get(touch.identifier);
 
-    if (!note) {
-      // Moved off keys - release
-      if (currentNote) {
-        handleNoteOff(currentNote, touch.identifier);
-      }
-      return;
-    }
+    // If no note found, keep playing current note
+    if (!note) return;
 
     if (!canPlayNote(note)) return;
 
