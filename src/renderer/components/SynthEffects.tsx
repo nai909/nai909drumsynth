@@ -16,32 +16,6 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
   return (
     <div className="synth-effects-container">
       <div className="effects-panel">
-        {/* LFO (Wobble) */}
-        <div className="effect-section">
-          <div className="effect-header">
-            <span className="effect-label">LFO</span>
-            <button
-              className={`effect-toggle ${params.lfoEnabled ? 'active' : ''}`}
-              onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
-            >
-              {params.lfoEnabled ? 'ON' : 'OFF'}
-            </button>
-          </div>
-          <div className="effect-description">Modulates filter for wobble</div>
-          <div className="knob-row">
-            <EffectKnob
-              label="RATE"
-              value={params.lfoRate}
-              onChange={(v) => handleParamChange('lfoRate', v)}
-            />
-            <EffectKnob
-              label="DEPTH"
-              value={params.lfoDepth}
-              onChange={(v) => handleParamChange('lfoDepth', v)}
-            />
-          </div>
-        </div>
-
         {/* Reverb */}
         <div className="effect-section">
           <div className="effect-header">
@@ -83,6 +57,32 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ params, onParamsChange }) =
               label="FEEDBACK"
               value={params.delayFeedback}
               onChange={(v) => handleParamChange('delayFeedback', v)}
+            />
+          </div>
+        </div>
+
+        {/* LFO (Wobble) */}
+        <div className="effect-section">
+          <div className="effect-header">
+            <span className="effect-label">LFO</span>
+            <button
+              className={`effect-toggle ${params.lfoEnabled ? 'active' : ''}`}
+              onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
+            >
+              {params.lfoEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="effect-description">Modulates filter for wobble</div>
+          <div className="knob-row">
+            <EffectKnob
+              label="RATE"
+              value={params.lfoRate}
+              onChange={(v) => handleParamChange('lfoRate', v)}
+            />
+            <EffectKnob
+              label="DEPTH"
+              value={params.lfoDepth}
+              onChange={(v) => handleParamChange('lfoDepth', v)}
             />
           </div>
         </div>
