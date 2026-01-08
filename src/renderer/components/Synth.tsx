@@ -7,8 +7,6 @@ interface SynthProps {
   synth: MelodicSynth;
   params: SynthParams;
   onParamsChange: (params: SynthParams) => void;
-  tempo: number;
-  isTransportPlaying: boolean;
 }
 
 // Define keyboard notes
@@ -97,20 +95,13 @@ const getKeyMap = (baseOctave: number): { [key: string]: string } => ({
   'p': `D#${baseOctave + 1}`, ';': `E${baseOctave + 1}`, "'": `F${baseOctave + 1}`,
 });
 
-const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isTransportPlaying }) => {
+const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
-
-  // Recording state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isLoopPlaying, setIsLoopPlaying] = useState(false);
-  const [loopLength, setLoopLength] = useState(4);
-  const [hasRecordedNotes, setHasRecordedNotes] = useState(false);
-  const [recordingProgress, setRecordingProgress] = useState(0);
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -124,80 +115,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
     const noteName = note.replace(/\d+$/, ''); // Remove octave number
     return scaleNotes.has(noteName);
   };
-
-  // Recording controls
-  const toggleRecording = useCallback(() => {
-    console.log('toggleRecording called, current isRecording:', isRecording);
-    if (isRecording) {
-      console.log('Stopping recording...');
-      synth.stopRecording();
-      setIsRecording(false);
-      setRecordingProgress(0);
-      setHasRecordedNotes(synth.hasRecordedNotes());
-    } else {
-      console.log('Starting recording with loopLength:', loopLength, 'tempo:', tempo);
-      synth.setLoopLength(loopLength);
-      synth.startRecording(tempo);
-      setIsRecording(true);
-      setRecordingProgress(0);
-    }
-  }, [synth, isRecording, loopLength, tempo]);
-
-  const togglePlayback = useCallback(async () => {
-    console.log('togglePlayback called, current isLoopPlaying:', isLoopPlaying);
-    console.log('hasRecordedNotes:', synth.hasRecordedNotes());
-    if (isLoopPlaying) {
-      console.log('Stopping playback...');
-      synth.stopPlayback();
-      setIsLoopPlaying(false);
-    } else {
-      console.log('Starting playback with tempo:', tempo);
-      await synth.startPlayback(tempo);
-      setIsLoopPlaying(true);
-    }
-  }, [synth, isLoopPlaying, tempo]);
-
-  const clearRecording = useCallback(() => {
-    synth.clearRecording();
-    setHasRecordedNotes(false);
-    setIsLoopPlaying(false);
-  }, [synth]);
-
-  const handleLoopLengthChange = useCallback((bars: number) => {
-    setLoopLength(bars);
-    synth.setLoopLength(bars);
-  }, [synth]);
-
-  // Set up recording complete callback
-  useEffect(() => {
-    synth.onRecordingComplete(() => {
-      setIsRecording(false);
-      setRecordingProgress(0);
-      setHasRecordedNotes(synth.hasRecordedNotes());
-    });
-    return () => synth.onRecordingComplete(null);
-  }, [synth]);
-
-  // Sync playback state with synth and update recording progress
-  useEffect(() => {
-    const checkState = () => {
-      setIsLoopPlaying(synth.isCurrentlyPlaying());
-      setHasRecordedNotes(synth.hasRecordedNotes());
-      if (synth.isCurrentlyRecording()) {
-        setRecordingProgress(synth.getRecordingProgress());
-      }
-    };
-    const interval = setInterval(checkState, 50); // Faster updates for smooth progress
-    return () => clearInterval(interval);
-  }, [synth]);
-
-  // Stop playback when transport stops
-  useEffect(() => {
-    if (!isTransportPlaying && isLoopPlaying) {
-      synth.stopPlayback();
-      setIsLoopPlaying(false);
-    }
-  }, [isTransportPlaying, isLoopPlaying, synth]);
 
   // Check if a note can be played (either scale is off, or note is in scale)
   const canPlayNote = (note: string): boolean => {
@@ -387,20 +304,11 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
         {/* Output */}
         <div className="synth-section">
           <div className="section-label">OUTPUT</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="VOLUME"
-              value={params.volume}
-              onChange={(v) => handleParamChange('volume', v)}
-            />
-            <SynthKnob
-              label="PAN"
-              value={params.pan}
-              onChange={(v) => handleParamChange('pan', v)}
-              min={-1}
-              max={1}
-            />
-          </div>
+          <SynthKnob
+            label="VOLUME"
+            value={params.volume}
+            onChange={(v) => handleParamChange('volume', v)}
+          />
         </div>
 
         {/* Octave control */}
@@ -565,74 +473,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
               </>
             )}
           </div>
-        </div>
-
-        {/* Loop Recording */}
-        <div className="synth-section loop-section">
-          <div className="section-label">LOOP REC</div>
-          <div className="loop-controls">
-            <button
-              className={`loop-btn record-btn ${isRecording ? 'recording' : ''}`}
-              onClick={toggleRecording}
-              title={isRecording ? 'Stop Recording' : 'Start Recording'}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                <circle cx="12" cy="12" r="8" />
-              </svg>
-            </button>
-            <button
-              className={`loop-btn play-btn ${isLoopPlaying ? 'playing' : ''}`}
-              onClick={togglePlayback}
-              disabled={!hasRecordedNotes}
-              title={isLoopPlaying ? 'Stop Playback' : 'Play Loop'}
-            >
-              {isLoopPlaying ? (
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                  <rect x="6" y="4" width="4" height="16" />
-                  <rect x="14" y="4" width="4" height="16" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
-            </button>
-            <button
-              className="loop-btn clear-btn"
-              onClick={clearRecording}
-              disabled={!hasRecordedNotes && !isRecording}
-              title="Clear Recording"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <path d="M3 6h18M8 6V4h8v2M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-              </svg>
-            </button>
-            <select
-              className="loop-length-select"
-              value={loopLength}
-              onChange={(e) => handleLoopLengthChange(parseInt(e.target.value))}
-              disabled={isRecording}
-            >
-              {[1, 2, 4, 8].map((bars) => (
-                <option key={bars} value={bars}>
-                  {bars} BAR{bars > 1 ? 'S' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          {isRecording && (
-            <div className="recording-progress">
-              <div className="recording-progress-bar">
-                <div
-                  className="recording-progress-fill"
-                  style={{ width: `${recordingProgress * 100}%` }}
-                />
-              </div>
-              <span className="recording-progress-text">
-                {Math.ceil(recordingProgress * loopLength)}/{loopLength}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Random - desktop only, mobile version is below keyboard */}
