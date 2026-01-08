@@ -4,10 +4,19 @@ import { SynthEngine, DrumSynthParams } from '../types';
 export class DrumSynth {
   private synths: Map<string, any> = new Map();
   private masterGain: Tone.Gain;
+  private outputGain: Tone.Gain;
+  private limiter: Tone.Limiter;
   private initialized: boolean = false;
 
   constructor() {
-    this.masterGain = new Tone.Gain(0.8).toDestination();
+    // Master gain for internal mixing (keeps headroom)
+    this.masterGain = new Tone.Gain(0.8);
+    // Output gain for user-controlled volume boost (can go up to 2x)
+    this.outputGain = new Tone.Gain(1.0);
+    // Limiter prevents clipping/distortion when output is cranked up
+    this.limiter = new Tone.Limiter(-1);
+
+    this.masterGain.chain(this.outputGain, this.limiter, Tone.getDestination());
   }
 
   async init() {
@@ -38,19 +47,22 @@ export class DrumSynth {
       const pitchSweepTime = 0.04 + (snap * 0.03);
 
       // Main 808 body - pure sine sub bass
+      // Attack controls the punch - low attack = punchy, high attack = softer
+      const attackTime = Math.max(0.001, attack * 0.05);
+      const clickLevel = Math.max(0, 1 - attack * 0.8);
       const kick = new Tone.MembraneSynth({
         pitchDecay: pitchSweepTime,
         octaves: 4 + (tone * 2),
         oscillator: { type: 'sine' },
         envelope: {
-          attack: 0.001,
+          attack: attackTime,
           decay: kickDecay,
           sustain: decay > 0.5 ? 0.1 : 0, // Long 808s have slight sustain
           release: Math.max(0.05, decay * 0.3),
         },
       });
 
-      // Click/transient layer for attack
+      // Click/transient layer for attack - reduced by attack param (more attack = less click)
       const click = new Tone.MembraneSynth({
         pitchDecay: 0.02,
         octaves: 8,
@@ -91,7 +103,7 @@ export class DrumSynth {
       const clickPitch = Tone.Frequency(150 + (tune * 30));
 
       kick.triggerAttackRelease(basePitch, kickDecay + 0.1, time, Math.max(0.4, Math.min(1, velocity)));
-      click.triggerAttackRelease(clickPitch, 0.05, time, Math.max(0.2, Math.min(0.6, velocity * snap)));
+      click.triggerAttackRelease(clickPitch, 0.05, time, Math.max(0.2, Math.min(0.6, velocity * snap * clickLevel)));
 
       setTimeout(() => {
         kick.dispose();
@@ -111,6 +123,7 @@ export class DrumSynth {
     try {
       // Trap-style snare (Metro Boomin influence): hard-hitting, bright crack
       const snareDecay = Math.max(0.08, decay * 0.35);
+      const attackTime = Math.max(0.0005, attack * 0.03);
 
       const disposables: any[] = [];
 
@@ -120,7 +133,7 @@ export class DrumSynth {
         octaves: 3,
         oscillator: { type: 'sine' },
         envelope: {
-          attack: 0.0005,
+          attack: attackTime,
           decay: Math.max(0.04, decay * 0.15),
           sustain: 0,
           release: 0.01,
@@ -131,7 +144,7 @@ export class DrumSynth {
       const crack = new Tone.NoiseSynth({
         noise: { type: 'white' },
         envelope: {
-          attack: 0.0005,
+          attack: attackTime,
           decay: snareDecay,
           sustain: 0,
           release: 0.015,
@@ -202,6 +215,10 @@ export class DrumSynth {
         // Classic 909 open hi-hat: metallic shimmer with long sustain
         const openDecay = Math.max(0.3, decay * 2.5);
         const tuneMultiplier = 1 + (tune * 0.2);
+        const attackTime = Math.max(0.001, attack * 0.05);
+        // Snap controls the metallic vs noise balance
+        const metallicLevel = 0.1 + (snap * 0.15);
+        const noiseLevel = 0.4 - (snap * 0.15);
 
         const disposables: any[] = [];
 
@@ -215,13 +232,13 @@ export class DrumSynth {
           1127 * tuneMultiplier,
         ];
 
-        const oscGain = new Tone.Gain(0.15);
-        const noiseGain = new Tone.Gain(0.35);
+        const oscGain = new Tone.Gain(metallicLevel);
+        const noiseGain = new Tone.Gain(noiseLevel);
         const merger = new Tone.Gain(0.5);
 
         // Metallic oscillator envelope - longer for open hat
         const oscEnv = new Tone.AmplitudeEnvelope({
-          attack: 0.001,
+          attack: attackTime,
           decay: openDecay,
           sustain: 0.05,
           release: openDecay * 0.5,
@@ -246,7 +263,7 @@ export class DrumSynth {
         const noise = new Tone.NoiseSynth({
           noise: { type: 'white' },
           envelope: {
-            attack: 0.001,
+            attack: attackTime,
             decay: openDecay * 0.8,
             sustain: 0.02,
             release: openDecay * 0.3,
@@ -290,6 +307,10 @@ export class DrumSynth {
         // Closed hi-hat: tight and crispy
         const closedDecay = Math.max(0.02, decay * 0.25);
         const tuneMultiplier = 1 + (tune * 0.3);
+        const attackTime = Math.max(0.0005, attack * 0.02);
+        // Snap controls metallic vs noise balance
+        const metallicLevel = 0.15 + (snap * 0.2);
+        const noiseLevel = 0.5 - (snap * 0.15);
 
         const disposables: any[] = [];
 
@@ -297,7 +318,7 @@ export class DrumSynth {
         const noise = new Tone.NoiseSynth({
           noise: { type: 'white' },
           envelope: {
-            attack: 0.0005,
+            attack: attackTime,
             decay: closedDecay,
             sustain: 0,
             release: 0.005,
@@ -307,13 +328,13 @@ export class DrumSynth {
         // High-pitched oscillators for metallic shimmer
         const oscFreqs = [6000 * tuneMultiplier, 7500 * tuneMultiplier, 9000 * tuneMultiplier];
         const oscEnv = new Tone.AmplitudeEnvelope({
-          attack: 0.0005,
+          attack: attackTime,
           decay: closedDecay * 0.8,
           sustain: 0,
           release: 0.003,
         });
 
-        const oscGain = new Tone.Gain(0.25);
+        const oscGain = new Tone.Gain(metallicLevel);
         oscFreqs.forEach((freq) => {
           const osc = new Tone.Oscillator({ frequency: freq, type: 'square' });
           osc.connect(oscEnv);
@@ -324,10 +345,12 @@ export class DrumSynth {
         oscEnv.connect(oscGain);
         disposables.push(oscEnv, oscGain);
 
+        const noiseGain = new Tone.Gain(noiseLevel);
         const merger = new Tone.Gain(0.45);
-        noise.connect(merger);
+        noise.connect(noiseGain);
+        noiseGain.connect(merger);
         oscGain.connect(merger);
-        disposables.push(noise, merger);
+        disposables.push(noise, noiseGain, merger);
 
         const highpass = new Tone.Filter({
           frequency: Math.max(8000, Math.min(16000, filterCutoff * 6000 + 8000)),
@@ -366,8 +389,10 @@ export class DrumSynth {
     try {
       // 909-style clap: multiple layered noise bursts
       const burstCount = 4;
-      const burstSpacing = 0.012; // ~12ms between each burst
+      // Snap controls the tightness of the clap - high snap = tighter bursts
+      const burstSpacing = 0.018 - (snap * 0.012); // 6-18ms between each burst
       const tailDecay = Math.max(0.12, decay * 0.8);
+      const attackTime = Math.max(0.001, attack * 0.02);
 
       const disposables: any[] = [];
 
@@ -397,7 +422,7 @@ export class DrumSynth {
         const burst = new Tone.NoiseSynth({
           noise: { type: 'white' },
           envelope: {
-            attack: 0.001,
+            attack: attackTime,
             decay: 0.008 + (i * 0.002), // Each burst slightly longer
             sustain: 0,
             release: 0.005,
@@ -412,7 +437,7 @@ export class DrumSynth {
       const tail = new Tone.NoiseSynth({
         noise: { type: 'white' },
         envelope: {
-          attack: 0.001,
+          attack: attackTime,
           decay: tailDecay,
           sustain: 0,
           release: 0.05,
@@ -435,6 +460,7 @@ export class DrumSynth {
       // Classic 808 rimshot: tight "tic" with woody resonance
       // The 808 uses a bridged-T oscillator creating a damped sine around 200Hz
       const rimshotDecay = Math.max(0.015, 0.02 + decay * 0.03); // Very tight: 15-50ms
+      const attackTime = Math.max(0.0003, attack * 0.01);
 
       const disposables: any[] = [];
 
@@ -453,14 +479,14 @@ export class DrumSynth {
 
       // Sharp amplitude envelope - instant attack, fast decay
       const fundEnv = new Tone.AmplitudeEnvelope({
-        attack: 0.0003,
+        attack: attackTime,
         decay: rimshotDecay,
         sustain: 0,
         release: 0.008,
       });
 
       const harmEnv = new Tone.AmplitudeEnvelope({
-        attack: 0.0003,
+        attack: attackTime,
         decay: rimshotDecay * 0.7, // Harmonic decays faster
         sustain: 0,
         release: 0.005,
@@ -535,12 +561,17 @@ export class DrumSynth {
 
   triggerTom(time: number, velocity: number = 1, basePitch: string = 'G2', tune: number = 0, decay: number = 0.3, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
     try {
+      const attackTime = Math.max(0.001, attack * 0.03);
+      // Snap controls the pitch sweep amount - more snap = more pitch drop
+      const pitchDecayTime = Math.max(0.01, decay * 0.15) + (snap * 0.05);
+      const octaveRange = Math.max(1, 3 + (tone * 3) + (snap * 2));
+
       const tom = new Tone.MembraneSynth({
-        pitchDecay: Math.max(0.01, decay * 0.15),
-        octaves: Math.max(1, 3 + (tone * 3)),
+        pitchDecay: pitchDecayTime,
+        octaves: octaveRange,
         oscillator: { type: 'sine' },
         envelope: {
-          attack: 0.001,
+          attack: attackTime,
           decay: Math.max(0.1, decay),
           sustain: 0,
           release: 0.01,
@@ -574,11 +605,12 @@ export class DrumSynth {
 
   triggerFM(time: number, velocity: number = 1, basePitch: string = 'C3', tune: number = 0, decay: number = 0.2, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
     try {
+      const attackTime = Math.max(0.001, attack * 0.05);
       const fm = new Tone.FMSynth({
         harmonicity: Math.max(0.5, 3 + (tone * 5)),
         modulationIndex: Math.max(1, 10 + (snap * 15)),
         envelope: {
-          attack: 0.001,
+          attack: attackTime,
           decay: Math.max(0.05, decay),
           sustain: 0,
           release: 0.01,
@@ -587,7 +619,7 @@ export class DrumSynth {
           type: 'square',
         },
         modulationEnvelope: {
-          attack: 0.002,
+          attack: attackTime * 2,
           decay: Math.max(0.05, decay * 0.5),
           sustain: 0,
           release: 0.01,
@@ -623,9 +655,21 @@ export class DrumSynth {
     this.masterGain.gain.value = volume;
   }
 
+  // Set output gain (0-2 range, 1 = unity, 2 = +6dB boost)
+  // Limiter prevents distortion even at high levels
+  setOutputGain(gain: number) {
+    this.outputGain.gain.value = Math.max(0, Math.min(2, gain));
+  }
+
+  getOutputGain(): number {
+    return this.outputGain.gain.value;
+  }
+
   dispose() {
     this.synths.forEach(synth => synth.dispose());
     this.synths.clear();
     this.masterGain.dispose();
+    this.outputGain.dispose();
+    this.limiter.dispose();
   }
 }

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.manualslib.com)",
+      "WebFetch(domain:cdm.link)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:renderer:*)",
+      "Bash(npx cap add:*)",
+      "Bash(git add:*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}
