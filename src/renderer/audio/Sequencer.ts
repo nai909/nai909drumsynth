@@ -13,6 +13,8 @@ export class Sequencer {
 
   constructor(drumSynth: DrumSynth) {
     this.drumSynth = drumSynth;
+    // Configure Transport for reliable looping
+    Tone.Transport.loop = false; // We use Sequence's built-in looping
   }
 
   setPattern(pattern: Pattern) {
@@ -39,8 +41,15 @@ export class Sequencer {
   private rebuild() {
     const wasPlaying = this.isPlaying;
 
+    // Stop transport before rebuilding to prevent timing issues
+    if (wasPlaying) {
+      Tone.Transport.pause();
+    }
+
     if (this.sequence) {
+      this.sequence.stop();
       this.sequence.dispose();
+      this.sequence = null;
     }
 
     if (!this.pattern) return;
@@ -58,9 +67,15 @@ export class Sequencer {
       '16n'
     );
 
-    // Restart sequence if it was playing before rebuild
+    // Ensure sequence loops properly
+    this.sequence.loop = true;
+    this.sequence.loopStart = 0;
+    this.sequence.loopEnd = steps;
+
+    // Restart if it was playing before rebuild
     if (wasPlaying && this.sequence) {
       this.sequence.start(0);
+      Tone.Transport.start();
     }
   }
 
@@ -110,11 +125,25 @@ export class Sequencer {
 
     await this.drumSynth.init();
 
-    if (this.sequence) {
-      this.sequence.start(0);
+    // Check if we're resuming from pause or starting fresh
+    const transportState = Tone.Transport.state;
+
+    if (transportState === 'stopped') {
+      // Fresh start - reset position
+      Tone.Transport.position = 0;
+
+      if (this.sequence) {
+        this.sequence.stop();
+        this.sequence.start(0);
+      }
+
+      // Small delay to ensure sequence is scheduled before Transport starts
+      Tone.Transport.start('+0.01');
+    } else if (transportState === 'paused') {
+      // Resume from pause
+      Tone.Transport.start();
     }
 
-    Tone.Transport.start();
     this.isPlaying = true;
   }
 
@@ -124,7 +153,11 @@ export class Sequencer {
   }
 
   stop() {
+    if (this.sequence) {
+      this.sequence.stop();
+    }
     Tone.Transport.stop();
+    Tone.Transport.position = 0;
     this.currentStep = 0;
     this.isPlaying = false;
     this.notifyStepCallbacks(0);
