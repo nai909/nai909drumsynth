@@ -168,9 +168,10 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         (time, step) => {
           setCurrentStep(step);
           if (steps[step].active) {
-            synth.noteOn(steps[step].note, 0.8);
+            const noteToPlay = steps[step].note; // Capture note to avoid stale closure
+            synth.noteOn(noteToPlay, 0.8);
             Tone.getTransport().scheduleOnce(() => {
-              synth.noteOff(steps[step].note);
+              synth.noteOff(noteToPlay);
             }, time + Tone.Time('16n').toSeconds() * 0.8);
           }
         },
@@ -194,8 +195,16 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         sequencerRef.current.dispose();
         sequencerRef.current = null;
       }
+      synth.releaseAll();
     };
   }, [isPlaying, steps, synth]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      synth.releaseAll();
+    };
+  }, [synth]);
 
   // Update tempo
   useEffect(() => {
