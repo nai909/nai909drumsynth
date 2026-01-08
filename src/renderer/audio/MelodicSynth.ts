@@ -23,6 +23,7 @@ export interface SynthParams {
   filterEnvAmount: number;
   detune: number;
   volume: number;
+  pan: number; // -1 (left) to 1 (right)
   arpMode: ArpMode;
   arpRate: number; // 0-1, maps to different speeds
   mono: boolean; // true = monophonic, false = polyphonic
@@ -50,6 +51,7 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   filterEnvAmount: 0.5,
   detune: 0,
   volume: 0.7,
+  pan: 0,
   arpMode: 'off',
   arpRate: 0.5,
   mono: true,
@@ -85,6 +87,7 @@ export class MelodicSynth {
   private dryGain: Tone.Gain;
   private reverbWet: Tone.Gain;
   private delayWet: Tone.Gain;
+  private panner: Tone.Panner;
 
   // Arpeggiator state
   private heldNotes: string[] = [];
@@ -154,8 +157,11 @@ export class MelodicSynth {
     this.reverbWet = new Tone.Gain(this.params.reverbMix);
     this.delayWet = new Tone.Gain(this.params.delayMix);
 
+    // Panner for stereo positioning
+    this.panner = new Tone.Panner(this.params.pan);
+
     // Connect the audio chain
-    // synth -> gain -> filter -> dry path + effects -> analyser -> master
+    // synth -> gain -> filter -> dry path + effects -> analyser -> panner -> master
     this.filterEnv.connect(this.filter.frequency);
 
     // Dry path
@@ -173,7 +179,9 @@ export class MelodicSynth {
     this.delay.connect(this.delayWet);
     this.delayWet.connect(this.analyser);
 
-    this.analyser.connect(this.masterGain);
+    // Analyser -> Panner -> Master
+    this.analyser.connect(this.panner);
+    this.panner.connect(this.masterGain);
 
     // LFO -> lfoGain -> filter frequency (for wobble)
     this.lfo.connect(this.lfoGain);
@@ -284,6 +292,10 @@ export class MelodicSynth {
 
     if (params.volume !== undefined) {
       this.gain.gain.value = params.volume;
+    }
+
+    if (params.pan !== undefined) {
+      this.panner.pan.value = params.pan;
     }
 
     // Handle arpeggiator changes
@@ -707,5 +719,6 @@ export class MelodicSynth {
     this.dryGain.dispose();
     this.reverbWet.dispose();
     this.delayWet.dispose();
+    this.panner.dispose();
   }
 }

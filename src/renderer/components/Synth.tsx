@@ -358,8 +358,9 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
       filterCutoff: 0.2 + Math.random() * 0.8,
       filterResonance: Math.random() * 0.7,
       filterEnvAmount: Math.random(),
-      detune: params.detune, // Keep current output settings
+      detune: params.detune, // Keep current setting
       volume: params.volume, // Keep current output settings
+      pan: params.pan, // Keep current output settings
       arpMode: params.arpMode, // Keep current arp mode
       arpRate: params.arpRate, // Keep current arp rate
       mono: params.mono, // Keep current mono setting
@@ -393,9 +394,9 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange, tempo, isT
               onChange={(v) => handleParamChange('volume', v)}
             />
             <SynthKnob
-              label="DETUNE"
-              value={params.detune}
-              onChange={(v) => handleParamChange('detune', v)}
+              label="PAN"
+              value={params.pan}
+              onChange={(v) => handleParamChange('pan', v)}
               min={-1}
               max={1}
             />
