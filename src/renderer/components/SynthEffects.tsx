@@ -91,14 +91,14 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ synth, params, onParamsChan
           <div className="effect-header">
             <span className="effect-label">LFO</span>
             <div className="effect-header-buttons">
-              <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
-                <PianoIcon className="effect-test-icon" />
-              </button>
               <button
                 className={`effect-toggle ${params.lfoEnabled ? 'active' : ''}`}
                 onClick={() => handleParamChange('lfoEnabled', !params.lfoEnabled)}
               >
                 {params.lfoEnabled ? 'ON' : 'OFF'}
+              </button>
+              <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+                <PianoIcon className="effect-test-icon" />
               </button>
             </div>
           </div>

@@ -15,12 +15,15 @@
   padding: 8px 12px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .note-repeat-label-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .note-repeat-label {
@@ -41,16 +44,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .note-repeat-buttons {
   display: flex;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .note-repeat-modifiers {
   display: flex;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .note-repeat-mod-btn {
