@@ -802,4 +802,37 @@
     height: 22px;
     margin-left: 6px;
   }
+
+  /* Loop controls - compact for desktop */
+  .loop-section {
+    min-width: auto;
+  }
+
+  .loop-controls {
+    gap: 4px;
+  }
+
+  .loop-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .loop-length-select {
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .recording-progress {
+    margin-top: 4px;
+    gap: 4px;
+  }
+
+  .recording-progress-bar {
+    height: 4px;
+  }
+
+  .recording-progress-text {
+    font-size: 8px;
+    min-width: 22px;
+  }
 }
