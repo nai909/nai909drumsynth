@@ -152,6 +152,26 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     lastSlideNote.current = null;
   }, [synth]);
 
+  const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
+    if (touchId !== undefined) {
+      activeTouches.current.set(touchId, note);
+    }
+    await synth.noteOn(note, 0.8);
+    setActiveNotes((prev) => new Set([...prev, note]));
+  }, [synth]);
+
+  const handleNoteOff = useCallback((note: string, touchId?: number) => {
+    if (touchId !== undefined) {
+      activeTouches.current.delete(touchId);
+    }
+    synth.noteOff(note);
+    setActiveNotes((prev) => {
+      const next = new Set(prev);
+      next.delete(note);
+      return next;
+    });
+  }, [synth]);
+
   // Get note from a point on screen (for slide functionality)
   const getNoteFromPoint = useCallback((x: number, y: number): string | null => {
     const element = document.elementFromPoint(x, y);
@@ -194,26 +214,6 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
       }
     }
   }, [getNoteFromPoint, canPlayNote, handleNoteOn, handleNoteOff]);
-
-  const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
-    if (touchId !== undefined) {
-      activeTouches.current.set(touchId, note);
-    }
-    await synth.noteOn(note, 0.8);
-    setActiveNotes((prev) => new Set([...prev, note]));
-  }, [synth]);
-
-  const handleNoteOff = useCallback((note: string, touchId?: number) => {
-    if (touchId !== undefined) {
-      activeTouches.current.delete(touchId);
-    }
-    synth.noteOff(note);
-    setActiveNotes((prev) => {
-      const next = new Set(prev);
-      next.delete(note);
-      return next;
-    });
-  }, [synth]);
 
   // Global event handlers - catches any missed releases
   useEffect(() => {
