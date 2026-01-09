@@ -63,6 +63,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   const [currentStep, setCurrentStep] = useState(-1);
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('pentatonic');
+  const [viewMode, setViewMode] = useState<'bars' | 'pianoroll'>('pianoroll');
 
   const sequencerRef = useRef<Tone.Sequence | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,18 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   const activateWithNote = (index: number, note: string) => {
     const newSteps = [...steps];
     newSteps[index] = { active: true, note };
+    onStepsChange(newSteps);
+  };
+
+  // Set or toggle a note at a specific step (for piano roll)
+  const setNoteAtStep = (stepIndex: number, note: string, active: boolean) => {
+    const newSteps = [...steps];
+    // If the same note is already at this step, toggle it off
+    if (newSteps[stepIndex].active && newSteps[stepIndex].note === note && !active) {
+      newSteps[stepIndex] = { active: false, note: 'C4' };
+    } else {
+      newSteps[stepIndex] = { active, note };
+    }
     onStepsChange(newSteps);
   };
 
@@ -229,6 +242,24 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       {/* Controls */}
       <div className="seq-controls-simple">
         <div className="seq-control-group">
+          <label className="seq-label">VIEW</label>
+          <div className="view-toggle-buttons">
+            <button
+              className={`view-toggle-btn ${viewMode === 'pianoroll' ? 'active' : ''}`}
+              onClick={() => setViewMode('pianoroll')}
+            >
+              ROLL
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'bars' ? 'active' : ''}`}
+              onClick={() => setViewMode('bars')}
+            >
+              BARS
+            </button>
+          </div>
+        </div>
+
+        <div className="seq-control-group">
           <label className="seq-label">WAVE</label>
           <div className="waveform-buttons-small">
             {waveforms.map((wf) => (
@@ -278,34 +309,47 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
         </div>
       </div>
 
-      {/* Step grid */}
-      <div className="melody-grid" ref={containerRef}>
-        {steps.map((step, index) => (
-          <MelodyStep
-            key={index}
-            step={step}
-            index={index}
-            isCurrentStep={currentStep === index}
-            scaleNotes={scaleNotes}
-            onToggle={() => toggleStep(index)}
-            onActivateWithNote={activateWithNote}
-            onDrag={handleDrag}
-            synth={synth}
-          />
-        ))}
-      </div>
-
-      {/* Step numbers */}
-      <div className="step-indicators">
-        {steps.map((_, index) => (
-          <div
-            key={index}
-            className={`step-indicator ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
-          >
-            {index + 1}
+      {/* Piano Roll View */}
+      {viewMode === 'pianoroll' ? (
+        <PianoRoll
+          steps={steps}
+          currentStep={currentStep}
+          scaleNotes={scaleNotes}
+          onSetNote={setNoteAtStep}
+          synth={synth}
+        />
+      ) : (
+        <>
+          {/* Bar View - Step grid */}
+          <div className="melody-grid" ref={containerRef}>
+            {steps.map((step, index) => (
+              <MelodyStep
+                key={index}
+                step={step}
+                index={index}
+                isCurrentStep={currentStep === index}
+                scaleNotes={scaleNotes}
+                onToggle={() => toggleStep(index)}
+                onActivateWithNote={activateWithNote}
+                onDrag={handleDrag}
+                synth={synth}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+
+          {/* Step numbers */}
+          <div className="step-indicators">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`step-indicator ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
+              >
+                {index + 1}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -472,6 +516,130 @@ const WaveformIcon: React.FC<{ type: WaveformType }> = ({ type }) => {
     <svg viewBox="0 0 28 24" className="waveform-icon-small">
       <path d={paths[type]} fill="none" stroke="currentColor" strokeWidth="2" />
     </svg>
+  );
+};
+
+// Piano Roll component
+interface PianoRollProps {
+  steps: Step[];
+  currentStep: number;
+  scaleNotes: string[];
+  onSetNote: (stepIndex: number, note: string, active: boolean) => void;
+  synth: MelodicSynth;
+}
+
+const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, onSetNote, synth }) => {
+  const isDragging = useRef(false);
+  const dragMode = useRef<'add' | 'remove'>('add');
+
+  // Display notes in reverse order (high notes at top)
+  const displayNotes = [...scaleNotes].reverse();
+
+  const handleCellMouseDown = (stepIndex: number, note: string, isActive: boolean) => {
+    isDragging.current = true;
+    // Determine drag mode based on initial cell state
+    dragMode.current = isActive ? 'remove' : 'add';
+
+    if (dragMode.current === 'add') {
+      onSetNote(stepIndex, note, true);
+      synth.noteOn(note, 0.7);
+      setTimeout(() => synth.noteOff(note), 100);
+    } else {
+      onSetNote(stepIndex, note, false);
+    }
+
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleCellMouseEnter = (stepIndex: number, note: string, isActive: boolean) => {
+    if (!isDragging.current) return;
+
+    if (dragMode.current === 'add' && !isActive) {
+      onSetNote(stepIndex, note, true);
+      synth.noteOn(note, 0.5);
+      setTimeout(() => synth.noteOff(note), 50);
+    } else if (dragMode.current === 'remove' && isActive) {
+      onSetNote(stepIndex, note, false);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleTouchStart = (stepIndex: number, note: string, isActive: boolean, e: React.TouchEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragMode.current = isActive ? 'remove' : 'add';
+
+    if (dragMode.current === 'add') {
+      onSetNote(stepIndex, note, true);
+      synth.noteOn(note, 0.7);
+      setTimeout(() => synth.noteOff(note), 100);
+    } else {
+      onSetNote(stepIndex, note, false);
+    }
+  };
+
+  // Check if a note is black key
+  const isBlackKey = (note: string) => note.includes('#');
+
+  return (
+    <div className="piano-roll-container">
+      <div className="piano-roll">
+        {/* Piano keys column */}
+        <div className="piano-keys">
+          {displayNotes.map((note) => (
+            <div
+              key={note}
+              className={`piano-key ${isBlackKey(note) ? 'black' : 'white'}`}
+              onClick={() => {
+                synth.noteOn(note, 0.8);
+                setTimeout(() => synth.noteOff(note), 200);
+              }}
+            >
+              <span className="key-label">{note}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div className="piano-grid">
+          {displayNotes.map((note) => (
+            <div key={note} className={`piano-row ${isBlackKey(note) ? 'black-row' : ''}`}>
+              {steps.map((step, stepIndex) => {
+                const isActive = step.active && step.note === note;
+                return (
+                  <div
+                    key={stepIndex}
+                    className={`piano-cell ${isActive ? 'active' : ''} ${currentStep === stepIndex ? 'current' : ''} ${stepIndex % 4 === 0 ? 'beat-start' : ''}`}
+                    onMouseDown={() => handleCellMouseDown(stepIndex, note, isActive)}
+                    onMouseEnter={() => handleCellMouseEnter(stepIndex, note, isActive)}
+                    onTouchStart={(e) => handleTouchStart(stepIndex, note, isActive, e)}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Step numbers */}
+      <div className="piano-step-numbers">
+        <div className="piano-keys-spacer" />
+        <div className="step-numbers-row">
+          {steps.map((_, index) => (
+            <div
+              key={index}
+              className={`step-number ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
+            >
+              {index + 1}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 

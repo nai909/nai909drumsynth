@@ -321,3 +321,244 @@
     min-height: 80px;
   }
 }
+
+/* View Toggle Buttons */
+.view-toggle-buttons {
+  display: flex;
+  gap: 0;
+}
+
+.view-toggle-btn {
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--accent-border);
+  color: #666;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn:first-child {
+  border-radius: 6px 0 0 6px;
+  border-right: 1px solid var(--accent-border);
+}
+
+.view-toggle-btn:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: 1px solid var(--accent-border);
+}
+
+.view-toggle-btn:hover {
+  color: var(--accent-secondary);
+  border-color: var(--accent-border-hover);
+}
+
+.view-toggle-btn.active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+/* Piano Roll */
+.piano-roll-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.piano-roll {
+  flex: 1;
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.piano-keys {
+  display: flex;
+  flex-direction: column;
+  width: 50px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(40, 40, 40, 1) 0%, rgba(30, 30, 30, 1) 100%);
+  border-right: 2px solid var(--accent-border);
+}
+
+.piano-key {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  cursor: pointer;
+  transition: all 0.1s;
+  min-height: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.piano-key.white {
+  background: linear-gradient(90deg, #d0d0d0 0%, #f0f0f0 100%);
+}
+
+.piano-key.black {
+  background: linear-gradient(90deg, #1a1a1a 0%, #333 100%);
+}
+
+.piano-key:hover {
+  filter: brightness(1.1);
+}
+
+.piano-key:active {
+  filter: brightness(0.9);
+}
+
+.key-label {
+  font-size: 8px;
+  font-weight: 700;
+  color: #333;
+  text-shadow: none;
+}
+
+.piano-key.black .key-label {
+  color: #aaa;
+}
+
+.piano-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: auto;
+}
+
+.piano-row {
+  flex: 1;
+  display: flex;
+  min-height: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.piano-row.black-row {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.piano-cell {
+  flex: 1;
+  min-width: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.piano-cell.beat-start {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.piano-cell:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.piano-cell.active {
+  background: var(--accent-primary);
+  box-shadow: inset 0 0 8px var(--accent-glow);
+}
+
+.piano-cell.current {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.piano-cell.active.current {
+  background: var(--accent-secondary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Step numbers for piano roll */
+.piano-step-numbers {
+  display: flex;
+  padding-top: 4px;
+}
+
+.piano-keys-spacer {
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.step-numbers-row {
+  flex: 1;
+  display: flex;
+}
+
+.step-number {
+  flex: 1;
+  min-width: 20px;
+  text-align: center;
+  font-size: 8px;
+  font-weight: 600;
+  color: #555;
+}
+
+.step-number.beat {
+  color: #777;
+}
+
+.step-number.active {
+  color: var(--accent-secondary);
+}
+
+/* Mobile Piano Roll */
+@media (max-width: 768px) {
+  .piano-roll-container {
+    min-height: 150px;
+  }
+
+  .piano-keys {
+    width: 40px;
+  }
+
+  .key-label {
+    font-size: 7px;
+  }
+
+  .piano-cell {
+    min-width: 16px;
+  }
+
+  .piano-keys-spacer {
+    width: 40px;
+  }
+
+  .step-number {
+    font-size: 7px;
+    min-width: 16px;
+  }
+
+  .view-toggle-btn {
+    padding: 5px 8px;
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .piano-keys {
+    width: 32px;
+  }
+
+  .key-label {
+    font-size: 6px;
+    padding-right: 3px;
+  }
+
+  .piano-cell {
+    min-width: 14px;
+  }
+
+  .piano-keys-spacer {
+    width: 32px;
+  }
+
+  .step-number {
+    min-width: 14px;
+  }
+}

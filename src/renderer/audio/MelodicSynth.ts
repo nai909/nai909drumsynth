@@ -431,7 +431,8 @@ export class MelodicSynth {
     }
 
     if (params.phaserDepth !== undefined) {
-      this.phaser.octaves = params.phaserDepth * 3;
+      // Phaser octaves needs to be set via set() method
+      this.phaser.set({ octaves: this.params.phaserDepth * 3 });
     }
 
     // Flanger parameters
@@ -444,9 +445,9 @@ export class MelodicSynth {
     }
 
     if (params.flangerDepth !== undefined) {
-      // Adjust flanger LFO depth (min/max delay time)
-      const maxDelay = 0.003 + params.flangerDepth * 0.012;
-      this.flangerLfo.max = maxDelay;
+      // Adjust flanger LFO depth (min/max delay time) - these are Signals
+      const maxDelay = 0.003 + this.params.flangerDepth * 0.012;
+      this.flangerLfo.set({ min: 0.001, max: maxDelay });
     }
   }
 
@@ -814,5 +815,10 @@ export class MelodicSynth {
     this.reverbWet.dispose();
     this.delayWet.dispose();
     this.panner.dispose();
+    this.phaser.dispose();
+    this.phaserWet.dispose();
+    this.flanger.dispose();
+    this.flangerLfo.dispose();
+    this.flangerWet.dispose();
   }
 }
