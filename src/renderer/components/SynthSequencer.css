@@ -375,7 +375,8 @@
   display: flex;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .piano-keys {
@@ -388,15 +389,15 @@
 }
 
 .piano-key {
-  flex: 1;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 6px;
   cursor: pointer;
   transition: all 0.1s;
-  min-height: 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
 
 .piano-key.white {
@@ -434,10 +435,10 @@
 }
 
 .piano-row {
-  flex: 1;
+  height: 20px;
   display: flex;
-  min-height: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .piano-row.black-row {

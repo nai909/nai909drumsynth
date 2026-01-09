@@ -242,6 +242,7 @@ const App: React.FC = () => {
   const [pattern, setPattern] = useState<Pattern>(createInitialPattern());
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [synthCurrentStep, setSynthCurrentStep] = useState(-1);
   const [selectedTrack, setSelectedTrack] = useState(0);
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('pad');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
@@ -277,6 +278,7 @@ const App: React.FC = () => {
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
   const melodicSynthRef = useRef<MelodicSynth | null>(null);
+  const synthSequencerRef = useRef<Tone.Sequence | null>(null);
   const replaceModeTracksCleared = useRef<Set<number>>(new Set());
   const lastRecordedLoopStart = useRef<number>(-1);
 
@@ -326,6 +328,46 @@ const App: React.FC = () => {
       sequencerRef.current.setPattern(pattern);
     }
   }, [pattern]);
+
+  // Synth sequencer playback (runs independently of UI mode)
+  useEffect(() => {
+    if (isPlaying && melodicSynthRef.current) {
+      const synth = melodicSynthRef.current;
+      const noteDurationMs = (60000 / pattern.tempo / 4) * 0.8;
+
+      synthSequencerRef.current = new Tone.Sequence(
+        (time, step) => {
+          setSynthCurrentStep(step);
+          if (synthSequence[step].active) {
+            const noteToPlay = synthSequence[step].note;
+            synth.noteOn(noteToPlay, 0.8);
+            setTimeout(() => {
+              synth.noteOff(noteToPlay);
+            }, noteDurationMs);
+          }
+        },
+        Array.from({ length: 16 }, (_, i) => i),
+        '16n'
+      );
+      synthSequencerRef.current.start(0);
+    } else {
+      if (synthSequencerRef.current) {
+        synthSequencerRef.current.stop();
+        synthSequencerRef.current.dispose();
+        synthSequencerRef.current = null;
+      }
+      setSynthCurrentStep(-1);
+      melodicSynthRef.current?.releaseAll();
+    }
+
+    return () => {
+      if (synthSequencerRef.current) {
+        synthSequencerRef.current.stop();
+        synthSequencerRef.current.dispose();
+        synthSequencerRef.current = null;
+      }
+    };
+  }, [isPlaying, synthSequence, pattern.tempo]);
 
   const handlePlay = async () => {
     if (sequencerRef.current) {
@@ -716,6 +758,7 @@ const App: React.FC = () => {
                       onStepsChange={setSynthSequence}
                       params={synthParams}
                       onParamsChange={handleSynthParamsChange}
+                      currentStep={synthCurrentStep}
                     />
                   ) : (
                     <Synth

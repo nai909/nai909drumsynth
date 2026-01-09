@@ -16,6 +16,7 @@ interface SynthSequencerProps {
   onStepsChange: (steps: Step[]) => void;
   params: SynthParams;
   onParamsChange: (params: SynthParams) => void;
+  currentStep: number;
 }
 
 const NUM_STEPS = 16;
@@ -59,13 +60,11 @@ const getScaleNotes = (root: string, scale: string): string[] => {
   return scaleNotes;
 };
 
-const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange }) => {
-  const [currentStep, setCurrentStep] = useState(-1);
+const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep }) => {
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('pentatonic');
   const [viewMode, setViewMode] = useState<'bars' | 'pianoroll'>('pianoroll');
 
-  const sequencerRef = useRef<Tone.Sequence | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scaleNotes = getScaleNotes(scaleRoot, scaleType);
@@ -184,60 +183,6 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       onStepsChange(snappedSteps);
     }
   }, [scaleRoot, scaleType, scaleNotes]);
-
-  // Sequencer playback
-  useEffect(() => {
-    if (isPlaying) {
-      // Calculate note duration in ms (80% of a 16th note)
-      const noteDurationMs = (60000 / tempo / 4) * 0.8;
-
-      sequencerRef.current = new Tone.Sequence(
-        (time, step) => {
-          setCurrentStep(step);
-          if (steps[step].active) {
-            const noteToPlay = steps[step].note;
-            synth.noteOn(noteToPlay, 0.8);
-            // Use setTimeout for reliable note-off timing
-            setTimeout(() => {
-              synth.noteOff(noteToPlay);
-            }, noteDurationMs);
-          }
-        },
-        Array.from({ length: NUM_STEPS }, (_, i) => i),
-        '16n'
-      );
-      sequencerRef.current.start(0);
-    } else {
-      if (sequencerRef.current) {
-        sequencerRef.current.stop();
-        sequencerRef.current.dispose();
-        sequencerRef.current = null;
-      }
-      setCurrentStep(-1);
-      synth.releaseAll();
-    }
-
-    return () => {
-      if (sequencerRef.current) {
-        sequencerRef.current.stop();
-        sequencerRef.current.dispose();
-        sequencerRef.current = null;
-      }
-      synth.releaseAll();
-    };
-  }, [isPlaying, steps, synth, tempo]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      synth.releaseAll();
-    };
-  }, [synth]);
-
-  // Update tempo
-  useEffect(() => {
-    Tone.getTransport().bpm.value = tempo;
-  }, [tempo]);
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
 
