@@ -116,6 +116,62 @@ const SynthEffects: React.FC<SynthEffectsProps> = ({ synth, params, onParamsChan
             />
           </div>
         </div>
+
+        {/* Phaser */}
+        <div className="effect-section">
+          <div className="effect-header">
+            <span className="effect-label">PHASER</span>
+            <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+              <PianoIcon className="effect-test-icon" />
+            </button>
+          </div>
+          <div className="effect-description">Sweeping, psychedelic effect</div>
+          <div className="knob-row">
+            <EffectKnob
+              label="MIX"
+              value={params.phaserMix}
+              onChange={(v) => handleParamChange('phaserMix', v)}
+            />
+            <EffectKnob
+              label="RATE"
+              value={params.phaserFreq}
+              onChange={(v) => handleParamChange('phaserFreq', v)}
+            />
+            <EffectKnob
+              label="DEPTH"
+              value={params.phaserDepth}
+              onChange={(v) => handleParamChange('phaserDepth', v)}
+            />
+          </div>
+        </div>
+
+        {/* Flanger */}
+        <div className="effect-section">
+          <div className="effect-header">
+            <span className="effect-label">FLANGER</span>
+            <button className="effect-test-btn" onClick={playTestNote} title="Play test note">
+              <PianoIcon className="effect-test-icon" />
+            </button>
+          </div>
+          <div className="effect-description">Jet-like swooshing effect</div>
+          <div className="knob-row">
+            <EffectKnob
+              label="MIX"
+              value={params.flangerMix}
+              onChange={(v) => handleParamChange('flangerMix', v)}
+            />
+            <EffectKnob
+              label="RATE"
+              value={params.flangerFreq}
+              onChange={(v) => handleParamChange('flangerFreq', v)}
+            />
+            <EffectKnob
+              label="DEPTH"
+              value={params.flangerDepth}
+              onChange={(v) => handleParamChange('flangerDepth', v)}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

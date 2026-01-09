@@ -12,6 +12,8 @@ interface TransportProps {
   onRecordToggle: () => void;
   recordMode: 'overdub' | 'replace';
   onRecordModeToggle: () => void;
+  metronomeEnabled: boolean;
+  onMetronomeToggle: () => void;
 }
 
 // Drippy Smiley Slider Thumb
@@ -56,6 +58,8 @@ const Transport: React.FC<TransportProps> = ({
   onRecordToggle,
   recordMode,
   onRecordModeToggle,
+  metronomeEnabled,
+  onMetronomeToggle,
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -134,7 +138,7 @@ const Transport: React.FC<TransportProps> = ({
             onClick={onRecordModeToggle}
             title={recordMode === 'overdub' ? 'Overdub Mode (layer)' : 'Replace Mode (clear)'}
           >
-            {recordMode === 'overdub' ? 'OVR' : 'REP'}
+            {recordMode === 'overdub' ? 'OVERDUB' : 'REPLACE'}
           </button>
         </div>
         {!isPlaying ? (
@@ -153,6 +157,15 @@ const Transport: React.FC<TransportProps> = ({
         <button className="transport-btn stop-btn" onClick={onStop}>
           <svg viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="6" width="12" height="12" />
+          </svg>
+        </button>
+        <button
+          className={`transport-btn metronome-btn ${metronomeEnabled ? 'active' : ''}`}
+          onClick={onMetronomeToggle}
+          title={metronomeEnabled ? 'Metronome On' : 'Metronome Off'}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L8.5 8H4l8 14 8-14h-4.5L12 1zm0 4.5L13.5 8h-3L12 5.5zM12 11c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z" />
           </svg>
         </button>
       </div>

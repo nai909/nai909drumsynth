@@ -246,6 +246,7 @@ const App: React.FC = () => {
   });
   const [isRecording, setIsRecording] = useState(false);
   const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
+  const [metronomeEnabled, setMetronomeEnabled] = useState(false);
 
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
@@ -329,6 +330,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMetronomeToggle = () => {
+    const newValue = !metronomeEnabled;
+    setMetronomeEnabled(newValue);
+    if (sequencerRef.current) {
+      sequencerRef.current.setMetronome(newValue);
+    }
+  };
+
   const handleStepToggle = (trackIndex: number, stepIndex: number) => {
     const newPattern = { ...pattern };
     newPattern.tracks[trackIndex].steps[stepIndex] = !newPattern.tracks[trackIndex].steps[stepIndex];
@@ -380,6 +389,31 @@ const App: React.FC = () => {
     if (!drumSynthRef.current) return;
     await drumSynthRef.current.init();
 
+    // Auto-start playback when recording is armed but not playing
+    if (isRecording && !isPlaying) {
+      await handlePlay();
+      // Record this hit at step 0 since we just started
+      setPattern(prevPattern => {
+        const newPattern = { ...prevPattern };
+        const newTracks = [...newPattern.tracks];
+        const newTrack = { ...newTracks[trackIndex] };
+
+        if (recordMode === 'replace') {
+          newTrack.steps = new Array(MAX_STEPS).fill(false);
+          newTrack.velocity = new Array(MAX_STEPS).fill(1);
+        }
+
+        newTrack.steps = [...newTrack.steps];
+        newTrack.velocity = [...newTrack.velocity];
+        newTrack.steps[0] = true;
+        newTrack.velocity[0] = velocity;
+
+        newTracks[trackIndex] = newTrack;
+        newPattern.tracks = newTracks;
+        return newPattern;
+      });
+    }
+
     const track = pattern.tracks[trackIndex];
     // Use scheduled time if provided (for note repeat), otherwise use current time
     const time = scheduledTime ?? Tone.now();
@@ -388,7 +422,7 @@ const App: React.FC = () => {
     // Combine track volume with touch velocity
     const finalVelocity = volume * velocity;
 
-    // Record the hit if recording and playing
+    // Record the hit if recording and playing (skip if we just auto-started above)
     if (isRecording && isPlaying) {
       const transportSeconds = Tone.Transport.seconds;
       const secondsPerStep = 60 / pattern.tempo / 4; // 16th note duration
@@ -544,6 +578,12 @@ const App: React.FC = () => {
                     synth={melodicSynthRef.current}
                     params={synthParams}
                     onParamsChange={handleSynthParamsChange}
+                    isRecording={isRecording}
+                    isPlaying={isPlaying}
+                    tempo={pattern.tempo}
+                    synthSequence={synthSequence}
+                    onSynthSequenceChange={setSynthSequence}
+                    onPlay={handlePlay}
                   />
                 )
               )
@@ -597,6 +637,8 @@ const App: React.FC = () => {
         onRecordToggle={() => setIsRecording(!isRecording)}
         recordMode={recordMode}
         onRecordModeToggle={() => setRecordMode(recordMode === 'overdub' ? 'replace' : 'overdub')}
+        metronomeEnabled={metronomeEnabled}
+        onMetronomeToggle={handleMetronomeToggle}
       />
     </div>
   );

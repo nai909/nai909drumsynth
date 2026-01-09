@@ -11,10 +11,36 @@ export class Sequencer {
   private pattern: Pattern | null = null;
   private stepCallbacks: ((step: number) => void)[] = [];
 
+  // Metronome
+  private metronomeEnabled: boolean = false;
+  private metronomeClick: Tone.MembraneSynth | null = null;
+  private metronomeVolume: Tone.Volume | null = null;
+
   constructor(drumSynth: DrumSynth) {
     this.drumSynth = drumSynth;
     // Configure Transport for reliable looping
     Tone.Transport.loop = false; // We use Sequence's built-in looping
+
+    // Initialize metronome synth
+    this.metronomeVolume = new Tone.Volume(-6).toDestination();
+    this.metronomeClick = new Tone.MembraneSynth({
+      pitchDecay: 0.008,
+      octaves: 2,
+      envelope: {
+        attack: 0.001,
+        decay: 0.1,
+        sustain: 0,
+        release: 0.05,
+      },
+    }).connect(this.metronomeVolume);
+  }
+
+  setMetronome(enabled: boolean) {
+    this.metronomeEnabled = enabled;
+  }
+
+  getMetronome(): boolean {
+    return this.metronomeEnabled;
   }
 
   setPattern(pattern: Pattern) {
@@ -87,6 +113,16 @@ export class Sequencer {
 
   private playStep(step: number, time: number) {
     if (!this.pattern) return;
+
+    // Play metronome click on beats (every 4 steps = quarter notes)
+    if (this.metronomeEnabled && this.metronomeClick) {
+      if (step % 4 === 0) {
+        // Downbeat (first beat of bar) gets higher pitch
+        const isDownbeat = step % 16 === 0;
+        const pitch = isDownbeat ? 'G4' : 'C4';
+        this.metronomeClick.triggerAttackRelease(pitch, '32n', time);
+      }
+    }
 
     this.pattern.tracks.forEach((track) => {
       if (track.muted || !track.steps[step]) return;
@@ -191,6 +227,12 @@ export class Sequencer {
   dispose() {
     if (this.sequence) {
       this.sequence.dispose();
+    }
+    if (this.metronomeClick) {
+      this.metronomeClick.dispose();
+    }
+    if (this.metronomeVolume) {
+      this.metronomeVolume.dispose();
     }
     Tone.Transport.stop();
   }

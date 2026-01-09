@@ -1,12 +1,21 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import * as Tone from 'tone';
 import { MelodicSynth, SynthParams, WaveformType, ArpMode } from '../audio/MelodicSynth';
 import WaveformVisualizer from './WaveformVisualizer';
+import { Step as SynthStep } from './SynthSequencer';
 import './Synth.css';
 
 interface SynthProps {
   synth: MelodicSynth;
   params: SynthParams;
   onParamsChange: (params: SynthParams) => void;
+  // Recording props
+  isRecording?: boolean;
+  isPlaying?: boolean;
+  tempo?: number;
+  synthSequence?: SynthStep[];
+  onSynthSequenceChange?: (steps: SynthStep[]) => void;
+  onPlay?: () => Promise<void>;
 }
 
 // Define keyboard notes
@@ -95,7 +104,17 @@ const getKeyMap = (baseOctave: number): { [key: string]: string } => ({
   'p': `D#${baseOctave + 1}`, ';': `E${baseOctave + 1}`, "'": `F${baseOctave + 1}`,
 });
 
-const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
+const Synth: React.FC<SynthProps> = ({
+  synth,
+  params,
+  onParamsChange,
+  isRecording,
+  isPlaying,
+  tempo = 120,
+  synthSequence,
+  onSynthSequenceChange,
+  onPlay,
+}) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
@@ -153,7 +172,32 @@ const Synth: React.FC<SynthProps> = ({ synth, params, onParamsChange }) => {
     }
     await synth.noteOn(note, 0.8);
     setActiveNotes((prev) => new Set([...prev, note]));
-  }, [synth]);
+
+    // Auto-start playback when recording is armed but not playing
+    if (isRecording && !isPlaying && onPlay && onSynthSequenceChange && synthSequence) {
+      await onPlay();
+      // Record this note at step 0 since we just started
+      const newSteps = [...synthSequence];
+      newSteps[0] = { active: true, note };
+      onSynthSequenceChange(newSteps);
+      return; // Skip the normal recording logic below
+    }
+
+    // Record note to synth sequencer if recording and playing
+    if (isRecording && isPlaying && onSynthSequenceChange && synthSequence) {
+      const transportSeconds = Tone.Transport.seconds;
+      const secondsPerStep = 60 / tempo / 4; // 16th note duration
+      const loopLengthSteps = 16; // Synth sequencer is always 16 steps
+      const loopLengthSeconds = loopLengthSteps * secondsPerStep;
+
+      const positionInLoop = transportSeconds % loopLengthSeconds;
+      const stepIndex = Math.round(positionInLoop / secondsPerStep) % loopLengthSteps;
+
+      const newSteps = [...synthSequence];
+      newSteps[stepIndex] = { active: true, note };
+      onSynthSequenceChange(newSteps);
+    }
+  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay]);
 
   const handleNoteOff = useCallback((note: string, touchId?: number) => {
     if (touchId !== undefined) {

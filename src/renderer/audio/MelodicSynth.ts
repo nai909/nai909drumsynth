@@ -38,6 +38,14 @@ export interface SynthParams {
   lfoDepth: number; // 0-1 amount of modulation
   lfoEnabled: boolean;
   lfoDestination: LfoDestination;
+  // Phaser
+  phaserMix: number; // 0-1 wet/dry
+  phaserFreq: number; // 0-1 maps to 0.1-8 Hz
+  phaserDepth: number; // 0-1 octaves
+  // Flanger
+  flangerMix: number; // 0-1 wet/dry
+  flangerDepth: number; // 0-1
+  flangerFreq: number; // 0-1 maps to 0.1-5 Hz
 }
 
 export const DEFAULT_SYNTH_PARAMS: SynthParams = {
@@ -66,6 +74,14 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   lfoDepth: 0,
   lfoEnabled: false,
   lfoDestination: 'filter',
+  // Phaser defaults
+  phaserMix: 0,
+  phaserFreq: 0.3,
+  phaserDepth: 0.5,
+  // Flanger defaults
+  flangerMix: 0,
+  flangerDepth: 0.5,
+  flangerFreq: 0.3,
 };
 
 export class MelodicSynth {
@@ -88,6 +104,11 @@ export class MelodicSynth {
   private reverbWet: Tone.Gain;
   private delayWet: Tone.Gain;
   private panner: Tone.Panner;
+  private phaser: Tone.Phaser;
+  private phaserWet: Tone.Gain;
+  private flanger: Tone.FeedbackDelay;
+  private flangerLfo: Tone.LFO;
+  private flangerWet: Tone.Gain;
 
   // Arpeggiator state
   private heldNotes: string[] = [];
@@ -152,6 +173,31 @@ export class MelodicSynth {
     // LFO gain scales the depth of modulation
     this.lfoGain = new Tone.Gain(0);
 
+    // Phaser effect
+    this.phaser = new Tone.Phaser({
+      frequency: this.getPhaserFreq(),
+      octaves: this.params.phaserDepth * 3,
+      baseFrequency: 400,
+      wet: 1,
+    });
+    this.phaserWet = new Tone.Gain(this.params.phaserMix);
+
+    // Flanger effect (using short delay with LFO modulation)
+    this.flanger = new Tone.FeedbackDelay({
+      delayTime: 0.005,
+      feedback: 0.5,
+      wet: 1,
+    });
+    this.flangerLfo = new Tone.LFO({
+      frequency: this.getFlangerFreq(),
+      min: 0.001,
+      max: 0.01,
+      type: 'sine',
+    });
+    this.flangerLfo.connect(this.flanger.delayTime);
+    this.flangerLfo.start();
+    this.flangerWet = new Tone.Gain(this.params.flangerMix);
+
     // Wet/dry mixing gains - use defaults so reverb is on from start
     this.dryGain = new Tone.Gain(1 - this.params.reverbMix * 0.5);
     this.reverbWet = new Tone.Gain(this.params.reverbMix);
@@ -178,6 +224,16 @@ export class MelodicSynth {
     this.filter.connect(this.delay);
     this.delay.connect(this.delayWet);
     this.delayWet.connect(this.analyser);
+
+    // Phaser path
+    this.filter.connect(this.phaser);
+    this.phaser.connect(this.phaserWet);
+    this.phaserWet.connect(this.analyser);
+
+    // Flanger path
+    this.filter.connect(this.flanger);
+    this.flanger.connect(this.flangerWet);
+    this.flangerWet.connect(this.analyser);
 
     // Analyser -> Panner -> Master
     this.analyser.connect(this.panner);
@@ -210,6 +266,16 @@ export class MelodicSynth {
   private getLfoDepthFreq(): number {
     // LFO modulation depth in Hz - up to 8000 Hz swing for wobble
     return this.params.lfoDepth * 8000;
+  }
+
+  private getPhaserFreq(): number {
+    // Map 0-1 to 0.1-8 Hz
+    return 0.1 + this.params.phaserFreq * 7.9;
+  }
+
+  private getFlangerFreq(): number {
+    // Map 0-1 to 0.1-5 Hz
+    return 0.1 + this.params.flangerFreq * 4.9;
   }
 
   async init() {
@@ -353,6 +419,34 @@ export class MelodicSynth {
         this.lfo.stop();
         this.lfoGain.gain.value = 0;
       }
+    }
+
+    // Phaser parameters
+    if (params.phaserMix !== undefined) {
+      this.phaserWet.gain.value = params.phaserMix;
+    }
+
+    if (params.phaserFreq !== undefined) {
+      this.phaser.frequency.value = this.getPhaserFreq();
+    }
+
+    if (params.phaserDepth !== undefined) {
+      this.phaser.octaves = params.phaserDepth * 3;
+    }
+
+    // Flanger parameters
+    if (params.flangerMix !== undefined) {
+      this.flangerWet.gain.value = params.flangerMix;
+    }
+
+    if (params.flangerFreq !== undefined) {
+      this.flangerLfo.frequency.value = this.getFlangerFreq();
+    }
+
+    if (params.flangerDepth !== undefined) {
+      // Adjust flanger LFO depth (min/max delay time)
+      const maxDelay = 0.003 + params.flangerDepth * 0.012;
+      this.flangerLfo.max = maxDelay;
     }
   }
 
