@@ -691,29 +691,46 @@ const App: React.FC = () => {
             </div>
             {mode === 'synth' ? (
               melodicSynthRef.current && (
-                synthMode === 'seq' ? (
-                  <SynthSequencer
-                    synth={melodicSynthRef.current}
-                    isPlaying={isPlaying}
-                    tempo={pattern.tempo}
-                    steps={synthSequence}
-                    onStepsChange={setSynthSequence}
-                    params={synthParams}
-                    onParamsChange={handleSynthParamsChange}
-                  />
-                ) : (
-                  <Synth
-                    synth={melodicSynthRef.current}
-                    params={synthParams}
-                    onParamsChange={handleSynthParamsChange}
-                    isRecording={isRecording}
-                    isPlaying={isPlaying}
-                    tempo={pattern.tempo}
-                    synthSequence={synthSequence}
-                    onSynthSequenceChange={setSynthSequence}
-                    onPlay={handlePlay}
-                  />
-                )
+                <>
+                  {/* Synth sub-mode toggle */}
+                  <div className="synth-submode-toggle">
+                    <button
+                      className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
+                      onClick={() => setSynthMode('keys')}
+                    >
+                      KEYS
+                    </button>
+                    <button
+                      className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
+                      onClick={() => setSynthMode('seq')}
+                    >
+                      SEQ
+                    </button>
+                  </div>
+                  {synthMode === 'seq' ? (
+                    <SynthSequencer
+                      synth={melodicSynthRef.current}
+                      isPlaying={isPlaying}
+                      tempo={pattern.tempo}
+                      steps={synthSequence}
+                      onStepsChange={setSynthSequence}
+                      params={synthParams}
+                      onParamsChange={handleSynthParamsChange}
+                    />
+                  ) : (
+                    <Synth
+                      synth={melodicSynthRef.current}
+                      params={synthParams}
+                      onParamsChange={handleSynthParamsChange}
+                      isRecording={isRecording}
+                      isPlaying={isPlaying}
+                      tempo={pattern.tempo}
+                      synthSequence={synthSequence}
+                      onSynthSequenceChange={setSynthSequence}
+                      onPlay={handlePlay}
+                    />
+                  )}
+                </>
               )
             ) : mode === 'effects' ? (
               melodicSynthRef.current && (
