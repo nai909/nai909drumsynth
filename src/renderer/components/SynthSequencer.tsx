@@ -188,15 +188,19 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
   // Sequencer playback
   useEffect(() => {
     if (isPlaying) {
+      // Calculate note duration in ms (80% of a 16th note)
+      const noteDurationMs = (60000 / tempo / 4) * 0.8;
+
       sequencerRef.current = new Tone.Sequence(
         (time, step) => {
           setCurrentStep(step);
           if (steps[step].active) {
-            const noteToPlay = steps[step].note; // Capture note to avoid stale closure
+            const noteToPlay = steps[step].note;
             synth.noteOn(noteToPlay, 0.8);
-            Tone.getTransport().scheduleOnce(() => {
+            // Use setTimeout for reliable note-off timing
+            setTimeout(() => {
               synth.noteOff(noteToPlay);
-            }, time + Tone.Time('16n').toSeconds() * 0.8);
+            }, noteDurationMs);
           }
         },
         Array.from({ length: NUM_STEPS }, (_, i) => i),
@@ -221,7 +225,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
       }
       synth.releaseAll();
     };
-  }, [isPlaying, steps, synth]);
+  }, [isPlaying, steps, synth, tempo]);
 
   // Cleanup on unmount
   useEffect(() => {
