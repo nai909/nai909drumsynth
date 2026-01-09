@@ -89,6 +89,91 @@
   box-shadow: 0 0 15px rgba(244, 67, 54, 0.3);
 }
 
+/* Record button styles */
+.record-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.record-btn {
+  color: #888;
+}
+
+.record-btn:hover {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.15);
+  border-color: rgba(255, 68, 68, 0.5);
+}
+
+.record-btn.active {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.25);
+  border-color: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+  animation: record-pulse 1s ease-in-out infinite;
+}
+
+@keyframes record-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.7);
+  }
+}
+
+.record-mode-toggle {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.record-mode-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.record-mode-toggle.overdub {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.record-mode-toggle.overdub:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.record-mode-toggle.replace {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.record-mode-toggle.replace:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+@media (max-width: 768px) {
+  .record-control {
+    gap: 1px;
+  }
+
+  .record-mode-toggle {
+    font-size: 7px;
+    padding: 1px 4px;
+  }
+}
+
 .tempo-control {
   display: flex;
   align-items: center;

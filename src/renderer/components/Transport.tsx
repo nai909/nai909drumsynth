@@ -8,6 +8,10 @@ interface TransportProps {
   onPause: () => void;
   onStop: () => void;
   onTempoChange: (tempo: number) => void;
+  isRecording: boolean;
+  onRecordToggle: () => void;
+  recordMode: 'overdub' | 'replace';
+  onRecordModeToggle: () => void;
 }
 
 // Drippy Smiley Slider Thumb
@@ -48,6 +52,10 @@ const Transport: React.FC<TransportProps> = ({
   onPause,
   onStop,
   onTempoChange,
+  isRecording,
+  onRecordToggle,
+  recordMode,
+  onRecordModeToggle,
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -111,6 +119,24 @@ const Transport: React.FC<TransportProps> = ({
   return (
     <div className="transport">
       <div className="transport-controls">
+        <div className="record-control">
+          <button
+            className={`transport-btn record-btn ${isRecording ? 'active' : ''}`}
+            onClick={onRecordToggle}
+            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="8" />
+            </svg>
+          </button>
+          <button
+            className={`record-mode-toggle ${recordMode}`}
+            onClick={onRecordModeToggle}
+            title={recordMode === 'overdub' ? 'Overdub Mode (layer)' : 'Replace Mode (clear)'}
+          >
+            {recordMode === 'overdub' ? 'OVR' : 'REP'}
+          </button>
+        </div>
         {!isPlaying ? (
           <button className="transport-btn play-btn" onClick={onPlay}>
             <svg viewBox="0 0 24 24" fill="currentColor">

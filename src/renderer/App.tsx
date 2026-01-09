@@ -244,10 +244,14 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
   });
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
 
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
   const melodicSynthRef = useRef<MelodicSynth | null>(null);
+  const replaceModeTracksCleared = useRef<Set<number>>(new Set());
+  const lastRecordedLoopStart = useRef<number>(-1);
 
   // Apply theme to document
   useEffect(() => {
@@ -383,6 +387,55 @@ const App: React.FC = () => {
 
     // Combine track volume with touch velocity
     const finalVelocity = volume * velocity;
+
+    // Record the hit if recording and playing
+    if (isRecording && isPlaying) {
+      const transportSeconds = Tone.Transport.seconds;
+      const secondsPerStep = 60 / pattern.tempo / 4; // 16th note duration
+      const loopLengthSteps = loopBars * 16;
+      const loopLengthSeconds = loopLengthSteps * secondsPerStep;
+
+      // Calculate position within current loop
+      const positionInLoop = transportSeconds % loopLengthSeconds;
+      const exactStep = positionInLoop / secondsPerStep;
+      const stepIndex = Math.round(exactStep) % loopLengthSteps;
+
+      // Detect loop restart for replace mode (clear tracks once per loop)
+      const currentLoopNumber = Math.floor(transportSeconds / loopLengthSeconds);
+      if (currentLoopNumber !== lastRecordedLoopStart.current) {
+        lastRecordedLoopStart.current = currentLoopNumber;
+        replaceModeTracksCleared.current.clear();
+      }
+
+      setPattern(prevPattern => {
+        const newPattern = { ...prevPattern };
+        const newTracks = [...newPattern.tracks];
+        const newTrack = { ...newTracks[trackIndex] };
+
+        // In replace mode, clear track on first hit (once per loop)
+        if (recordMode === 'replace' && !replaceModeTracksCleared.current.has(trackIndex)) {
+          newTrack.steps = new Array(MAX_STEPS).fill(false);
+          newTrack.velocity = new Array(MAX_STEPS).fill(1);
+          replaceModeTracksCleared.current.add(trackIndex);
+        }
+
+        // Record the hit
+        newTrack.steps = [...newTrack.steps];
+        newTrack.velocity = [...newTrack.velocity];
+        newTrack.steps[stepIndex] = true;
+
+        // In overdub mode, keep higher velocity if step already has a hit
+        if (recordMode === 'overdub' && prevPattern.tracks[trackIndex].steps[stepIndex]) {
+          newTrack.velocity[stepIndex] = Math.max(newTrack.velocity[stepIndex], velocity);
+        } else {
+          newTrack.velocity[stepIndex] = velocity;
+        }
+
+        newTracks[trackIndex] = newTrack;
+        newPattern.tracks = newTracks;
+        return newPattern;
+      });
+    }
 
     switch (track.soundEngine) {
       case 'kick':
@@ -540,6 +593,10 @@ const App: React.FC = () => {
         onPause={handlePause}
         onStop={handleStop}
         onTempoChange={handleTempoChange}
+        isRecording={isRecording}
+        onRecordToggle={() => setIsRecording(!isRecording)}
+        recordMode={recordMode}
+        onRecordModeToggle={() => setRecordMode(recordMode === 'overdub' ? 'replace' : 'overdub')}
       />
     </div>
   );
