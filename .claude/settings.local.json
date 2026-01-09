@@ -7,7 +7,9 @@
       "Bash(npm run build:renderer:*)",
       "Bash(npx cap add:*)",
       "Bash(git add:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
     ]
   }
 }

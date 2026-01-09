@@ -174,13 +174,10 @@ const Synth: React.FC<SynthProps> = ({
     setActiveNotes((prev) => new Set([...prev, note]));
 
     // Auto-start playback when recording is armed but not playing
-    if (isRecording && !isPlaying && onPlay && onSynthSequenceChange && synthSequence) {
+    if (isRecording && !isPlaying && onPlay) {
+      // Start playback - subsequent notes will be recorded
+      // Don't record this note to avoid double-trigger from sequencer
       await onPlay();
-      // Record this note at step 0 since we just started
-      const newSteps = [...synthSequence];
-      newSteps[0] = { active: true, note };
-      onSynthSequenceChange(newSteps);
-      return; // Skip the normal recording logic below
     }
 
     // Record note to synth sequencer if recording and playing

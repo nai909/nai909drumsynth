@@ -258,7 +258,18 @@ const App: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
-  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load saved projects:', e);
+        return [];
+      }
+    }
+    return [];
+  });
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -406,27 +417,11 @@ const App: React.FC = () => {
 
     // Auto-start playback when recording is armed but not playing
     if (isRecording && !isPlaying) {
+      // Start playback first, then continue to trigger the sound below
+      // Don't record this hit - it's just triggering the start
+      // Subsequent hits will be recorded normally
       await handlePlay();
-      // Record this hit at step 0 since we just started
-      setPattern(prevPattern => {
-        const newPattern = { ...prevPattern };
-        const newTracks = [...newPattern.tracks];
-        const newTrack = { ...newTracks[trackIndex] };
-
-        if (recordMode === 'replace') {
-          newTrack.steps = new Array(MAX_STEPS).fill(false);
-          newTrack.velocity = new Array(MAX_STEPS).fill(1);
-        }
-
-        newTrack.steps = [...newTrack.steps];
-        newTrack.velocity = [...newTrack.velocity];
-        newTrack.steps[0] = true;
-        newTrack.velocity[0] = velocity;
-
-        newTracks[trackIndex] = newTrack;
-        newPattern.tracks = newTracks;
-        return newPattern;
-      });
+      // Don't return - continue to trigger the sound
     }
 
     const track = pattern.tracks[trackIndex];
@@ -532,17 +527,6 @@ const App: React.FC = () => {
     setTheme(randomTheme);
   };
 
-  // Load saved projects from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setSavedProjects(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load saved projects:', e);
-      }
-    }
-  }, []);
 
   // Save project handler
   const handleSaveProject = () => {

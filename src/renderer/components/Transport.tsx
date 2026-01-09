@@ -165,7 +165,12 @@ const Transport: React.FC<TransportProps> = ({
           title={metronomeEnabled ? 'Metronome On' : 'Metronome Off'}
         >
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 1L8.5 8H4l8 14 8-14h-4.5L12 1zm0 4.5L13.5 8h-3L12 5.5zM12 11c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z" />
+            {/* Metronome body (triangle) */}
+            <path d="M12 2L6 22h12L12 2zm0 4l4 14H8l4-14z" />
+            {/* Pendulum arm */}
+            <path d="M12 6l4-2.5-.5-1L12 4.5 8.5 2.5l-.5 1L12 6z" />
+            {/* Weight on pendulum */}
+            <circle cx="15" cy="4" r="1.5" />
           </svg>
         </button>
       </div>
