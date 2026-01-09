@@ -16,6 +16,17 @@ import './styles/App.css';
 const THEMES = ['purple', 'blue', 'red', 'orange', 'green', 'cyan', 'pink'] as const;
 type Theme = typeof THEMES[number];
 
+// Saved project structure
+interface SavedProject {
+  name: string;
+  timestamp: number;
+  pattern: Pattern;
+  synthSequence: SynthStep[];
+  synthParams: SynthParams;
+}
+
+const STORAGE_KEY = 'drumsynth-saved-projects';
+
 // Clickable theme smiley component
 const ThemeSmiley: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <button className="theme-smiley-btn" onClick={onClick} aria-label="Change color theme">
@@ -247,6 +258,10 @@ const App: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [projectName, setProjectName] = useState('');
 
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
@@ -517,11 +532,140 @@ const App: React.FC = () => {
     setTheme(randomTheme);
   };
 
+  // Load saved projects from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setSavedProjects(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load saved projects:', e);
+      }
+    }
+  }, []);
+
+  // Save project handler
+  const handleSaveProject = () => {
+    if (!projectName.trim()) return;
+
+    const newProject: SavedProject = {
+      name: projectName.trim(),
+      timestamp: Date.now(),
+      pattern,
+      synthSequence,
+      synthParams,
+    };
+
+    const updatedProjects = [...savedProjects, newProject];
+    setSavedProjects(updatedProjects);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+    setProjectName('');
+    setShowSaveModal(false);
+  };
+
+  // Load project handler
+  const handleLoadProject = (project: SavedProject) => {
+    setPattern(project.pattern);
+    setSynthSequence(project.synthSequence);
+    setSynthParams(project.synthParams);
+    if (melodicSynthRef.current) {
+      melodicSynthRef.current.updateParams(project.synthParams);
+    }
+    setShowLoadModal(false);
+  };
+
+  // Delete project handler
+  const handleDeleteProject = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updatedProjects = savedProjects.filter((_, i) => i !== index);
+    setSavedProjects(updatedProjects);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+  };
+
   return (
     <div className="app">
       <PsychedelicBackground />
       {/* Clickable theme smiley */}
       <ThemeSmiley onClick={handleThemeChange} />
+
+      {/* Save/Load buttons */}
+      <div className="project-buttons">
+        <button className="project-btn save-btn" onClick={() => setShowSaveModal(true)}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+          </svg>
+          SAVE
+        </button>
+        <button className="project-btn load-btn" onClick={() => setShowLoadModal(true)}>
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+          </svg>
+          LOAD
+        </button>
+      </div>
+
+      {/* Save Modal */}
+      {showSaveModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Save Project</h2>
+            <input
+              type="text"
+              className="modal-input"
+              placeholder="Project name..."
+              value={projectName}
+              onChange={e => setProjectName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSaveProject()}
+              autoFocus
+            />
+            <div className="modal-buttons">
+              <button className="modal-btn cancel" onClick={() => setShowSaveModal(false)}>Cancel</button>
+              <button className="modal-btn confirm" onClick={handleSaveProject} disabled={!projectName.trim()}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Load Modal */}
+      {showLoadModal && (
+        <div className="modal-overlay" onClick={() => setShowLoadModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Load Project</h2>
+            {savedProjects.length === 0 ? (
+              <p className="modal-empty">No saved projects yet</p>
+            ) : (
+              <div className="project-list">
+                {savedProjects.map((project, index) => (
+                  <div
+                    key={index}
+                    className="project-item"
+                    onClick={() => handleLoadProject(project)}
+                  >
+                    <div className="project-info">
+                      <span className="project-name">{project.name}</span>
+                      <span className="project-date">
+                        {new Date(project.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <button
+                      className="project-delete"
+                      onClick={(e) => handleDeleteProject(index, e)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-buttons">
+              <button className="modal-btn cancel" onClick={() => setShowLoadModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="main-content">
         <div className="center-section">
           <div className="sequencer-container">
