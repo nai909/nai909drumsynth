@@ -347,9 +347,12 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
     return scaleNotes[clampedIdx];
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
     if (!step.active) {
-      // Activate with note based on click position
+      // Activate with note based on position
       const note = getNoteFromPosition(e.clientY);
       onActivateWithNote(index, note);
       synth.noteOn(note, 0.8);
@@ -362,60 +365,16 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
     startY.current = e.clientY;
     startNote.current = step.note;
     lastNote.current = step.note;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging.current) return;
     const deltaY = Math.abs(e.clientY - startY.current);
-    if (deltaY > 5) hasDragged.current = true; // Threshold to distinguish drag from click
+    if (deltaY > 5) hasDragged.current = true;
     onDrag(index, startY.current, e.clientY, startNote.current);
   };
 
-  const handleMouseUp = () => {
-    if (isDragging.current) {
-      if (!hasDragged.current) {
-        // No drag occurred - this was a click, so toggle off
-        onToggle();
-      } else if (step.note !== lastNote.current) {
-        // Drag occurred and note changed - play preview
-        synth.noteOn(step.note, 0.7);
-        setTimeout(() => synth.noteOff(step.note), 100);
-      }
-    }
-    isDragging.current = false;
-    hasDragged.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!step.active) {
-      // Activate with note based on touch position
-      const note = getNoteFromPosition(e.touches[0].clientY);
-      onActivateWithNote(index, note);
-      synth.noteOn(note, 0.8);
-      setTimeout(() => synth.noteOff(note), 150);
-      return;
-    }
-    // Active step - start drag or prepare for toggle
-    isDragging.current = true;
-    hasDragged.current = false;
-    startY.current = e.touches[0].clientY;
-    startNote.current = step.note;
-    lastNote.current = step.note;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    const deltaY = Math.abs(e.touches[0].clientY - startY.current);
-    if (deltaY > 5) hasDragged.current = true;
-    onDrag(index, startY.current, e.touches[0].clientY, startNote.current);
-  };
-
-  const handleTouchEnd = () => {
+  const handlePointerUp = () => {
     if (isDragging.current) {
       if (!hasDragged.current) {
         // No drag occurred - this was a tap, so toggle off
@@ -434,10 +393,10 @@ const MelodyStep: React.FC<MelodyStepProps> = ({
     <div
       ref={stepRef}
       className={`melody-step ${step.active ? 'active' : ''} ${isCurrentStep ? 'current' : ''} ${index % 4 === 0 ? 'beat-start' : ''}`}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div className="step-bar-container">
         <div
@@ -484,9 +443,12 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
   // Display notes in reverse order (high notes at top)
   const displayNotes = [...scaleNotes].reverse();
 
-  const handleCellMouseDown = (stepIndex: number, note: string, isActive: boolean) => {
+  // Unified handler for both mouse and touch
+  const handleCellPointerDown = (stepIndex: number, note: string, isActive: boolean, e: React.PointerEvent) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
     isDragging.current = true;
-    // Determine drag mode based on initial cell state
     dragMode.current = isActive ? 'remove' : 'add';
 
     if (dragMode.current === 'add') {
@@ -496,11 +458,9 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
     } else {
       onSetNote(stepIndex, note, false);
     }
-
-    document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleCellMouseEnter = (stepIndex: number, note: string, isActive: boolean) => {
+  const handleCellPointerEnter = (stepIndex: number, note: string, isActive: boolean) => {
     if (!isDragging.current) return;
 
     if (dragMode.current === 'add' && !isActive) {
@@ -512,23 +472,8 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     isDragging.current = false;
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleTouchStart = (stepIndex: number, note: string, isActive: boolean, e: React.TouchEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    dragMode.current = isActive ? 'remove' : 'add';
-
-    if (dragMode.current === 'add') {
-      onSetNote(stepIndex, note, true);
-      synth.noteOn(note, 0.7);
-      setTimeout(() => synth.noteOff(note), 100);
-    } else {
-      onSetNote(stepIndex, note, false);
-    }
   };
 
   // Check if a note is black key
@@ -563,9 +508,10 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
                   <div
                     key={stepIndex}
                     className={`piano-cell ${isActive ? 'active' : ''} ${currentStep === stepIndex ? 'current' : ''} ${stepIndex % 4 === 0 ? 'beat-start' : ''}`}
-                    onMouseDown={() => handleCellMouseDown(stepIndex, note, isActive)}
-                    onMouseEnter={() => handleCellMouseEnter(stepIndex, note, isActive)}
-                    onTouchStart={(e) => handleTouchStart(stepIndex, note, isActive, e)}
+                    onPointerDown={(e) => handleCellPointerDown(stepIndex, note, isActive, e)}
+                    onPointerEnter={() => handleCellPointerEnter(stepIndex, note, isActive)}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
                   />
                 );
               })}
