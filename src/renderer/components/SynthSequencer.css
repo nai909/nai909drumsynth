@@ -453,12 +453,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 4px 0;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--accent-border);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  gap: 0;
+  padding: 2px 0;
   animation: scroll-pulse 2s ease-in-out infinite;
 }
 
