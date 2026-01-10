@@ -552,7 +552,15 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
               >
                 ◀
               </button>
-              <span className="page-indicator">{currentPage + 1}/{loopBars}</span>
+              <div className="page-dots">
+                {Array.from({ length: loopBars }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`page-dot ${i === currentPage ? 'active' : ''}`}
+                    onClick={() => onPageChange(i)}
+                  />
+                ))}
+              </div>
               <button
                 className="page-nav-btn"
                 onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
