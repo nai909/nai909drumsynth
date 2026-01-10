@@ -64,6 +64,256 @@ const getScaleNotes = (root: string, scale: string): string[] => {
   return scaleNotes;
 };
 
+// Genre-based melodic pattern generator
+type MelodicGenre = {
+  name: string;
+  // Rhythm patterns for one bar (which steps have notes) - multiple options
+  rhythmPatterns: number[][];
+  // Melodic movement type
+  melodyType: 'arpeggio' | 'stepwise' | 'jumpy' | 'repetitive' | 'descending' | 'ascending';
+  // Note range within scale (0 = root, higher = higher notes)
+  noteRangeStart: number;
+  noteRangeEnd: number;
+  // Probability of variation between bars
+  variationChance: number;
+  // Whether to occasionally repeat notes
+  allowRepeats: boolean;
+};
+
+const MELODIC_GENRES: MelodicGenre[] = [
+  {
+    name: 'House',
+    rhythmPatterns: [
+      [0, 3, 4, 7, 8, 11, 12, 14],      // Offbeat stabs
+      [0, 2, 4, 6, 8, 10, 12, 14],      // Steady 8ths
+      [0, 4, 6, 8, 12, 14],             // Syncopated
+    ],
+    melodyType: 'arpeggio',
+    noteRangeStart: 8,
+    noteRangeEnd: 20,
+    variationChance: 0.2,
+    allowRepeats: true,
+  },
+  {
+    name: 'Techno',
+    rhythmPatterns: [
+      [0, 2, 4, 6, 8, 10, 12, 14],      // Driving 8ths
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // 16ths
+      [0, 4, 8, 12],                    // Quarter notes
+    ],
+    melodyType: 'repetitive',
+    noteRangeStart: 6,
+    noteRangeEnd: 14,
+    variationChance: 0.1,
+    allowRepeats: true,
+  },
+  {
+    name: 'Ambient',
+    rhythmPatterns: [
+      [0, 8],                           // Sparse
+      [0, 4, 12],                       // Minimal
+      [0, 6, 10],                       // Floating
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 10,
+    noteRangeEnd: 24,
+    variationChance: 0.4,
+    allowRepeats: false,
+  },
+  {
+    name: 'Hip Hop',
+    rhythmPatterns: [
+      [0, 3, 6, 10, 12],                // Laid back
+      [0, 2, 7, 8, 11, 14],             // Boom bap feel
+      [0, 4, 6, 9, 12, 15],             // Syncopated
+    ],
+    melodyType: 'jumpy',
+    noteRangeStart: 8,
+    noteRangeEnd: 18,
+    variationChance: 0.3,
+    allowRepeats: true,
+  },
+  {
+    name: 'Trance',
+    rhythmPatterns: [
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // Full 16ths
+      [0, 2, 4, 6, 8, 10, 12, 14],      // 8ths
+    ],
+    melodyType: 'arpeggio',
+    noteRangeStart: 10,
+    noteRangeEnd: 22,
+    variationChance: 0.15,
+    allowRepeats: true,
+  },
+  {
+    name: 'Lo-fi',
+    rhythmPatterns: [
+      [0, 4, 7, 10, 14],                // Chill
+      [0, 3, 8, 11],                    // Sparse jazzy
+      [2, 6, 9, 12],                    // Offbeat
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 8,
+    noteRangeEnd: 18,
+    variationChance: 0.35,
+    allowRepeats: false,
+  },
+  {
+    name: 'DnB',
+    rhythmPatterns: [
+      [0, 3, 6, 8, 11, 14],             // Broken
+      [0, 2, 5, 8, 10, 13],             // Syncopated
+      [0, 1, 4, 6, 9, 12, 14, 15],      // Fast
+    ],
+    melodyType: 'jumpy',
+    noteRangeStart: 6,
+    noteRangeEnd: 18,
+    variationChance: 0.25,
+    allowRepeats: true,
+  },
+  {
+    name: 'Funk',
+    rhythmPatterns: [
+      [0, 3, 4, 6, 10, 12, 15],         // Funky
+      [0, 2, 3, 6, 8, 11, 14],          // Groovy
+      [1, 4, 7, 8, 11, 14],             // Offbeat
+    ],
+    melodyType: 'jumpy',
+    noteRangeStart: 8,
+    noteRangeEnd: 16,
+    variationChance: 0.3,
+    allowRepeats: true,
+  },
+];
+
+const generateMelodicPattern = (
+  scaleNotes: string[],
+  loopBars: number,
+  genre?: MelodicGenre
+): { active: boolean; note: string }[] => {
+  const totalSteps = loopBars * 16;
+  const selectedGenre = genre || MELODIC_GENRES[Math.floor(Math.random() * MELODIC_GENRES.length)];
+
+  // Initialize empty pattern
+  const pattern: { active: boolean; note: string }[] = Array.from(
+    { length: 64 },
+    () => ({ active: false, note: 'C4' })
+  );
+
+  // Select a rhythm pattern
+  const rhythmPattern = selectedGenre.rhythmPatterns[
+    Math.floor(Math.random() * selectedGenre.rhythmPatterns.length)
+  ];
+
+  // Calculate usable note range
+  const rangeStart = Math.min(selectedGenre.noteRangeStart, scaleNotes.length - 1);
+  const rangeEnd = Math.min(selectedGenre.noteRangeEnd, scaleNotes.length - 1);
+  const noteRange = scaleNotes.slice(rangeStart, rangeEnd + 1);
+
+  if (noteRange.length === 0) return pattern;
+
+  // Generate base melodic sequence based on melody type
+  let melodicSequence: number[] = [];
+  const seqLength = rhythmPattern.length;
+
+  switch (selectedGenre.melodyType) {
+    case 'arpeggio':
+      // Create arpeggio pattern (up, down, or up-down)
+      const arpDirection = Math.random();
+      if (arpDirection < 0.33) {
+        // Ascending
+        for (let i = 0; i < seqLength; i++) {
+          melodicSequence.push(i % noteRange.length);
+        }
+      } else if (arpDirection < 0.66) {
+        // Descending
+        for (let i = 0; i < seqLength; i++) {
+          melodicSequence.push((noteRange.length - 1) - (i % noteRange.length));
+        }
+      } else {
+        // Up-down
+        const upDown = [];
+        for (let i = 0; i < noteRange.length; i++) upDown.push(i);
+        for (let i = noteRange.length - 2; i > 0; i--) upDown.push(i);
+        for (let i = 0; i < seqLength; i++) {
+          melodicSequence.push(upDown[i % upDown.length]);
+        }
+      }
+      break;
+
+    case 'stepwise':
+      // Move by steps, occasionally jumping
+      let currentNote = Math.floor(noteRange.length / 2);
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(currentNote);
+        const step = Math.random() < 0.7 ? (Math.random() < 0.5 ? 1 : -1) : (Math.random() < 0.5 ? 2 : -2);
+        currentNote = Math.max(0, Math.min(noteRange.length - 1, currentNote + step));
+      }
+      break;
+
+    case 'jumpy':
+      // Larger intervals, more variation
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(Math.floor(Math.random() * noteRange.length));
+      }
+      break;
+
+    case 'repetitive':
+      // Repeat a short motif
+      const motifLength = 2 + Math.floor(Math.random() * 3); // 2-4 notes
+      const motif = [];
+      for (let i = 0; i < motifLength; i++) {
+        motif.push(Math.floor(Math.random() * Math.min(noteRange.length, 6)));
+      }
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(motif[i % motifLength]);
+      }
+      break;
+
+    case 'ascending':
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(Math.min(i, noteRange.length - 1));
+      }
+      break;
+
+    case 'descending':
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(Math.max(0, noteRange.length - 1 - i));
+      }
+      break;
+  }
+
+  // Apply pattern to each bar
+  for (let bar = 0; bar < loopBars; bar++) {
+    const barOffset = bar * 16;
+
+    rhythmPattern.forEach((step, i) => {
+      const globalStep = barOffset + step;
+      if (globalStep < totalSteps) {
+        // Add variation in later bars
+        if (bar > 0 && Math.random() < selectedGenre.variationChance) {
+          // Vary the note slightly
+          const variedIndex = Math.max(0, Math.min(
+            noteRange.length - 1,
+            melodicSequence[i % melodicSequence.length] + (Math.random() < 0.5 ? 1 : -1)
+          ));
+          pattern[globalStep] = {
+            active: true,
+            note: noteRange[variedIndex],
+          };
+        } else {
+          pattern[globalStep] = {
+            active: true,
+            note: noteRange[melodicSequence[i % melodicSequence.length]],
+          };
+        }
+      }
+    });
+  }
+
+  return pattern;
+};
+
 const SynthSequencer: React.FC<SynthSequencerProps> = ({
   synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep,
   loopBars, onLoopBarsChange, currentPage, onPageChange
@@ -123,15 +373,12 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
     onParamsChange(newParams);
   };
 
-  // Randomize sequence (only randomize current loop length)
+  // Generate genre-based melodic sequence
   const randomizeSequence = () => {
-    const totalSteps = loopBars * STEPS_PER_PAGE;
+    const generatedPattern = generateMelodicPattern(scaleNotes, loopBars);
     const newSteps = [...steps];
-    for (let i = 0; i < totalSteps; i++) {
-      newSteps[i] = {
-        active: Math.random() < 0.5,
-        note: scaleNotes[Math.floor(Math.random() * Math.min(scaleNotes.length, 24)) + Math.floor(scaleNotes.length / 4)],
-      };
+    for (let i = 0; i < generatedPattern.length; i++) {
+      newSteps[i] = generatedPattern[i];
     }
     onStepsChange(newSteps);
   };
@@ -544,6 +791,16 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
 
   return (
     <div className="piano-roll-container">
+      {/* Scroll indicator */}
+      <div className="scroll-indicator-bar">
+        <div className="scroll-indicator-keys">
+          <span className="scroll-arrow">▲</span>
+          <span className="scroll-hint">SCROLL</span>
+          <span className="scroll-arrow">▼</span>
+        </div>
+        <div className="scroll-indicator-spacer" />
+      </div>
+
       <div className="piano-roll">
         {/* Piano keys column */}
         <div className="piano-keys">
