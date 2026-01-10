@@ -20,6 +20,7 @@ interface StepSequencerProps {
   onNoteRepeatModifierChange: (modifier: NoteRepeatModifier) => void;
   tempo: number;
   onClearSequence?: () => void;
+  onRandomize?: () => void;
   loopBars: 1 | 2 | 3 | 4;
   onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
   currentPage: number;
@@ -43,6 +44,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onNoteRepeatModifierChange,
   tempo,
   onClearSequence,
+  onRandomize,
   loopBars,
   onLoopBarsChange,
   currentPage,
@@ -313,13 +315,18 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
           </div>
         ))}
       </div>
-      {onClearSequence && (
-        <div className="sequencer-footer">
+      <div className="sequencer-footer">
+        {onRandomize && (
+          <button className="random-sequence-btn" onClick={onRandomize}>
+            RANDOM
+          </button>
+        )}
+        {onClearSequence && (
           <button className="clear-sequence-btn" onClick={onClearSequence}>
             CLEAR
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

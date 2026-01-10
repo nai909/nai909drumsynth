@@ -378,10 +378,12 @@
 .sequencer-footer {
   display: flex;
   justify-content: center;
+  gap: 12px;
   padding-top: 8px;
   margin-top: auto;
 }
 
+.random-sequence-btn,
 .clear-sequence-btn {
   padding: 8px 24px;
   background: rgba(0, 0, 0, 0.4);
@@ -395,17 +397,25 @@
   transition: all 0.2s;
 }
 
+.random-sequence-btn:hover,
 .clear-sequence-btn:hover {
   border-color: var(--accent-border-hover);
   color: var(--accent-secondary);
   background: var(--accent-bg-hover);
 }
 
+.random-sequence-btn:active,
 .clear-sequence-btn:active {
   background: var(--accent-bg-active);
   border-color: var(--accent-primary);
   box-shadow: 0 0 10px var(--accent-glow);
   transform: scale(0.98);
+}
+
+.random-sequence-btn {
+  background: linear-gradient(145deg, rgba(0, 0, 0, 0.4), var(--accent-bg));
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
 }
 
 .step-grid {
@@ -616,6 +626,7 @@
     padding-top: 6px;
   }
 
+  .random-sequence-btn,
   .clear-sequence-btn {
     padding: 6px 16px;
     font-size: 10px;

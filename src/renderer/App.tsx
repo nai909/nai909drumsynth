@@ -238,6 +238,183 @@ const createInitialPattern = (): Pattern => {
 const createInitialSynthSequence = (): SynthStep[] =>
   Array.from({ length: 16 }, () => ({ active: false, note: 'C4' }));
 
+// Genre-based drum pattern generator
+// Track indices: 0=Kick, 1=Snare, 2=Closed HH, 3=Open HH, 4=Clap, 5=Tom Low, 6=Tom Mid, 7=Rimshot
+type GenrePattern = {
+  name: string;
+  kick: { required: number[]; optional: number[]; probability: number };
+  snare: { required: number[]; optional: number[]; probability: number };
+  closedHH: { required: number[]; optional: number[]; probability: number };
+  openHH: { required: number[]; optional: number[]; probability: number };
+  clap: { required: number[]; optional: number[]; probability: number };
+  extras: { track: number; steps: number[]; probability: number }[];
+};
+
+const GENRE_PATTERNS: GenrePattern[] = [
+  // House - 4 on the floor, offbeat hats
+  {
+    name: 'House',
+    kick: { required: [0, 4, 8, 12], optional: [], probability: 0 },
+    snare: { required: [], optional: [], probability: 0 },
+    closedHH: { required: [2, 6, 10, 14], optional: [0, 4, 8, 12], probability: 0.5 },
+    openHH: { required: [], optional: [6, 14], probability: 0.3 },
+    clap: { required: [4, 12], optional: [], probability: 0 },
+    extras: [{ track: 7, steps: [2, 10], probability: 0.2 }],
+  },
+  // Garage / UK Garage - shuffled, 2-step feel
+  {
+    name: 'Garage',
+    kick: { required: [0, 10], optional: [3, 6, 7, 14], probability: 0.4 },
+    snare: { required: [4, 12], optional: [7], probability: 0.3 },
+    closedHH: { required: [0, 2, 4, 6, 8, 10, 12, 14], optional: [1, 3, 5, 9, 11, 13], probability: 0.3 },
+    openHH: { required: [], optional: [3, 7, 11, 15], probability: 0.25 },
+    clap: { required: [], optional: [4, 12], probability: 0.5 },
+    extras: [{ track: 7, steps: [2, 6, 10, 14], probability: 0.15 }],
+  },
+  // Dubstep - half-time, sparse
+  {
+    name: 'Dubstep',
+    kick: { required: [0], optional: [6, 10, 14, 15], probability: 0.25 },
+    snare: { required: [8], optional: [], probability: 0 },
+    closedHH: { required: [], optional: [0, 2, 4, 6, 8, 10, 12, 14], probability: 0.4 },
+    openHH: { required: [], optional: [6, 14], probability: 0.2 },
+    clap: { required: [8], optional: [], probability: 0 },
+    extras: [{ track: 5, steps: [12, 14], probability: 0.3 }],
+  },
+  // Hip Hop / Boom Bap
+  {
+    name: 'Hip Hop',
+    kick: { required: [0, 10], optional: [3, 6, 8, 14], probability: 0.35 },
+    snare: { required: [4, 12], optional: [], probability: 0 },
+    closedHH: { required: [0, 2, 4, 6, 8, 10, 12, 14], optional: [1, 3, 5, 7, 9, 11, 13, 15], probability: 0.3 },
+    openHH: { required: [], optional: [7, 15], probability: 0.25 },
+    clap: { required: [], optional: [4, 12], probability: 0.4 },
+    extras: [],
+  },
+  // Trap - hi-hat rolls, half-time snare
+  {
+    name: 'Trap',
+    kick: { required: [0], optional: [4, 7, 10, 12, 14], probability: 0.3 },
+    snare: { required: [8], optional: [4], probability: 0.2 },
+    closedHH: { required: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], optional: [], probability: 0 },
+    openHH: { required: [], optional: [3, 7, 11, 15], probability: 0.3 },
+    clap: { required: [8], optional: [], probability: 0 },
+    extras: [{ track: 7, steps: [6, 14], probability: 0.2 }],
+  },
+  // Lo-fi / Downtempo
+  {
+    name: 'Lo-fi',
+    kick: { required: [0, 7], optional: [4, 10, 14], probability: 0.3 },
+    snare: { required: [4, 12], optional: [10], probability: 0.2 },
+    closedHH: { required: [2, 6, 10, 14], optional: [0, 4, 8, 12], probability: 0.35 },
+    openHH: { required: [], optional: [6, 14], probability: 0.2 },
+    clap: { required: [], optional: [], probability: 0 },
+    extras: [{ track: 7, steps: [2, 10], probability: 0.15 }],
+  },
+  // Techno - driving, relentless
+  {
+    name: 'Techno',
+    kick: { required: [0, 4, 8, 12], optional: [2, 6, 10, 14], probability: 0.15 },
+    snare: { required: [], optional: [4, 12], probability: 0.3 },
+    closedHH: { required: [0, 2, 4, 6, 8, 10, 12, 14], optional: [1, 3, 5, 7, 9, 11, 13, 15], probability: 0.4 },
+    openHH: { required: [6, 14], optional: [], probability: 0 },
+    clap: { required: [4, 12], optional: [2, 6, 10], probability: 0.15 },
+    extras: [{ track: 7, steps: [3, 7, 11, 15], probability: 0.2 }],
+  },
+  // Breakbeat - syncopated, energetic
+  {
+    name: 'Breakbeat',
+    kick: { required: [0, 6, 10], optional: [3, 8, 14], probability: 0.35 },
+    snare: { required: [4, 12], optional: [7, 11, 15], probability: 0.25 },
+    closedHH: { required: [0, 2, 4, 6, 8, 10, 12, 14], optional: [1, 5, 9, 13], probability: 0.45 },
+    openHH: { required: [], optional: [3, 7, 11, 15], probability: 0.3 },
+    clap: { required: [], optional: [4, 12], probability: 0.5 },
+    extras: [{ track: 6, steps: [7, 15], probability: 0.25 }],
+  },
+];
+
+const generateDrumPattern = (loopBars: number): { steps: boolean[][]; velocities: number[][] } => {
+  const totalSteps = loopBars * 16;
+  const genre = GENRE_PATTERNS[Math.floor(Math.random() * GENRE_PATTERNS.length)];
+
+  // Initialize empty pattern for 8 tracks
+  const steps: boolean[][] = Array.from({ length: 8 }, () => new Array(totalSteps).fill(false));
+  const velocities: number[][] = Array.from({ length: 8 }, () => new Array(totalSteps).fill(1));
+
+  // Helper to set step with velocity variation
+  const setStep = (track: number, step: number, baseVelocity = 1) => {
+    if (step < totalSteps) {
+      steps[track][step] = true;
+      // Add velocity variation (-20% to +10%)
+      velocities[track][step] = Math.min(1, Math.max(0.5, baseVelocity * (0.8 + Math.random() * 0.3)));
+    }
+  };
+
+  // Apply pattern for each bar
+  for (let bar = 0; bar < loopBars; bar++) {
+    const offset = bar * 16;
+
+    // Kick
+    genre.kick.required.forEach(step => setStep(0, offset + step, 1));
+    genre.kick.optional.forEach(step => {
+      if (Math.random() < genre.kick.probability) setStep(0, offset + step, 0.85);
+    });
+
+    // Snare
+    genre.snare.required.forEach(step => setStep(1, offset + step, 1));
+    genre.snare.optional.forEach(step => {
+      if (Math.random() < genre.snare.probability) setStep(1, offset + step, 0.8);
+    });
+
+    // Closed Hi-Hat
+    genre.closedHH.required.forEach(step => setStep(2, offset + step, 0.9));
+    genre.closedHH.optional.forEach(step => {
+      if (Math.random() < genre.closedHH.probability) setStep(2, offset + step, 0.7);
+    });
+
+    // Open Hi-Hat
+    genre.openHH.required.forEach(step => setStep(3, offset + step, 0.85));
+    genre.openHH.optional.forEach(step => {
+      if (Math.random() < genre.openHH.probability) setStep(3, offset + step, 0.75);
+    });
+
+    // Clap
+    genre.clap.required.forEach(step => setStep(4, offset + step, 0.95));
+    genre.clap.optional.forEach(step => {
+      if (Math.random() < genre.clap.probability) setStep(4, offset + step, 0.85);
+    });
+
+    // Extra instruments (toms, rimshot)
+    genre.extras.forEach(extra => {
+      extra.steps.forEach(step => {
+        if (Math.random() < extra.probability) setStep(extra.track, offset + step, 0.8);
+      });
+    });
+  }
+
+  // Add slight variation between bars (remove some hits in later bars for interest)
+  if (loopBars > 1) {
+    for (let bar = 1; bar < loopBars; bar++) {
+      const offset = bar * 16;
+      // Occasionally add or remove a hit for variation
+      for (let track = 0; track < 8; track++) {
+        for (let step = 0; step < 16; step++) {
+          const globalStep = offset + step;
+          // 5% chance to flip a step (add variation)
+          if (Math.random() < 0.05) {
+            steps[track][globalStep] = !steps[track][globalStep];
+            if (steps[track][globalStep]) {
+              velocities[track][globalStep] = 0.7 + Math.random() * 0.2;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { steps, velocities };
+};
+
 const App: React.FC = () => {
   const [pattern, setPattern] = useState<Pattern>(createInitialPattern());
   const [isPlaying, setIsPlaying] = useState(false);
@@ -423,6 +600,17 @@ const App: React.FC = () => {
     newPattern.tracks = newPattern.tracks.map(track => ({
       ...track,
       steps: new Array(MAX_STEPS).fill(false),
+    }));
+    setPattern(newPattern);
+  };
+
+  const handleRandomize = () => {
+    const { steps, velocities } = generateDrumPattern(loopBars);
+    const newPattern = { ...pattern };
+    newPattern.tracks = newPattern.tracks.map((track, trackIndex) => ({
+      ...track,
+      steps: [...steps[trackIndex], ...new Array(MAX_STEPS - steps[trackIndex].length).fill(false)],
+      velocity: [...velocities[trackIndex], ...new Array(MAX_STEPS - velocities[trackIndex].length).fill(1)],
     }));
     setPattern(newPattern);
   };
@@ -805,6 +993,7 @@ const App: React.FC = () => {
                 onNoteRepeatModifierChange={setNoteRepeatModifier}
                 tempo={pattern.tempo}
                 onClearSequence={handleClearSequence}
+                onRandomize={handleRandomize}
                 loopBars={loopBars}
                 onLoopBarsChange={handleLoopBarsChange}
                 currentPage={currentPage}
