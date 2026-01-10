@@ -795,7 +795,6 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
       <div className="scroll-indicator-bar">
         <div className="scroll-indicator-keys">
           <span className="scroll-arrow">▲</span>
-          <span className="scroll-hint">SCROLL</span>
           <span className="scroll-arrow">▼</span>
         </div>
         <div className="scroll-indicator-spacer" />
