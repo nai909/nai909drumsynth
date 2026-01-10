@@ -328,13 +328,16 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
 
   // Toggle step on/off
   const toggleStep = (index: number) => {
+    if (index >= steps.length) return;
     const newSteps = [...steps];
-    newSteps[index] = { ...newSteps[index], active: !newSteps[index].active };
+    const current = newSteps[index] || { active: false, note: 'C4' };
+    newSteps[index] = { ...current, active: !current.active };
     onStepsChange(newSteps);
   };
 
   // Activate step with a specific note (called when clicking empty step)
   const activateWithNote = (index: number, note: string) => {
+    if (index >= steps.length) return;
     const newSteps = [...steps];
     newSteps[index] = { active: true, note };
     onStepsChange(newSteps);
@@ -342,9 +345,11 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
 
   // Set or toggle a note at a specific step (for piano roll)
   const setNoteAtStep = (stepIndex: number, note: string, active: boolean) => {
+    if (stepIndex >= steps.length) return;
     const newSteps = [...steps];
+    const current = newSteps[stepIndex] || { active: false, note: 'C4' };
     // If the same note is already at this step, toggle it off
-    if (newSteps[stepIndex].active && newSteps[stepIndex].note === note && !active) {
+    if (current.active && current.note === note && !active) {
       newSteps[stepIndex] = { active: false, note: 'C4' };
     } else {
       newSteps[stepIndex] = { active, note };
@@ -360,9 +365,10 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
     const newIndex = Math.max(0, Math.min(scaleNotes.length - 1, startIndex + noteSteps));
     const newNote = scaleNotes[newIndex];
 
-    if (steps[index].note !== newNote) {
+    const currentStep = steps[index];
+    if (currentStep && currentStep.note !== newNote) {
       const newSteps = [...steps];
-      newSteps[index] = { ...newSteps[index], note: newNote };
+      newSteps[index] = { ...currentStep, note: newNote };
       onStepsChange(newSteps);
     }
   }, [scaleNotes, steps, onStepsChange]);
@@ -575,7 +581,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           <div className="melody-grid" ref={containerRef}>
             {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
               const stepIndex = currentPage * STEPS_PER_PAGE + i;
-              const step = steps[stepIndex];
+              const step = steps[stepIndex] || { active: false, note: 'C4' };
               return (
                 <MelodyStep
                   key={stepIndex}
@@ -823,7 +829,7 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
             <div key={note} className={`piano-row ${isBlackKey(note) ? 'black-row' : ''}`}>
               {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
                 const stepIndex = currentPage * STEPS_PER_PAGE + i;
-                const step = steps[stepIndex];
+                const step = steps[stepIndex] || { active: false, note: 'C4' };
                 const isActive = step.active && step.note === note;
                 return (
                   <div
