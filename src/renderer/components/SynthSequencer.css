@@ -361,6 +361,78 @@
   color: var(--accent-secondary);
 }
 
+/* Loop bars buttons */
+.loop-bars-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.loop-bars-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--accent-border);
+  color: #666;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.loop-bars-btn:hover {
+  color: var(--accent-secondary);
+  border-color: var(--accent-border-hover);
+}
+
+.loop-bars-btn.active {
+  background: var(--accent-bg-active);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+/* Page navigation */
+.page-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-nav-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--accent-border);
+  color: var(--accent-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-nav-btn:hover:not(:disabled) {
+  background: var(--accent-bg-hover);
+  border-color: var(--accent-border-hover);
+}
+
+.page-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  min-width: 32px;
+  text-align: center;
+}
+
 /* Piano Roll */
 .piano-roll-container {
   flex: 1;

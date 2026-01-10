@@ -17,9 +17,13 @@ interface SynthSequencerProps {
   params: SynthParams;
   onParamsChange: (params: SynthParams) => void;
   currentStep: number;
+  loopBars: 1 | 2 | 3 | 4;
+  onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
+  currentPage: number;
+  onPageChange: (page: number) => void;
 }
 
-const NUM_STEPS = 16;
+const STEPS_PER_PAGE = 16;
 
 // All available notes (3 octaves for good range)
 const ALL_NOTES = [
@@ -60,7 +64,10 @@ const getScaleNotes = (root: string, scale: string): string[] => {
   return scaleNotes;
 };
 
-const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep }) => {
+const SynthSequencer: React.FC<SynthSequencerProps> = ({
+  synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep,
+  loopBars, onLoopBarsChange, currentPage, onPageChange
+}) => {
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('pentatonic');
   const [viewMode, setViewMode] = useState<'bars' | 'pianoroll'>('pianoroll');
@@ -116,12 +123,16 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
     onParamsChange(newParams);
   };
 
-  // Randomize sequence
+  // Randomize sequence (only randomize current loop length)
   const randomizeSequence = () => {
-    const newSteps = steps.map(() => ({
-      active: Math.random() < 0.5,
-      note: scaleNotes[Math.floor(Math.random() * Math.min(scaleNotes.length, 24)) + Math.floor(scaleNotes.length / 4)],
-    }));
+    const totalSteps = loopBars * STEPS_PER_PAGE;
+    const newSteps = [...steps];
+    for (let i = 0; i < totalSteps; i++) {
+      newSteps[i] = {
+        active: Math.random() < 0.5,
+        note: scaleNotes[Math.floor(Math.random() * Math.min(scaleNotes.length, 24)) + Math.floor(scaleNotes.length / 4)],
+      };
+    }
     onStepsChange(newSteps);
   };
 
@@ -156,9 +167,14 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
     onParamsChange(newParams);
   };
 
-  // Clear sequence
+  // Clear sequence (only clear current loop length)
   const clearSequence = () => {
-    onStepsChange(Array.from({ length: NUM_STEPS }, () => ({ active: false, note: 'C4' })));
+    const totalSteps = loopBars * STEPS_PER_PAGE;
+    const newSteps = [...steps];
+    for (let i = 0; i < totalSteps; i++) {
+      newSteps[i] = { active: false, note: 'C4' };
+    }
+    onStepsChange(newSteps);
   };
 
   // Snap existing notes to new scale
@@ -256,6 +272,44 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
           <button className="seq-btn mutate" onClick={randomizeParams}>MUTATE</button>
           <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
+
+        <div className="seq-control-group">
+          <label className="seq-label">BARS</label>
+          <div className="loop-bars-buttons">
+            {([1, 2, 3, 4] as const).map((bars) => (
+              <button
+                key={bars}
+                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                onClick={() => onLoopBarsChange(bars)}
+              >
+                {bars}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loopBars > 1 && (
+          <div className="seq-control-group">
+            <label className="seq-label">PAGE</label>
+            <div className="page-nav-buttons">
+              <button
+                className="page-nav-btn"
+                onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+              >
+                ◀
+              </button>
+              <span className="page-indicator">{currentPage + 1}/{loopBars}</span>
+              <button
+                className="page-nav-btn"
+                onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
+                disabled={currentPage === loopBars - 1}
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Piano Roll View */}
@@ -266,36 +320,44 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({ synth, isPlaying, tempo
           scaleNotes={scaleNotes}
           onSetNote={setNoteAtStep}
           synth={synth}
+          currentPage={currentPage}
         />
       ) : (
         <>
           {/* Bar View - Step grid */}
           <div className="melody-grid" ref={containerRef}>
-            {steps.map((step, index) => (
-              <MelodyStep
-                key={index}
-                step={step}
-                index={index}
-                isCurrentStep={currentStep === index}
-                scaleNotes={scaleNotes}
-                onToggle={() => toggleStep(index)}
-                onActivateWithNote={activateWithNote}
-                onDrag={handleDrag}
-                synth={synth}
-              />
-            ))}
+            {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
+              const stepIndex = currentPage * STEPS_PER_PAGE + i;
+              const step = steps[stepIndex];
+              return (
+                <MelodyStep
+                  key={stepIndex}
+                  step={step}
+                  index={stepIndex}
+                  isCurrentStep={currentStep === stepIndex}
+                  scaleNotes={scaleNotes}
+                  onToggle={() => toggleStep(stepIndex)}
+                  onActivateWithNote={activateWithNote}
+                  onDrag={handleDrag}
+                  synth={synth}
+                />
+              );
+            })}
           </div>
 
           {/* Step numbers */}
           <div className="step-indicators">
-            {steps.map((_, index) => (
-              <div
-                key={index}
-                className={`step-indicator ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
-              >
-                {index + 1}
-              </div>
-            ))}
+            {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
+              const stepIndex = currentPage * STEPS_PER_PAGE + i;
+              return (
+                <div
+                  key={stepIndex}
+                  className={`step-indicator ${currentStep === stepIndex ? 'active' : ''} ${i % 4 === 0 ? 'beat' : ''}`}
+                >
+                  {stepIndex + 1}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
@@ -434,9 +496,10 @@ interface PianoRollProps {
   scaleNotes: string[];
   onSetNote: (stepIndex: number, note: string, active: boolean) => void;
   synth: MelodicSynth;
+  currentPage: number;
 }
 
-const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, onSetNote, synth }) => {
+const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, onSetNote, synth, currentPage }) => {
   const isDragging = useRef(false);
   const dragMode = useRef<'add' | 'remove'>('add');
 
@@ -502,12 +565,14 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
         <div className="piano-grid">
           {displayNotes.map((note) => (
             <div key={note} className={`piano-row ${isBlackKey(note) ? 'black-row' : ''}`}>
-              {steps.map((step, stepIndex) => {
+              {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
+                const stepIndex = currentPage * STEPS_PER_PAGE + i;
+                const step = steps[stepIndex];
                 const isActive = step.active && step.note === note;
                 return (
                   <div
                     key={stepIndex}
-                    className={`piano-cell ${isActive ? 'active' : ''} ${currentStep === stepIndex ? 'current' : ''} ${stepIndex % 4 === 0 ? 'beat-start' : ''}`}
+                    className={`piano-cell ${isActive ? 'active' : ''} ${currentStep === stepIndex ? 'current' : ''} ${i % 4 === 0 ? 'beat-start' : ''}`}
                     onPointerDown={(e) => handleCellPointerDown(stepIndex, note, isActive, e)}
                     onPointerEnter={() => handleCellPointerEnter(stepIndex, note, isActive)}
                     onPointerUp={handlePointerUp}
@@ -524,14 +589,17 @@ const PianoRoll: React.FC<PianoRollProps> = ({ steps, currentStep, scaleNotes, o
       <div className="piano-step-numbers">
         <div className="piano-keys-spacer" />
         <div className="step-numbers-row">
-          {steps.map((_, index) => (
-            <div
-              key={index}
-              className={`step-number ${currentStep === index ? 'active' : ''} ${index % 4 === 0 ? 'beat' : ''}`}
-            >
-              {index + 1}
-            </div>
-          ))}
+          {Array.from({ length: STEPS_PER_PAGE }, (_, i) => {
+            const stepIndex = currentPage * STEPS_PER_PAGE + i;
+            return (
+              <div
+                key={stepIndex}
+                className={`step-number ${currentStep === stepIndex ? 'active' : ''} ${i % 4 === 0 ? 'beat' : ''}`}
+              >
+                {stepIndex + 1}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

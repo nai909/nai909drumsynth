@@ -235,8 +235,9 @@ const createInitialPattern = (): Pattern => {
   };
 };
 
+const MAX_SYNTH_STEPS = 64; // 4 bars max
 const createInitialSynthSequence = (): SynthStep[] =>
-  Array.from({ length: 16 }, () => ({ active: false, note: 'C4' }));
+  Array.from({ length: MAX_SYNTH_STEPS }, () => ({ active: false, note: 'C4' }));
 
 // Genre-based drum pattern generator
 // Track indices: 0=Kick, 1=Snare, 2=Closed HH, 3=Open HH, 4=Clap, 5=Tom Low, 6=Tom Mid, 7=Rimshot
@@ -428,6 +429,8 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
+  const [synthLoopBars, setSynthLoopBars] = useState<1 | 2 | 3 | 4>(1);
+  const [synthCurrentPage, setSynthCurrentPage] = useState(0);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
@@ -511,9 +514,10 @@ const App: React.FC = () => {
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
       const noteDurationMs = (60000 / pattern.tempo / 4) * 0.8;
+      const synthLoopLength = synthLoopBars * 16;
 
       synthSequencerRef.current = new Tone.Sequence(
-        (time, step) => {
+        (_time, step) => {
           setSynthCurrentStep(step);
           if (synthSequence[step].active) {
             const noteToPlay = synthSequence[step].note;
@@ -523,7 +527,7 @@ const App: React.FC = () => {
             }, noteDurationMs);
           }
         },
-        Array.from({ length: 16 }, (_, i) => i),
+        Array.from({ length: synthLoopLength }, (_, i) => i),
         '16n'
       );
       synthSequencerRef.current.start(0);
@@ -544,7 +548,7 @@ const App: React.FC = () => {
         synthSequencerRef.current = null;
       }
     };
-  }, [isPlaying, synthSequence, pattern.tempo]);
+  }, [isPlaying, synthSequence, pattern.tempo, synthLoopBars]);
 
   const handlePlay = async () => {
     if (sequencerRef.current) {
@@ -639,6 +643,29 @@ const App: React.FC = () => {
     // Update pattern step count for sequencer
     const newPattern = { ...pattern, steps: bars * 16 };
     setPattern(newPattern);
+  };
+
+  // Auto-advance page for synth sequencer
+  useEffect(() => {
+    if (isPlaying) {
+      const totalSteps = synthLoopBars * 16;
+      const stepInLoop = synthCurrentStep % totalSteps;
+      const targetPage = Math.floor(stepInLoop / 16);
+      if (targetPage !== synthCurrentPage && targetPage < synthLoopBars) {
+        setSynthCurrentPage(targetPage);
+      }
+    }
+  }, [synthCurrentStep, isPlaying, synthLoopBars, synthCurrentPage]);
+
+  // Reset synth page if it exceeds loop length
+  useEffect(() => {
+    if (synthCurrentPage >= synthLoopBars) {
+      setSynthCurrentPage(0);
+    }
+  }, [synthLoopBars, synthCurrentPage]);
+
+  const handleSynthLoopBarsChange = (bars: 1 | 2 | 3 | 4) => {
+    setSynthLoopBars(bars);
   };
 
   const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8, scheduledTime?: number) => {
@@ -934,7 +961,7 @@ const App: React.FC = () => {
                       className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
                       onClick={() => setSynthMode('seq')}
                     >
-                      SEQ
+                      SEQUENCE
                     </button>
                   </div>
                   {synthMode === 'seq' ? (
@@ -947,6 +974,10 @@ const App: React.FC = () => {
                       params={synthParams}
                       onParamsChange={handleSynthParamsChange}
                       currentStep={synthCurrentStep}
+                      loopBars={synthLoopBars}
+                      onLoopBarsChange={handleSynthLoopBarsChange}
+                      currentPage={synthCurrentPage}
+                      onPageChange={setSynthCurrentPage}
                     />
                   ) : (
                     <Synth
