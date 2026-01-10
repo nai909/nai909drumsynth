@@ -374,8 +374,9 @@
   box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Sequencer Footer */
-.sequencer-footer {
+/* Sequencer Footer & Pad Mode Footer */
+.sequencer-footer,
+.pad-mode-footer {
   display: flex;
   justify-content: center;
   gap: 12px;

@@ -25,6 +25,7 @@ interface StepSequencerProps {
   onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
+  isAdvancedMode?: boolean;
 }
 
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
@@ -49,6 +50,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onLoopBarsChange,
   currentPage,
   onPageChange,
+  isAdvancedMode = true,
 }) => {
   const touchedRef = useRef<boolean>(false);
   const repeatIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // trackIndex -> intervalId
@@ -144,38 +146,40 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   if (mode === 'pad') {
     return (
       <div className="pad-mode-container">
-        {/* Note Repeat Selector */}
-        <div className="note-repeat-selector">
-          <div className="note-repeat-label-group">
-            <span className="note-repeat-label">REPEAT</span>
-            <span className="note-repeat-hint">(Hold Pad)</span>
-          </div>
-          <div className="note-repeat-controls">
-            <div className="note-repeat-buttons">
-              {NOTE_REPEAT_RATES.map((rate) => (
-                <button
-                  key={rate}
-                  className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
-                  onClick={() => onNoteRepeatChange(rate)}
-                >
-                  {rate === 'off' ? 'OFF' : rate}
-                </button>
-              ))}
+        {/* Note Repeat Selector - only in advanced mode */}
+        {isAdvancedMode && (
+          <div className="note-repeat-selector">
+            <div className="note-repeat-label-group">
+              <span className="note-repeat-label">REPEAT</span>
+              <span className="note-repeat-hint">(Hold Pad)</span>
             </div>
-            <div className="note-repeat-modifiers">
-              {NOTE_REPEAT_MODIFIERS.map((mod) => (
-                <button
-                  key={mod}
-                  className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
-                  onClick={() => onNoteRepeatModifierChange(mod)}
-                  disabled={noteRepeat === 'off'}
-                >
-                  {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
-                </button>
-              ))}
+            <div className="note-repeat-controls">
+              <div className="note-repeat-buttons">
+                {NOTE_REPEAT_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
+                    onClick={() => onNoteRepeatChange(rate)}
+                  >
+                    {rate === 'off' ? 'OFF' : rate}
+                  </button>
+                ))}
+              </div>
+              <div className="note-repeat-modifiers">
+                {NOTE_REPEAT_MODIFIERS.map((mod) => (
+                  <button
+                    key={mod}
+                    className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
+                    onClick={() => onNoteRepeatModifierChange(mod)}
+                    disabled={noteRepeat === 'off'}
+                  >
+                    {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="drum-pads">
           {tracks.map((track, trackIndex) => (
@@ -223,6 +227,20 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
               <span className="drum-pad-name">{track.name}</span>
             </button>
           ))}
+        </div>
+
+        {/* RANDOM and CLEAR buttons - always visible in pad mode */}
+        <div className="pad-mode-footer">
+          {onRandomize && (
+            <button className="random-sequence-btn" onClick={onRandomize}>
+              RANDOM
+            </button>
+          )}
+          {onClearSequence && (
+            <button className="clear-sequence-btn" onClick={onClearSequence}>
+              CLEAR
+            </button>
+          )}
         </div>
       </div>
     );

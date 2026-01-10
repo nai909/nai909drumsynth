@@ -16,6 +16,7 @@ interface SynthProps {
   synthSequence?: SynthStep[];
   onSynthSequenceChange?: (steps: SynthStep[]) => void;
   onPlay?: () => Promise<void>;
+  isAdvancedMode?: boolean;
 }
 
 // Define keyboard notes
@@ -114,6 +115,7 @@ const Synth: React.FC<SynthProps> = ({
   synthSequence,
   onSynthSequenceChange,
   onPlay,
+  isAdvancedMode = true,
 }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -374,149 +376,154 @@ const Synth: React.FC<SynthProps> = ({
           </div>
         </div>
 
-        {/* Mono/Poly toggle */}
-        <div className="synth-section">
-          <div className="section-label">VOICE</div>
-          <button
-            className={`mono-poly-btn ${params.mono ? 'mono' : 'poly'}`}
-            onClick={() => handleParamChange('mono', !params.mono)}
-          >
-            {params.mono ? 'MONO' : 'POLY'}
-          </button>
-        </div>
-
-        {/* Waveform selector */}
-        <div className="synth-section">
-          <div className="section-label">WAVEFORM</div>
-          <div className="waveform-buttons">
-            {waveforms.map((wf) => (
+        {/* Advanced controls - only show in advanced mode */}
+        {isAdvancedMode && (
+          <>
+            {/* Mono/Poly toggle */}
+            <div className="synth-section">
+              <div className="section-label">VOICE</div>
               <button
-                key={wf}
-                className={`waveform-btn ${params.waveform === wf ? 'active' : ''}`}
-                onClick={() => handleParamChange('waveform', wf)}
+                className={`mono-poly-btn ${params.mono ? 'mono' : 'poly'}`}
+                onClick={() => handleParamChange('mono', !params.mono)}
               >
-                <WaveformIcon type={wf} />
+                {params.mono ? 'MONO' : 'POLY'}
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* ADSR */}
-        <div className="synth-section">
-          <div className="section-label">ENVELOPE</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="ATK"
-              value={params.attack}
-              onChange={(v) => handleParamChange('attack', v)}
-              min={0.001}
-              max={2}
-            />
-            <SynthKnob
-              label="DEC"
-              value={params.decay}
-              onChange={(v) => handleParamChange('decay', v)}
-              min={0.01}
-              max={2}
-            />
-            <SynthKnob
-              label="SUS"
-              value={params.sustain}
-              onChange={(v) => handleParamChange('sustain', v)}
-            />
-            <SynthKnob
-              label="REL"
-              value={params.release}
-              onChange={(v) => handleParamChange('release', v)}
-              min={0.01}
-              max={3}
-            />
-          </div>
-        </div>
+            {/* Waveform selector */}
+            <div className="synth-section">
+              <div className="section-label">WAVEFORM</div>
+              <div className="waveform-buttons">
+                {waveforms.map((wf) => (
+                  <button
+                    key={wf}
+                    className={`waveform-btn ${params.waveform === wf ? 'active' : ''}`}
+                    onClick={() => handleParamChange('waveform', wf)}
+                  >
+                    <WaveformIcon type={wf} />
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Filter */}
-        <div className="synth-section">
-          <div className="section-label">FILTER</div>
-          <div className="knob-row">
-            <SynthKnob
-              label="CUTOFF"
-              value={params.filterCutoff}
-              onChange={(v) => handleParamChange('filterCutoff', v)}
-            />
-            <SynthKnob
-              label="RES"
-              value={params.filterResonance}
-              onChange={(v) => handleParamChange('filterResonance', v)}
-            />
-            <SynthKnob
-              label="ENV"
-              value={params.filterEnvAmount}
-              onChange={(v) => handleParamChange('filterEnvAmount', v)}
-            />
-          </div>
-        </div>
+            {/* ADSR */}
+            <div className="synth-section">
+              <div className="section-label">ENVELOPE</div>
+              <div className="knob-row">
+                <SynthKnob
+                  label="ATK"
+                  value={params.attack}
+                  onChange={(v) => handleParamChange('attack', v)}
+                  min={0.001}
+                  max={2}
+                />
+                <SynthKnob
+                  label="DEC"
+                  value={params.decay}
+                  onChange={(v) => handleParamChange('decay', v)}
+                  min={0.01}
+                  max={2}
+                />
+                <SynthKnob
+                  label="SUS"
+                  value={params.sustain}
+                  onChange={(v) => handleParamChange('sustain', v)}
+                />
+                <SynthKnob
+                  label="REL"
+                  value={params.release}
+                  onChange={(v) => handleParamChange('release', v)}
+                  min={0.01}
+                  max={3}
+                />
+              </div>
+            </div>
 
-        {/* Arpeggiator */}
-        <div className="synth-section">
-          <div className="section-label">ARPEGGIATOR</div>
-          <div className="arp-controls">
-            <select
-              className="arp-select"
-              value={params.arpMode}
-              onChange={(e) => handleParamChange('arpMode', e.target.value as ArpMode)}
-            >
-              {arpModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {mode.toUpperCase()}
-                </option>
-              ))}
-            </select>
-            <SynthKnob
-              label="RATE"
-              value={params.arpRate}
-              onChange={(v) => handleParamChange('arpRate', v)}
-            />
-          </div>
-        </div>
+            {/* Filter */}
+            <div className="synth-section">
+              <div className="section-label">FILTER</div>
+              <div className="knob-row">
+                <SynthKnob
+                  label="CUTOFF"
+                  value={params.filterCutoff}
+                  onChange={(v) => handleParamChange('filterCutoff', v)}
+                />
+                <SynthKnob
+                  label="RES"
+                  value={params.filterResonance}
+                  onChange={(v) => handleParamChange('filterResonance', v)}
+                />
+                <SynthKnob
+                  label="ENV"
+                  value={params.filterEnvAmount}
+                  onChange={(v) => handleParamChange('filterEnvAmount', v)}
+                />
+              </div>
+            </div>
 
-        {/* Scale */}
-        <div className="synth-section">
-          <div className="section-label">SCALE</div>
-          <div className="scale-controls">
-            <button
-              className={`scale-toggle ${scaleEnabled ? 'active' : ''}`}
-              onClick={() => setScaleEnabled(!scaleEnabled)}
-            >
-              {scaleEnabled ? 'ON' : 'OFF'}
-            </button>
-            {scaleEnabled && (
-              <>
+            {/* Arpeggiator */}
+            <div className="synth-section">
+              <div className="section-label">ARPEGGIATOR</div>
+              <div className="arp-controls">
                 <select
-                  className="scale-select"
-                  value={scaleRoot}
-                  onChange={(e) => setScaleRoot(e.target.value)}
+                  className="arp-select"
+                  value={params.arpMode}
+                  onChange={(e) => handleParamChange('arpMode', e.target.value as ArpMode)}
                 >
-                  {ROOT_NOTES.map((note) => (
-                    <option key={note} value={note}>{note}</option>
-                  ))}
-                </select>
-                <select
-                  className="scale-select"
-                  value={scaleType}
-                  onChange={(e) => setScaleType(e.target.value)}
-                >
-                  {Object.keys(SCALES).map((scale) => (
-                    <option key={scale} value={scale}>
-                      {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                  {arpModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode.toUpperCase()}
                     </option>
                   ))}
                 </select>
-              </>
-            )}
-          </div>
-        </div>
+                <SynthKnob
+                  label="RATE"
+                  value={params.arpRate}
+                  onChange={(v) => handleParamChange('arpRate', v)}
+                />
+              </div>
+            </div>
 
-        {/* Random - desktop only, mobile version is below keyboard */}
+            {/* Scale */}
+            <div className="synth-section">
+              <div className="section-label">SCALE</div>
+              <div className="scale-controls">
+                <button
+                  className={`scale-toggle ${scaleEnabled ? 'active' : ''}`}
+                  onClick={() => setScaleEnabled(!scaleEnabled)}
+                >
+                  {scaleEnabled ? 'ON' : 'OFF'}
+                </button>
+                {scaleEnabled && (
+                  <>
+                    <select
+                      className="scale-select"
+                      value={scaleRoot}
+                      onChange={(e) => setScaleRoot(e.target.value)}
+                    >
+                      {ROOT_NOTES.map((note) => (
+                        <option key={note} value={note}>{note}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="scale-select"
+                      value={scaleType}
+                      onChange={(e) => setScaleType(e.target.value)}
+                    >
+                      {Object.keys(SCALES).map((scale) => (
+                        <option key={scale} value={scale}>
+                          {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Random/MUTATE - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="random-btn" onClick={randomizeParams}>
             MUTATE

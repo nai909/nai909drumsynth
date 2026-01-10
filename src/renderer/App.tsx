@@ -436,6 +436,10 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
   });
+  const [isAdvancedMode, setIsAdvancedMode] = useState(() => {
+    const saved = localStorage.getItem('drumsynth-advanced-mode');
+    return saved === 'true';
+  });
   const [isRecording, setIsRecording] = useState(false);
   const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
@@ -471,6 +475,25 @@ const App: React.FC = () => {
     }
     localStorage.setItem('drumsynth-theme', theme);
   }, [theme]);
+
+  // Persist advanced mode setting
+  useEffect(() => {
+    localStorage.setItem('drumsynth-advanced-mode', String(isAdvancedMode));
+  }, [isAdvancedMode]);
+
+  // Force basic-compatible modes when switching to basic
+  useEffect(() => {
+    if (!isAdvancedMode) {
+      // In basic mode, only allow 'pad' and 'synth'
+      if (mode !== 'pad' && mode !== 'synth') {
+        setMode('pad');
+      }
+      // Force synth to keys mode (not sequencer)
+      if (synthMode === 'seq') {
+        setSynthMode('keys');
+      }
+    }
+  }, [isAdvancedMode, mode, synthMode]);
 
   useEffect(() => {
     drumSynthRef.current = new DrumSynth();
@@ -846,6 +869,14 @@ const App: React.FC = () => {
         </button>
       </div>
 
+      {/* Basic/Pro Mode Toggle */}
+      <button
+        className={`mode-toggle-btn ${isAdvancedMode ? 'advanced' : 'basic'}`}
+        onClick={() => setIsAdvancedMode(!isAdvancedMode)}
+      >
+        {isAdvancedMode ? 'PRO' : 'BASIC'}
+      </button>
+
       {/* Save Modal */}
       {showSaveModal && (
         <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
@@ -919,18 +950,22 @@ const App: React.FC = () => {
                 >
                   PAD
                 </button>
-                <button
-                  className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
-                  onClick={() => setMode('params')}
-                >
-                  EDIT
-                </button>
-                <button
-                  className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
-                  onClick={() => setMode('sequencer')}
-                >
-                  SEQUENCE
-                </button>
+                {isAdvancedMode && (
+                  <>
+                    <button
+                      className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
+                      onClick={() => setMode('params')}
+                    >
+                      EDIT
+                    </button>
+                    <button
+                      className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
+                      onClick={() => setMode('sequencer')}
+                    >
+                      SEQUENCE
+                    </button>
+                  </>
+                )}
               </div>
               <div className="synth-toggle-group">
                 <button
@@ -939,32 +974,36 @@ const App: React.FC = () => {
                 >
                   SYNTH
                 </button>
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
-                  onClick={() => setMode('effects')}
-                >
-                  EFFECTS
-                </button>
+                {isAdvancedMode && (
+                  <button
+                    className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
+                    onClick={() => setMode('effects')}
+                  >
+                    EFFECTS
+                  </button>
+                )}
               </div>
             </div>
             {mode === 'synth' ? (
               melodicSynthRef.current && (
                 <>
-                  {/* Synth sub-mode toggle */}
-                  <div className="synth-submode-toggle">
-                    <button
-                      className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
-                      onClick={() => setSynthMode('keys')}
-                    >
-                      KEYS
-                    </button>
-                    <button
-                      className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
-                      onClick={() => setSynthMode('seq')}
-                    >
-                      SEQUENCE
-                    </button>
-                  </div>
+                  {/* Synth sub-mode toggle - only show in advanced mode */}
+                  {isAdvancedMode && (
+                    <div className="synth-submode-toggle">
+                      <button
+                        className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
+                        onClick={() => setSynthMode('keys')}
+                      >
+                        KEYS
+                      </button>
+                      <button
+                        className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
+                        onClick={() => setSynthMode('seq')}
+                      >
+                        SEQUENCE
+                      </button>
+                    </div>
+                  )}
                   {synthMode === 'seq' ? (
                     <SynthSequencer
                       synth={melodicSynthRef.current}
@@ -991,6 +1030,7 @@ const App: React.FC = () => {
                       synthSequence={synthSequence}
                       onSynthSequenceChange={setSynthSequence}
                       onPlay={handlePlay}
+                      isAdvancedMode={isAdvancedMode}
                     />
                   )}
                 </>
@@ -1030,6 +1070,7 @@ const App: React.FC = () => {
                 onLoopBarsChange={handleLoopBarsChange}
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
+                isAdvancedMode={isAdvancedMode}
               />
             )}
           </div>
