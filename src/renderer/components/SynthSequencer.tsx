@@ -472,7 +472,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
               className={`view-toggle-btn ${viewMode === 'bars' ? 'active' : ''}`}
               onClick={() => setViewMode('bars')}
             >
-              BARS
+              STEP
             </button>
           </div>
         </div>
@@ -527,7 +527,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
         </div>
 
         <div className="seq-control-group">
-          <label className="seq-label">BARS</label>
+          <label className="seq-label">LOOP</label>
           <div className="loop-bars-buttons">
             {([1, 2, 3, 4] as const).map((bars) => (
               <button
