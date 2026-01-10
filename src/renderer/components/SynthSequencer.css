@@ -433,6 +433,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  touch-action: none;
 }
 
 .piano-row {
@@ -440,6 +441,7 @@
   display: flex;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  touch-action: none;
 }
 
 .piano-row.black-row {
@@ -452,6 +454,8 @@
   border-right: 1px solid rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: background 0.1s;
+  touch-action: none;
+  user-select: none;
 }
 
 .piano-cell.beat-start {
