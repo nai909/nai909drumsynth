@@ -519,8 +519,9 @@ const App: React.FC = () => {
       synthSequencerRef.current = new Tone.Sequence(
         (_time, step) => {
           setSynthCurrentStep(step);
-          if (synthSequence[step].active) {
-            const noteToPlay = synthSequence[step].note;
+          const currentStep = synthSequence[step];
+          if (currentStep && currentStep.active) {
+            const noteToPlay = currentStep.note;
             synth.noteOn(noteToPlay, 0.8);
             setTimeout(() => {
               synth.noteOff(noteToPlay);
