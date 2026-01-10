@@ -253,48 +253,50 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
 
   return (
     <div className="step-sequencer">
-      {/* Page navigation and loop length selector */}
-      <div className="sequencer-header">
-        <div className="loop-bars-selector">
-          <span className="loop-bars-label">BARS</span>
-          <div className="loop-bars-buttons">
-            {([1, 2, 3, 4] as const).map((bars) => (
-              <button
-                key={bars}
-                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
-                onClick={() => onLoopBarsChange(bars)}
-              >
-                {bars}
-              </button>
-            ))}
+      {/* Page navigation and loop length selector - only in PRO mode */}
+      {isAdvancedMode && (
+        <div className="sequencer-header">
+          <div className="loop-bars-selector">
+            <span className="loop-bars-label">BARS</span>
+            <div className="loop-bars-buttons">
+              {([1, 2, 3, 4] as const).map((bars) => (
+                <button
+                  key={bars}
+                  className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                  onClick={() => onLoopBarsChange(bars)}
+                >
+                  {bars}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="page-navigation">
+            <button
+              className="page-nav-btn"
+              onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+            >
+              ◀
+            </button>
+            <div className="page-dots">
+              {Array.from({ length: loopBars }, (_, i) => (
+                <button
+                  key={i}
+                  className={`page-dot ${i === currentPage ? 'active' : ''}`}
+                  onClick={() => onPageChange(i)}
+                />
+              ))}
+            </div>
+            <button
+              className="page-nav-btn"
+              onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
+              disabled={currentPage >= loopBars - 1}
+            >
+              ▶
+            </button>
           </div>
         </div>
-        <div className="page-navigation">
-          <button
-            className="page-nav-btn"
-            onClick={() => onPageChange(Math.max(0, currentPage - 1))}
-            disabled={currentPage === 0}
-          >
-            ◀
-          </button>
-          <div className="page-dots">
-            {Array.from({ length: loopBars }, (_, i) => (
-              <button
-                key={i}
-                className={`page-dot ${i === currentPage ? 'active' : ''}`}
-                onClick={() => onPageChange(i)}
-              />
-            ))}
-          </div>
-          <button
-            className="page-nav-btn"
-            onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
-            disabled={currentPage >= loopBars - 1}
-          >
-            ▶
-          </button>
-        </div>
-      </div>
+      )}
       <div className="step-grid">
         {tracks.map((track, trackIndex) => (
           <div
