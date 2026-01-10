@@ -55,12 +55,16 @@
   gap: 0;
 }
 
-.synth-toggle-group .synth-toggle:first-child {
+.synth-toggle-group .synth-toggle:only-child {
+  border-radius: 8px !important;
+}
+
+.synth-toggle-group .synth-toggle:first-child:not(:only-child) {
   border-radius: 8px 0 0 8px !important;
   border-right: 1px solid var(--accent-border);
 }
 
-.synth-toggle-group .synth-toggle:last-child {
+.synth-toggle-group .synth-toggle:last-child:not(:only-child) {
   border-radius: 0 8px 8px 0 !important;
   border-left: 1px solid var(--accent-border);
 }
