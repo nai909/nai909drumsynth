@@ -138,8 +138,8 @@ const Synth: React.FC<SynthProps> = ({
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNotes = useRef<Set<string>>(new Set()); // track which notes are held by mouse
-  // Track note recording starts: note -> { stepIndex, transportTime }
-  const recordingNoteStarts = useRef<Map<string, { stepIndex: number; transportTime: number }>>(new Map());
+  // Track note recording starts: note -> { stepIndex, realTime } using performance.now() for accurate duration
+  const recordingNoteStarts = useRef<Map<string, { stepIndex: number; realTime: number }>>(new Map());
   // Ref to track latest synthSequence to avoid stale closures in handleNoteOff
   const synthSequenceRef = useRef(synthSequence);
 
@@ -234,7 +234,8 @@ const Synth: React.FC<SynthProps> = ({
       }
 
       // Track the start of this note for length calculation on noteOff
-      recordingNoteStarts.current.set(note, { stepIndex, transportTime: transportSeconds });
+      // Use real time (performance.now) for accurate duration tracking
+      recordingNoteStarts.current.set(note, { stepIndex, realTime: performance.now() });
 
       const newSteps = [...synthSequence];
       newSteps[stepIndex] = { active: true, note, length: 1 }; // Start with length 1, will be updated on noteOff
@@ -259,16 +260,17 @@ const Synth: React.FC<SynthProps> = ({
     const noteStart = recordingNoteStarts.current.get(note);
     // Use ref to get latest sequence (avoids stale closure when note released quickly)
     const currentSequence = synthSequenceRef.current;
-    if (noteStart && isRecording && isPlaying && onSynthSequenceChange && currentSequence) {
-      const transportSeconds = Tone.Transport.seconds;
-      const secondsPerStep = 60 / tempo / 4; // 16th note duration
+    // Note: Don't check isPlaying here - if noteStart exists, we were recording when note started
+    // The isPlaying state may not have updated yet due to async React state
+    if (noteStart && onSynthSequenceChange && currentSequence) {
+      const msPerStep = 60000 / tempo / 4; // Duration of one 16th note step in ms
       const loopLengthSteps = synthLoopBars * 16;
 
-      // Calculate how many steps the note was held
-      const elapsedSeconds = transportSeconds - noteStart.transportTime;
+      // Calculate how many steps the note was held using real elapsed time
+      const elapsedMs = performance.now() - noteStart.realTime;
       // Use Math.floor for conservative note lengths - only count fully held steps
       // Cap at 8 steps (half bar) for more musical results
-      const elapsedSteps = Math.floor(elapsedSeconds / secondsPerStep);
+      const elapsedSteps = Math.floor(elapsedMs / msPerStep);
       const maxNoteLength = Math.min(8, loopLengthSteps);
       const noteLength = Math.max(1, Math.min(elapsedSteps, maxNoteLength));
 
@@ -332,7 +334,8 @@ const Synth: React.FC<SynthProps> = ({
       window.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
-      releaseAllNotes();
+      // Don't call releaseAllNotes here - it clears mouseDownNotes which breaks
+      // recording when state changes cause effect to re-run mid-click
     };
   }, [handleNoteOff, releaseAllNotes]);
 
