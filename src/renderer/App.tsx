@@ -596,11 +596,13 @@ const App: React.FC = () => {
   };
 
   const handleStop = () => {
+    // Always stop recording, even if sequencer isn't ready
+    setIsRecording(false);
+
     if (sequencerRef.current) {
       sequencerRef.current.stop();
       setIsPlaying(false);
       setCurrentStep(0);
-      setIsRecording(false); // Stop recording when stopping playback
     }
   };
 
