@@ -903,6 +903,12 @@ const App: React.FC = () => {
       });
     }
 
+    // When recording with playback running, skip manual trigger - sequencer will play the recorded hit
+    // This prevents double-triggering (manual + sequencer playing same hit)
+    if (isRecording && isPlaying && !justStartedPlayback) {
+      return;
+    }
+
     switch (track.soundEngine) {
       case 'kick':
         drumSynthRef.current.triggerKick(time, finalVelocity, tune, decay, filterCutoff, pan, attack, tone, snap, filterResonance, drive);
