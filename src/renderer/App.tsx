@@ -701,12 +701,12 @@ const App: React.FC = () => {
     await drumSynthRef.current.init();
 
     // Auto-start playback when recording is armed but not playing
+    let justStartedPlayback = false;
     if (isRecording && !isPlaying) {
       // Start playback first, then continue to trigger the sound below
-      // Don't record this hit - it's just triggering the start
-      // Subsequent hits will be recorded normally
       await handlePlay();
-      // Don't return - continue to trigger the sound
+      justStartedPlayback = true;
+      // Don't return - continue to trigger the sound and record it
     }
 
     const track = pattern.tracks[trackIndex];
@@ -717,8 +717,8 @@ const App: React.FC = () => {
     // Combine track volume with touch velocity
     const finalVelocity = volume * velocity;
 
-    // Record the hit if recording and playing (skip if we just auto-started above)
-    if (isRecording && isPlaying) {
+    // Record the hit if recording and playing, or if we just started playback
+    if (isRecording && (isPlaying || justStartedPlayback)) {
       const transportSeconds = Tone.Transport.seconds;
       const secondsPerStep = 60 / pattern.tempo / 4; // 16th note duration
       const loopLengthSteps = loopBars * 16;

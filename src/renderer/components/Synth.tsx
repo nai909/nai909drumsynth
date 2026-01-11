@@ -178,14 +178,15 @@ const Synth: React.FC<SynthProps> = ({
     setActiveNotes((prev) => new Set([...prev, note]));
 
     // Auto-start playback when recording is armed but not playing
+    let justStartedPlayback = false;
     if (isRecording && !isPlaying && onPlay) {
-      // Start playback - subsequent notes will be recorded
-      // Don't record this note to avoid double-trigger from sequencer
+      // Start playback first, then continue to record this note
       await onPlay();
+      justStartedPlayback = true;
     }
 
-    // Record note to synth sequencer if recording and playing
-    if (isRecording && isPlaying && onSynthSequenceChange && synthSequence) {
+    // Record note to synth sequencer if recording and playing, or if we just started
+    if (isRecording && (isPlaying || justStartedPlayback) && onSynthSequenceChange && synthSequence) {
       const transportSeconds = Tone.Transport.seconds;
       const secondsPerStep = 60 / tempo / 4; // 16th note duration
       const loopLengthSteps = synthLoopBars * 16; // Use actual loop length
