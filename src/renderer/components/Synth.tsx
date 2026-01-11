@@ -127,12 +127,19 @@ const Synth: React.FC<SynthProps> = ({
   const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
   // Track note recording starts: note -> { stepIndex, transportTime }
   const recordingNoteStarts = useRef<Map<string, { stepIndex: number; transportTime: number }>>(new Map());
+  // Ref to track latest synthSequence to avoid stale closures in handleNoteOff
+  const synthSequenceRef = useRef(synthSequence);
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
   const [scaleRoot, setScaleRoot] = useState('C');
   const [scaleType, setScaleType] = useState('major');
   const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+
+  // Keep synthSequenceRef in sync with prop
+  useEffect(() => {
+    synthSequenceRef.current = synthSequence;
+  }, [synthSequence]);
 
   // Check if a note is in the current scale
   const isInScale = useCallback((note: string): boolean => {
@@ -203,6 +210,8 @@ const Synth: React.FC<SynthProps> = ({
 
       const newSteps = [...synthSequence];
       newSteps[stepIndex] = { active: true, note, length: 1 }; // Start with length 1, will be updated on noteOff
+      // Update ref immediately so handleNoteOff sees the new step (avoids stale closure)
+      synthSequenceRef.current = newSteps;
       onSynthSequenceChange(newSteps);
     }
   }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay, synthLoopBars]);
@@ -220,7 +229,9 @@ const Synth: React.FC<SynthProps> = ({
 
     // Calculate note length if we were recording this note
     const noteStart = recordingNoteStarts.current.get(note);
-    if (noteStart && isRecording && isPlaying && onSynthSequenceChange && synthSequence) {
+    // Use ref to get latest sequence (avoids stale closure when note released quickly)
+    const currentSequence = synthSequenceRef.current;
+    if (noteStart && isRecording && isPlaying && onSynthSequenceChange && currentSequence) {
       const transportSeconds = Tone.Transport.seconds;
       const secondsPerStep = 60 / tempo / 4; // 16th note duration
       const loopLengthSteps = synthLoopBars * 16;
@@ -231,12 +242,14 @@ const Synth: React.FC<SynthProps> = ({
       const noteLength = Math.max(1, Math.min(elapsedSteps, loopLengthSteps)); // Clamp to valid range
 
       // Update the step with the calculated length
-      const newSteps = [...synthSequence];
+      const newSteps = [...currentSequence];
       if (newSteps[noteStart.stepIndex]?.active) {
         newSteps[noteStart.stepIndex] = {
           ...newSteps[noteStart.stepIndex],
           length: noteLength
         };
+        // Update ref immediately
+        synthSequenceRef.current = newSteps;
         onSynthSequenceChange(newSteps);
       }
     }
@@ -244,7 +257,7 @@ const Synth: React.FC<SynthProps> = ({
     // Always clean up the tracking, regardless of recording state
     // This prevents stale entries if recording stops while a note is held
     recordingNoteStarts.current.delete(note);
-  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, synthLoopBars]);
+  }, [synth, isRecording, isPlaying, tempo, onSynthSequenceChange, synthLoopBars]);
 
   // Global event handlers - catches any missed releases
   useEffect(() => {
