@@ -343,18 +343,54 @@
 
 .random-section-desktop {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 0;
 }
 
 .random-section-desktop .random-btn {
   width: 100%;
-  height: 100%;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 15px 20px;
+}
+
+/* Clear button */
+.clear-btn {
+  padding: 10px 20px;
+  background: linear-gradient(145deg, #3a1a1a, #2a1010);
+  border: 2px solid #ff4444;
+  color: #ff6666;
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.clear-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+  background: linear-gradient(145deg, #4a2020, #3a1515);
+}
+
+.clear-btn:active {
+  transform: scale(0.95);
+}
+
+/* Mobile action buttons container */
+.synth-mobile-actions {
+  display: none;
+}
+
+.clear-btn-mobile {
+  display: none;
 }
 
 /* Keyboard */
@@ -571,9 +607,22 @@
     display: none;
   }
 
+  .synth-mobile-actions {
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+
   .random-btn-mobile {
     display: block;
-    width: 100%;
+    flex: 1;
+    padding: 14px 20px;
+    font-size: 13px;
+  }
+
+  .clear-btn-mobile {
+    display: block;
+    flex: 1;
     padding: 14px 20px;
     font-size: 13px;
   }

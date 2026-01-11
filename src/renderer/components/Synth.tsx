@@ -395,6 +395,19 @@ const Synth: React.FC<SynthProps> = ({
     onParamsChange(newParams);
   };
 
+  // Clear the synth sequence
+  const clearSequence = () => {
+    if (onSynthSequenceChange && synthSequence) {
+      const totalSteps = synthLoopBars * 16;
+      const newSteps = [...synthSequence];
+      for (let i = 0; i < totalSteps; i++) {
+        newSteps[i] = { active: false, note: 'C4' };
+      }
+      synthSequenceRef.current = newSteps;
+      onSynthSequenceChange(newSteps);
+    }
+  };
+
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
   const arpModes: ArpMode[] = ['off', 'up', 'down', 'updown', 'random'];
 
@@ -580,7 +593,7 @@ const Synth: React.FC<SynthProps> = ({
           </>
         )}
 
-        {/* Random/MUTATE - desktop only, mobile version is below keyboard */}
+        {/* Random/MUTATE and CLEAR - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="random-btn" onClick={randomizeParams}>
             MUTATE
@@ -612,6 +625,7 @@ const Synth: React.FC<SynthProps> = ({
               />
             </svg>
           </button>
+          <button className="clear-btn" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
 
@@ -720,37 +734,40 @@ const Synth: React.FC<SynthProps> = ({
       {/* Waveform Visualizer */}
       <WaveformVisualizer synth={synth} />
 
-      {/* Random button - mobile only, below keyboard */}
-      <button className="random-btn random-btn-mobile" onClick={randomizeParams}>
-        MUTATE
-        <svg viewBox="0 0 64 80" className="mutate-smiley">
-          <path
-            className="mutate-smiley-face"
-            d="M32 4
-               C14 4 4 16 4 32
-               C4 44 10 52 14 56
-               L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
-               C18 64 22 66 24 68
-               L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
-               C28 71 30 71 32 71
-               C34 71 36 71 38 70
-               L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
-               C42 66 46 64 48 62
-               L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
-               C54 54 60 46 60 32
-               C60 16 50 4 32 4Z"
-          />
-          <ellipse className="mutate-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
-          <ellipse className="mutate-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
-          <path
-            className="mutate-smiley-mouth"
-            d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
-            strokeWidth="4"
-            fill="none"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
+      {/* Action buttons - mobile only, below keyboard */}
+      <div className="synth-mobile-actions">
+        <button className="random-btn random-btn-mobile" onClick={randomizeParams}>
+          MUTATE
+          <svg viewBox="0 0 64 80" className="mutate-smiley">
+            <path
+              className="mutate-smiley-face"
+              d="M32 4
+                 C14 4 4 16 4 32
+                 C4 44 10 52 14 56
+                 L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
+                 C18 64 22 66 24 68
+                 L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
+                 C28 71 30 71 32 71
+                 C34 71 36 71 38 70
+                 L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
+                 C42 66 46 64 48 62
+                 L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
+                 C54 54 60 46 60 32
+                 C60 16 50 4 32 4Z"
+            />
+            <ellipse className="mutate-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
+            <ellipse className="mutate-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
+            <path
+              className="mutate-smiley-mouth"
+              d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
+              strokeWidth="4"
+              fill="none"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+        <button className="clear-btn clear-btn-mobile" onClick={clearSequence}>CLEAR</button>
+      </div>
     </div>
   );
 };
