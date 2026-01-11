@@ -212,17 +212,26 @@ const Synth: React.FC<SynthProps> = ({
 
     // Record note to synth sequencer if recording and playing, or if we just started
     if (isRecording && (isPlaying || justStartedPlayback) && onSynthSequenceChange && synthSequence) {
-      const transportSeconds = Tone.Transport.seconds;
-      const secondsPerStep = 60 / tempo / 4; // 16th note duration
-      const loopLengthSteps = synthLoopBars * 16; // Use actual loop length
-      const loopLengthSeconds = loopLengthSteps * secondsPerStep;
+      const loopLengthSteps = synthLoopBars * 16;
+      let stepIndex: number;
+      let transportSeconds: number;
 
-      const positionInLoop = transportSeconds % loopLengthSeconds;
-      // Use Math.min to prevent overflow at loop boundary
-      const stepIndex = Math.min(
-        Math.round(positionInLoop / secondsPerStep),
-        loopLengthSteps - 1
-      );
+      if (justStartedPlayback) {
+        // Transport just started - position is 0, don't read stale Transport.seconds
+        stepIndex = 0;
+        transportSeconds = 0;
+      } else {
+        // Normal recording - calculate from transport position
+        transportSeconds = Tone.Transport.seconds;
+        const secondsPerStep = 60 / tempo / 4; // 16th note duration
+        const loopLengthSeconds = loopLengthSteps * secondsPerStep;
+        const positionInLoop = transportSeconds % loopLengthSeconds;
+        // Use Math.min to prevent overflow at loop boundary
+        stepIndex = Math.min(
+          Math.round(positionInLoop / secondsPerStep),
+          loopLengthSteps - 1
+        );
+      }
 
       // Track the start of this note for length calculation on noteOff
       recordingNoteStarts.current.set(note, { stepIndex, transportTime: transportSeconds });

@@ -27,6 +27,117 @@ interface SavedProject {
 
 const STORAGE_KEY = 'drumsynth-saved-projects';
 
+// Validation helpers for save/load
+const validateSynthStep = (step: unknown): SynthStep => {
+  if (!step || typeof step !== 'object') {
+    return { active: false, note: 'C4' };
+  }
+  const s = step as Record<string, unknown>;
+  return {
+    active: typeof s.active === 'boolean' ? s.active : false,
+    note: typeof s.note === 'string' ? s.note : 'C4',
+    length: typeof s.length === 'number' ? s.length : undefined,
+  };
+};
+
+const validateDrumTrack = (track: unknown, defaultTrack: DrumTrack): DrumTrack => {
+  if (!track || typeof track !== 'object') {
+    return defaultTrack;
+  }
+  const t = track as Record<string, unknown>;
+  const validTypes: DrumTrack['type'][] = ['analog', 'fm', 'pcm', 'sample'];
+  return {
+    id: typeof t.id === 'string' ? t.id : defaultTrack.id,
+    name: typeof t.name === 'string' ? t.name : defaultTrack.name,
+    type: validTypes.includes(t.type as DrumTrack['type']) ? t.type as DrumTrack['type'] : defaultTrack.type,
+    soundEngine: typeof t.soundEngine === 'string' ? t.soundEngine : defaultTrack.soundEngine,
+    steps: Array.isArray(t.steps) ? t.steps.map(s => Boolean(s)) : defaultTrack.steps,
+    velocity: Array.isArray(t.velocity) ? t.velocity.map(v => typeof v === 'number' ? v : 1) : defaultTrack.velocity,
+    muted: typeof t.muted === 'boolean' ? t.muted : false,
+    solo: typeof t.solo === 'boolean' ? t.solo : false,
+    volume: typeof t.volume === 'number' ? t.volume : defaultTrack.volume,
+    pan: typeof t.pan === 'number' ? t.pan : 0,
+    tune: typeof t.tune === 'number' ? t.tune : 0,
+    decay: typeof t.decay === 'number' ? t.decay : 0,
+    attack: typeof t.attack === 'number' ? t.attack : 0.001,
+    tone: typeof t.tone === 'number' ? t.tone : 0.5,
+    snap: typeof t.snap === 'number' ? t.snap : 0.3,
+    filterCutoff: typeof t.filterCutoff === 'number' ? t.filterCutoff : 0.8,
+    filterResonance: typeof t.filterResonance === 'number' ? t.filterResonance : 0.2,
+    drive: typeof t.drive === 'number' ? t.drive : 0,
+  };
+};
+
+const validatePattern = (pattern: unknown, defaultPattern: Pattern): Pattern => {
+  if (!pattern || typeof pattern !== 'object') {
+    return defaultPattern;
+  }
+  const p = pattern as Record<string, unknown>;
+  const validatedTracks = Array.isArray(p.tracks)
+    ? p.tracks.map((t, i) => validateDrumTrack(t, defaultPattern.tracks[i] || defaultPattern.tracks[0]))
+    : defaultPattern.tracks;
+
+  return {
+    id: typeof p.id === 'string' ? p.id : defaultPattern.id,
+    name: typeof p.name === 'string' ? p.name : defaultPattern.name,
+    tracks: validatedTracks,
+    tempo: typeof p.tempo === 'number' && p.tempo > 0 && p.tempo <= 300 ? p.tempo : defaultPattern.tempo,
+    steps: typeof p.steps === 'number' ? p.steps : defaultPattern.steps,
+  };
+};
+
+const validateSynthParams = (params: unknown): SynthParams => {
+  if (!params || typeof params !== 'object') {
+    return DEFAULT_SYNTH_PARAMS;
+  }
+  const p = params as Record<string, unknown>;
+  const validWaveforms: SynthParams['waveform'][] = ['sine', 'triangle', 'sawtooth', 'square'];
+  const validArpModes: SynthParams['arpMode'][] = ['off', 'up', 'down', 'updown', 'random'];
+  const validLfoDestinations: SynthParams['lfoDestination'][] = ['filter', 'pitch', 'volume'];
+
+  return {
+    waveform: validWaveforms.includes(p.waveform as SynthParams['waveform'])
+      ? p.waveform as SynthParams['waveform']
+      : DEFAULT_SYNTH_PARAMS.waveform,
+    attack: typeof p.attack === 'number' ? p.attack : DEFAULT_SYNTH_PARAMS.attack,
+    decay: typeof p.decay === 'number' ? p.decay : DEFAULT_SYNTH_PARAMS.decay,
+    sustain: typeof p.sustain === 'number' ? p.sustain : DEFAULT_SYNTH_PARAMS.sustain,
+    release: typeof p.release === 'number' ? p.release : DEFAULT_SYNTH_PARAMS.release,
+    filterCutoff: typeof p.filterCutoff === 'number' ? p.filterCutoff : DEFAULT_SYNTH_PARAMS.filterCutoff,
+    filterResonance: typeof p.filterResonance === 'number' ? p.filterResonance : DEFAULT_SYNTH_PARAMS.filterResonance,
+    filterEnvAmount: typeof p.filterEnvAmount === 'number' ? p.filterEnvAmount : DEFAULT_SYNTH_PARAMS.filterEnvAmount,
+    detune: typeof p.detune === 'number' ? p.detune : DEFAULT_SYNTH_PARAMS.detune,
+    volume: typeof p.volume === 'number' ? p.volume : DEFAULT_SYNTH_PARAMS.volume,
+    pan: typeof p.pan === 'number' ? p.pan : DEFAULT_SYNTH_PARAMS.pan,
+    arpMode: validArpModes.includes(p.arpMode as SynthParams['arpMode'])
+      ? p.arpMode as SynthParams['arpMode']
+      : DEFAULT_SYNTH_PARAMS.arpMode,
+    arpRate: typeof p.arpRate === 'number' ? p.arpRate : DEFAULT_SYNTH_PARAMS.arpRate,
+    mono: typeof p.mono === 'boolean' ? p.mono : DEFAULT_SYNTH_PARAMS.mono,
+    // Effects
+    reverbMix: typeof p.reverbMix === 'number' ? p.reverbMix : DEFAULT_SYNTH_PARAMS.reverbMix,
+    reverbDecay: typeof p.reverbDecay === 'number' ? p.reverbDecay : DEFAULT_SYNTH_PARAMS.reverbDecay,
+    delayMix: typeof p.delayMix === 'number' ? p.delayMix : DEFAULT_SYNTH_PARAMS.delayMix,
+    delayTime: typeof p.delayTime === 'number' ? p.delayTime : DEFAULT_SYNTH_PARAMS.delayTime,
+    delayFeedback: typeof p.delayFeedback === 'number' ? p.delayFeedback : DEFAULT_SYNTH_PARAMS.delayFeedback,
+    // LFO
+    lfoRate: typeof p.lfoRate === 'number' ? p.lfoRate : DEFAULT_SYNTH_PARAMS.lfoRate,
+    lfoDepth: typeof p.lfoDepth === 'number' ? p.lfoDepth : DEFAULT_SYNTH_PARAMS.lfoDepth,
+    lfoEnabled: typeof p.lfoEnabled === 'boolean' ? p.lfoEnabled : DEFAULT_SYNTH_PARAMS.lfoEnabled,
+    lfoDestination: validLfoDestinations.includes(p.lfoDestination as SynthParams['lfoDestination'])
+      ? p.lfoDestination as SynthParams['lfoDestination']
+      : DEFAULT_SYNTH_PARAMS.lfoDestination,
+    // Phaser
+    phaserMix: typeof p.phaserMix === 'number' ? p.phaserMix : DEFAULT_SYNTH_PARAMS.phaserMix,
+    phaserFreq: typeof p.phaserFreq === 'number' ? p.phaserFreq : DEFAULT_SYNTH_PARAMS.phaserFreq,
+    phaserDepth: typeof p.phaserDepth === 'number' ? p.phaserDepth : DEFAULT_SYNTH_PARAMS.phaserDepth,
+    // Flanger
+    flangerMix: typeof p.flangerMix === 'number' ? p.flangerMix : DEFAULT_SYNTH_PARAMS.flangerMix,
+    flangerDepth: typeof p.flangerDepth === 'number' ? p.flangerDepth : DEFAULT_SYNTH_PARAMS.flangerDepth,
+    flangerFreq: typeof p.flangerFreq === 'number' ? p.flangerFreq : DEFAULT_SYNTH_PARAMS.flangerFreq,
+  };
+};
+
 // Clickable theme smiley component
 const ThemeSmiley: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <button className="theme-smiley-btn" onClick={onClick} aria-label="Change color theme">
@@ -451,7 +562,15 @@ const App: React.FC = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Filter out invalid entries (must have name and timestamp at minimum)
+        if (Array.isArray(parsed)) {
+          return parsed.filter(
+            (p): p is SavedProject =>
+              p && typeof p === 'object' && typeof p.name === 'string' && typeof p.timestamp === 'number'
+          );
+        }
+        return [];
       } catch (e) {
         console.error('Failed to load saved projects:', e);
         return [];
@@ -850,15 +969,31 @@ const App: React.FC = () => {
     setShowSaveModal(false);
   };
 
-  // Load project handler
+  // Load project handler with validation
   const handleLoadProject = (project: SavedProject) => {
-    setPattern(project.pattern);
-    setSynthSequence(project.synthSequence);
-    setSynthParams(project.synthParams);
-    if (melodicSynthRef.current) {
-      melodicSynthRef.current.updateParams(project.synthParams);
+    try {
+      const defaultPattern = createInitialPattern();
+
+      // Validate and sanitize all loaded data
+      const validatedPattern = validatePattern(project.pattern, defaultPattern);
+      const validatedSynthSequence = Array.isArray(project.synthSequence)
+        ? project.synthSequence.map(validateSynthStep)
+        : createInitialSynthSequence();
+      const validatedSynthParams = validateSynthParams(project.synthParams);
+
+      setPattern(validatedPattern);
+      setSynthSequence(validatedSynthSequence);
+      setSynthParams(validatedSynthParams);
+
+      if (melodicSynthRef.current) {
+        melodicSynthRef.current.updateParams(validatedSynthParams);
+      }
+      setShowLoadModal(false);
+    } catch (error) {
+      console.error('Failed to load project:', error);
+      // On error, just close modal - don't crash
+      setShowLoadModal(false);
     }
-    setShowLoadModal(false);
   };
 
   // Delete project handler

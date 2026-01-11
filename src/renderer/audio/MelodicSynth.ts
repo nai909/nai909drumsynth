@@ -90,6 +90,7 @@ export class MelodicSynth {
   private filterEnv: Tone.FrequencyEnvelope;
   private gain: Tone.Gain;
   private masterGain: Tone.Gain;
+  private limiter: Tone.Limiter;
   private analyser: Tone.Analyser;
   private params: SynthParams;
   private initialized: boolean = false;
@@ -131,7 +132,11 @@ export class MelodicSynth {
 
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
-    this.masterGain = new Tone.Gain(0.8).toDestination();
+    // Limiter to prevent clipping
+    this.limiter = new Tone.Limiter(-1);
+    this.limiter.toDestination();
+    this.masterGain = new Tone.Gain(0.8);
+    this.masterGain.connect(this.limiter);
     this.gain = new Tone.Gain(this.params.volume);
     this.analyser = new Tone.Analyser('waveform', 256);
 
@@ -287,7 +292,9 @@ export class MelodicSynth {
       }
 
       if (!this.initialized) {
+        // Limit polyphony to prevent CPU overload
         this.synth = new Tone.PolySynth(Tone.Synth, {
+          maxPolyphony: 12, // Max 12 simultaneous voices
           oscillator: {
             type: this.params.waveform,
           },
@@ -806,6 +813,7 @@ export class MelodicSynth {
     this.filterEnv.dispose();
     this.gain.dispose();
     this.masterGain.dispose();
+    this.limiter.dispose();
     this.analyser.dispose();
     this.reverb.dispose();
     this.delay.dispose();
