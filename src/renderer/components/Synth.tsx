@@ -170,6 +170,7 @@ const Synth: React.FC<SynthProps> = ({
     activeTouches.current.clear();
     keysToNotes.current.clear();
     mouseDownNote.current = null;
+    recordingNoteStarts.current.clear();
   }, [synth]);
 
   const handleNoteOn = useCallback(async (note: string, touchId?: number) => {
@@ -238,10 +239,11 @@ const Synth: React.FC<SynthProps> = ({
         };
         onSynthSequenceChange(newSteps);
       }
-
-      // Clean up the tracking
-      recordingNoteStarts.current.delete(note);
     }
+
+    // Always clean up the tracking, regardless of recording state
+    // This prevents stale entries if recording stops while a note is held
+    recordingNoteStarts.current.delete(note);
   }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, synthLoopBars]);
 
   // Global event handlers - catches any missed releases
