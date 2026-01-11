@@ -28,8 +28,9 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--accent-border);
   border-radius: 8px;
-  flex: 1;
-  min-width: 80px;
+  flex: 0 0 auto;
+  min-width: fit-content;
+  overflow: hidden;
 }
 
 .section-label {
@@ -701,11 +702,13 @@
     flex-wrap: nowrap;
     gap: 8px;
     padding: 6px;
+    overflow-x: auto;
   }
 
   .synth-section {
     padding: 8px 10px;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .section-label {
