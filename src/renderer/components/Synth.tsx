@@ -137,7 +137,7 @@ const Synth: React.FC<SynthProps> = ({
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
-  const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
+  const mouseDownNotes = useRef<Set<string>>(new Set()); // track which notes are held by mouse
   // Track note recording starts: note -> { stepIndex, transportTime }
   const recordingNoteStarts = useRef<Map<string, { stepIndex: number; transportTime: number }>>(new Map());
   // Ref to track latest synthSequence to avoid stale closures in handleNoteOff
@@ -191,7 +191,7 @@ const Synth: React.FC<SynthProps> = ({
     setActiveNotes(new Set());
     activeTouches.current.clear();
     keysToNotes.current.clear();
-    mouseDownNote.current = null;
+    mouseDownNotes.current.clear();
     recordingNoteStarts.current.clear();
   }, [synth]);
 
@@ -218,7 +218,11 @@ const Synth: React.FC<SynthProps> = ({
       const loopLengthSeconds = loopLengthSteps * secondsPerStep;
 
       const positionInLoop = transportSeconds % loopLengthSeconds;
-      const stepIndex = Math.round(positionInLoop / secondsPerStep) % loopLengthSteps;
+      // Use Math.min to prevent overflow at loop boundary
+      const stepIndex = Math.min(
+        Math.round(positionInLoop / secondsPerStep),
+        loopLengthSteps - 1
+      );
 
       // Track the start of this note for length calculation on noteOff
       recordingNoteStarts.current.set(note, { stepIndex, transportTime: transportSeconds });
@@ -253,8 +257,11 @@ const Synth: React.FC<SynthProps> = ({
 
       // Calculate how many steps the note was held
       const elapsedSeconds = transportSeconds - noteStart.transportTime;
-      const elapsedSteps = Math.round(elapsedSeconds / secondsPerStep);
-      const noteLength = Math.max(1, Math.min(elapsedSteps, loopLengthSteps)); // Clamp to valid range
+      // Use Math.floor for conservative note lengths - only count fully held steps
+      // Cap at 8 steps (half bar) for more musical results
+      const elapsedSteps = Math.floor(elapsedSeconds / secondsPerStep);
+      const maxNoteLength = Math.min(8, loopLengthSteps);
+      const noteLength = Math.max(1, Math.min(elapsedSteps, maxNoteLength));
 
       // Update the step with the calculated length
       const newSteps = [...currentSequence];
@@ -287,12 +294,11 @@ const Synth: React.FC<SynthProps> = ({
     };
 
     const handleGlobalMouseUp = () => {
-      // Release any note held by mouse when mouse is released anywhere
-      if (mouseDownNote.current) {
-        const note = mouseDownNote.current;
-        mouseDownNote.current = null;
+      // Release all notes held by mouse when mouse is released anywhere
+      mouseDownNotes.current.forEach((note) => {
         handleNoteOff(note);
-      }
+      });
+      mouseDownNotes.current.clear();
     };
 
     const handleVisibilityChange = () => {
@@ -655,18 +661,18 @@ const Synth: React.FC<SynthProps> = ({
                 className={`key white-key ${activeNotes.has(noteObj.note) ? 'active' : ''} ${isInScale(noteObj.note) ? 'in-scale' : ''} ${scaleEnabled && !playable ? 'disabled' : ''}`}
                 onMouseDown={() => {
                   if (!playable) return;
-                  mouseDownNote.current = noteObj.note;
+                  mouseDownNotes.current.add(noteObj.note);
                   handleNoteOn(noteObj.note);
                 }}
                 onMouseUp={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
+                  if (mouseDownNotes.current.has(noteObj.note)) {
+                    mouseDownNotes.current.delete(noteObj.note);
                     handleNoteOff(noteObj.note);
                   }
                 }}
                 onMouseLeave={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
+                  if (mouseDownNotes.current.has(noteObj.note)) {
+                    mouseDownNotes.current.delete(noteObj.note);
                     handleNoteOff(noteObj.note);
                   }
                 }}
@@ -674,17 +680,21 @@ const Synth: React.FC<SynthProps> = ({
                   e.preventDefault();
                   if (!playable) return;
                   const touch = e.changedTouches[0];
-                  handleNoteOn(noteObj.note, touch.identifier);
+                  if (touch) handleNoteOn(noteObj.note, touch.identifier);
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  if (touch && activeTouches.current.get(touch.identifier) === noteObj.note) {
+                    handleNoteOff(noteObj.note, touch.identifier);
+                  }
                 }}
                 onTouchCancel={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  if (touch && activeTouches.current.get(touch.identifier) === noteObj.note) {
+                    handleNoteOff(noteObj.note, touch.identifier);
+                  }
                 }}
               >
                 <span className="key-label">{noteObj.note}</span>
@@ -709,18 +719,18 @@ const Synth: React.FC<SynthProps> = ({
                 style={{ left: `calc(${(position + 1) * keyWidth}% - 15px)` }}
                 onMouseDown={() => {
                   if (!playable) return;
-                  mouseDownNote.current = noteObj.note;
+                  mouseDownNotes.current.add(noteObj.note);
                   handleNoteOn(noteObj.note);
                 }}
                 onMouseUp={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
+                  if (mouseDownNotes.current.has(noteObj.note)) {
+                    mouseDownNotes.current.delete(noteObj.note);
                     handleNoteOff(noteObj.note);
                   }
                 }}
                 onMouseLeave={() => {
-                  if (mouseDownNote.current === noteObj.note) {
-                    mouseDownNote.current = null;
+                  if (mouseDownNotes.current.has(noteObj.note)) {
+                    mouseDownNotes.current.delete(noteObj.note);
                     handleNoteOff(noteObj.note);
                   }
                 }}
@@ -728,17 +738,21 @@ const Synth: React.FC<SynthProps> = ({
                   e.preventDefault();
                   if (!playable) return;
                   const touch = e.changedTouches[0];
-                  handleNoteOn(noteObj.note, touch.identifier);
+                  if (touch) handleNoteOn(noteObj.note, touch.identifier);
                 }}
                 onTouchEnd={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  if (touch && activeTouches.current.get(touch.identifier) === noteObj.note) {
+                    handleNoteOff(noteObj.note, touch.identifier);
+                  }
                 }}
                 onTouchCancel={(e) => {
                   e.preventDefault();
                   const touch = e.changedTouches[0];
-                  handleNoteOff(noteObj.note, touch.identifier);
+                  if (touch && activeTouches.current.get(touch.identifier) === noteObj.note) {
+                    handleNoteOff(noteObj.note, touch.identifier);
+                  }
                 }}
               />
             );

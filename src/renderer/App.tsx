@@ -541,6 +541,8 @@ const App: React.FC = () => {
   // Synth sequencer playback (runs independently of UI mode)
   // Uses ref for synthSequence to avoid recreating sequence on every step toggle
   useEffect(() => {
+    const activeTimeouts: ReturnType<typeof setTimeout>[] = [];
+
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
       const stepDurationMs = 60000 / pattern.tempo / 4; // Duration of one 16th note step
@@ -557,9 +559,13 @@ const App: React.FC = () => {
             const noteLength = currentStep.length || 1;
             const noteDurationMs = stepDurationMs * noteLength * 0.8;
             synth.noteOn(noteToPlay, 0.8);
-            setTimeout(() => {
-              synth.noteOff(noteToPlay);
+            const timeoutId = setTimeout(() => {
+              // Check synth still exists before calling noteOff
+              if (melodicSynthRef.current) {
+                melodicSynthRef.current.noteOff(noteToPlay);
+              }
             }, noteDurationMs);
+            activeTimeouts.push(timeoutId);
           }
         },
         Array.from({ length: synthLoopLength }, (_, i) => i),
@@ -577,6 +583,8 @@ const App: React.FC = () => {
     }
 
     return () => {
+      // Clear all pending timeouts to prevent stale callbacks
+      activeTimeouts.forEach(id => clearTimeout(id));
       if (synthSequencerRef.current) {
         synthSequencerRef.current.stop();
         synthSequencerRef.current.dispose();
