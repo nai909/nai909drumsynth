@@ -432,6 +432,10 @@ const App: React.FC = () => {
   const [synthLoopBars, setSynthLoopBars] = useState<1 | 2 | 3 | 4>(1);
   const [synthCurrentPage, setSynthCurrentPage] = useState(0);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
+  // Shared scale state for synth keys and sequencer
+  const [synthScaleEnabled, setSynthScaleEnabled] = useState(false);
+  const [synthScaleRoot, setSynthScaleRoot] = useState('C');
+  const [synthScaleType, setSynthScaleType] = useState('major');
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
@@ -1025,6 +1029,12 @@ const App: React.FC = () => {
                       currentPage={synthCurrentPage}
                       onPageChange={setSynthCurrentPage}
                       isAdvancedMode={isAdvancedMode}
+                      scaleEnabled={synthScaleEnabled}
+                      onScaleEnabledChange={setSynthScaleEnabled}
+                      scaleRoot={synthScaleRoot}
+                      onScaleRootChange={setSynthScaleRoot}
+                      scaleType={synthScaleType}
+                      onScaleTypeChange={setSynthScaleType}
                     />
                   ) : (
                     <Synth
@@ -1039,6 +1049,12 @@ const App: React.FC = () => {
                       onPlay={handlePlay}
                       isAdvancedMode={isAdvancedMode}
                       synthLoopBars={synthLoopBars}
+                      scaleEnabled={synthScaleEnabled}
+                      onScaleEnabledChange={setSynthScaleEnabled}
+                      scaleRoot={synthScaleRoot}
+                      onScaleRootChange={setSynthScaleRoot}
+                      scaleType={synthScaleType}
+                      onScaleTypeChange={setSynthScaleType}
                     />
                   )}
                 </>

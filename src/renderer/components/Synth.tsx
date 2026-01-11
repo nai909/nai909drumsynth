@@ -18,6 +18,13 @@ interface SynthProps {
   onPlay?: () => Promise<void>;
   isAdvancedMode?: boolean;
   synthLoopBars?: 1 | 2 | 3 | 4;
+  // Scale props (shared with sequencer)
+  scaleEnabled?: boolean;
+  onScaleEnabledChange?: (enabled: boolean) => void;
+  scaleRoot?: string;
+  onScaleRootChange?: (root: string) => void;
+  scaleType?: string;
+  onScaleTypeChange?: (type: string) => void;
 }
 
 // Define keyboard notes
@@ -118,6 +125,12 @@ const Synth: React.FC<SynthProps> = ({
   onPlay,
   isAdvancedMode = true,
   synthLoopBars = 1,
+  scaleEnabled = false,
+  onScaleEnabledChange,
+  scaleRoot = 'C',
+  onScaleRootChange,
+  scaleType = 'major',
+  onScaleTypeChange,
 }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -130,11 +143,13 @@ const Synth: React.FC<SynthProps> = ({
   // Ref to track latest synthSequence to avoid stale closures in handleNoteOff
   const synthSequenceRef = useRef(synthSequence);
 
-  // Scale highlighting state
-  const [scaleEnabled, setScaleEnabled] = useState(false);
-  const [scaleRoot, setScaleRoot] = useState('C');
-  const [scaleType, setScaleType] = useState('major');
+  // Scale notes derived from props
   const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+
+  // Scale change handlers (call parent if available)
+  const setScaleEnabled = (enabled: boolean) => onScaleEnabledChange?.(enabled);
+  const setScaleRoot = (root: string) => onScaleRootChange?.(root);
+  const setScaleType = (type: string) => onScaleTypeChange?.(type);
 
   // Keep synthSequenceRef in sync with prop
   useEffect(() => {
