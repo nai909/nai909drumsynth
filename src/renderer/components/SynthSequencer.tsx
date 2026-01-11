@@ -6,6 +6,7 @@ import './SynthSequencer.css';
 export interface Step {
   active: boolean;
   note: string;
+  length?: number; // Length in steps (1 = 16th note, 2 = 8th note, etc.)
 }
 
 interface SynthSequencerProps {

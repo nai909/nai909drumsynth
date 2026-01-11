@@ -539,7 +539,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
-      const noteDurationMs = (60000 / pattern.tempo / 4) * 0.8;
+      const stepDurationMs = 60000 / pattern.tempo / 4; // Duration of one 16th note step
       const synthLoopLength = synthLoopBars * 16;
 
       synthSequencerRef.current = new Tone.Sequence(
@@ -549,6 +549,9 @@ const App: React.FC = () => {
           const currentStep = synthSequenceRef.current[step];
           if (currentStep && currentStep.active) {
             const noteToPlay = currentStep.note;
+            // Use recorded length or default to 1 step, with 80% gate time
+            const noteLength = currentStep.length || 1;
+            const noteDurationMs = stepDurationMs * noteLength * 0.8;
             synth.noteOn(noteToPlay, 0.8);
             setTimeout(() => {
               synth.noteOff(noteToPlay);
@@ -597,6 +600,7 @@ const App: React.FC = () => {
       sequencerRef.current.stop();
       setIsPlaying(false);
       setCurrentStep(0);
+      setIsRecording(false); // Stop recording when stopping playback
     }
   };
 

@@ -125,6 +125,8 @@ const Synth: React.FC<SynthProps> = ({
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNote = useRef<string | null>(null); // track which note is held by mouse
+  // Track note recording starts: note -> { stepIndex, transportTime }
+  const recordingNoteStarts = useRef<Map<string, { stepIndex: number; transportTime: number }>>(new Map());
 
   // Scale highlighting state
   const [scaleEnabled, setScaleEnabled] = useState(false);
@@ -195,8 +197,11 @@ const Synth: React.FC<SynthProps> = ({
       const positionInLoop = transportSeconds % loopLengthSeconds;
       const stepIndex = Math.round(positionInLoop / secondsPerStep) % loopLengthSteps;
 
+      // Track the start of this note for length calculation on noteOff
+      recordingNoteStarts.current.set(note, { stepIndex, transportTime: transportSeconds });
+
       const newSteps = [...synthSequence];
-      newSteps[stepIndex] = { active: true, note };
+      newSteps[stepIndex] = { active: true, note, length: 1 }; // Start with length 1, will be updated on noteOff
       onSynthSequenceChange(newSteps);
     }
   }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay, synthLoopBars]);
@@ -211,7 +216,33 @@ const Synth: React.FC<SynthProps> = ({
       next.delete(note);
       return next;
     });
-  }, [synth]);
+
+    // Calculate note length if we were recording this note
+    const noteStart = recordingNoteStarts.current.get(note);
+    if (noteStart && isRecording && isPlaying && onSynthSequenceChange && synthSequence) {
+      const transportSeconds = Tone.Transport.seconds;
+      const secondsPerStep = 60 / tempo / 4; // 16th note duration
+      const loopLengthSteps = synthLoopBars * 16;
+
+      // Calculate how many steps the note was held
+      const elapsedSeconds = transportSeconds - noteStart.transportTime;
+      const elapsedSteps = Math.round(elapsedSeconds / secondsPerStep);
+      const noteLength = Math.max(1, Math.min(elapsedSteps, loopLengthSteps)); // Clamp to valid range
+
+      // Update the step with the calculated length
+      const newSteps = [...synthSequence];
+      if (newSteps[noteStart.stepIndex]?.active) {
+        newSteps[noteStart.stepIndex] = {
+          ...newSteps[noteStart.stepIndex],
+          length: noteLength
+        };
+        onSynthSequenceChange(newSteps);
+      }
+
+      // Clean up the tracking
+      recordingNoteStarts.current.delete(note);
+    }
+  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, synthLoopBars]);
 
   // Global event handlers - catches any missed releases
   useEffect(() => {
