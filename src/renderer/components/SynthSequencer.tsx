@@ -417,6 +417,14 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
       lfoDepth: params.lfoDepth,
       lfoEnabled: params.lfoEnabled,
       lfoDestination: params.lfoDestination,
+      // Phaser settings
+      phaserMix: params.phaserMix,
+      phaserFreq: params.phaserFreq,
+      phaserDepth: params.phaserDepth,
+      // Flanger settings
+      flangerMix: params.flangerMix,
+      flangerDepth: params.flangerDepth,
+      flangerFreq: params.flangerFreq,
     };
     onParamsChange(newParams);
   };

@@ -101,10 +101,13 @@
   color: #888;
 }
 
-.record-btn:hover {
-  color: #ff4444;
-  background: rgba(255, 68, 68, 0.15);
-  border-color: rgba(255, 68, 68, 0.5);
+/* Only apply hover on devices that support it (not touch) */
+@media (hover: hover) {
+  .record-btn:hover {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.15);
+    border-color: rgba(255, 68, 68, 0.5);
+  }
 }
 
 .record-btn.active {
@@ -113,6 +116,15 @@
   border-color: #ff4444;
   box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
   animation: record-pulse 1s ease-in-out infinite;
+}
+
+/* Ensure non-active state is explicitly reset */
+.record-btn:not(.active) {
+  color: #888;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+  animation: none;
 }
 
 @keyframes record-pulse {

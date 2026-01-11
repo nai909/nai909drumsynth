@@ -124,8 +124,16 @@ export class Sequencer {
       }
     }
 
+    // Check if any track is soloed
+    const hasSoloedTrack = this.pattern.tracks.some(t => t.solo);
+
     this.pattern.tracks.forEach((track) => {
-      if (track.muted || !track.steps[step]) return;
+      // Skip if muted
+      if (track.muted) return;
+      // If any track is soloed, only play soloed tracks
+      if (hasSoloedTrack && !track.solo) return;
+      // Skip if step is not active
+      if (!track.steps[step]) return;
 
       const velocity = track.velocity[step] || 1;
       const adjustedVelocity = velocity * track.volume;

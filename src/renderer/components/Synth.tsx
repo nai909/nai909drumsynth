@@ -17,6 +17,7 @@ interface SynthProps {
   onSynthSequenceChange?: (steps: SynthStep[]) => void;
   onPlay?: () => Promise<void>;
   isAdvancedMode?: boolean;
+  synthLoopBars?: 1 | 2 | 3 | 4;
 }
 
 // Define keyboard notes
@@ -116,6 +117,7 @@ const Synth: React.FC<SynthProps> = ({
   onSynthSequenceChange,
   onPlay,
   isAdvancedMode = true,
+  synthLoopBars = 1,
 }) => {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -131,17 +133,17 @@ const Synth: React.FC<SynthProps> = ({
   const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
 
   // Check if a note is in the current scale
-  const isInScale = (note: string): boolean => {
+  const isInScale = useCallback((note: string): boolean => {
     if (!scaleEnabled) return false;
     const noteName = note.replace(/\d+$/, ''); // Remove octave number
     return scaleNotes.has(noteName);
-  };
+  }, [scaleEnabled, scaleNotes]);
 
   // Check if a note can be played (either scale is off, or note is in scale)
-  const canPlayNote = (note: string): boolean => {
+  const canPlayNote = useCallback((note: string): boolean => {
     if (!scaleEnabled) return true;
     return isInScale(note);
-  };
+  }, [scaleEnabled, isInScale]);
 
   // Responsive octaves - 1 on mobile, 2 on desktop
   const numOctaves = isMobile ? 1 : 2;
@@ -186,7 +188,7 @@ const Synth: React.FC<SynthProps> = ({
     if (isRecording && isPlaying && onSynthSequenceChange && synthSequence) {
       const transportSeconds = Tone.Transport.seconds;
       const secondsPerStep = 60 / tempo / 4; // 16th note duration
-      const loopLengthSteps = 16; // Synth sequencer is always 16 steps
+      const loopLengthSteps = synthLoopBars * 16; // Use actual loop length
       const loopLengthSeconds = loopLengthSteps * secondsPerStep;
 
       const positionInLoop = transportSeconds % loopLengthSeconds;
@@ -196,7 +198,7 @@ const Synth: React.FC<SynthProps> = ({
       newSteps[stepIndex] = { active: true, note };
       onSynthSequenceChange(newSteps);
     }
-  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay]);
+  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay, synthLoopBars]);
 
   const handleNoteOff = useCallback((note: string, touchId?: number) => {
     if (touchId !== undefined) {
@@ -334,6 +336,14 @@ const Synth: React.FC<SynthProps> = ({
       lfoDepth: params.lfoDepth,
       lfoEnabled: params.lfoEnabled,
       lfoDestination: params.lfoDestination,
+      // Phaser settings
+      phaserMix: params.phaserMix,
+      phaserFreq: params.phaserFreq,
+      phaserDepth: params.phaserDepth,
+      // Flanger settings
+      flangerMix: params.flangerMix,
+      flangerDepth: params.flangerDepth,
+      flangerFreq: params.flangerFreq,
     };
     onParamsChange(newParams);
   };

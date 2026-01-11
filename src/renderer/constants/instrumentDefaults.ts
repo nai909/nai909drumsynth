@@ -111,6 +111,18 @@ export const INSTRUMENT_DEFAULTS: Record<string, InstrumentParams> = {
     filterResonance: 0.15,
     drive: 0,
   },
+  'rimshot': {
+    volume: 0.7,
+    pan: 0.3,
+    tune: 0,
+    decay: 0.1,
+    attack: 0.001,
+    tone: 0.5,
+    snap: 0.5,
+    filterCutoff: 0.9,
+    filterResonance: 0.2,
+    drive: 0.1,
+  },
 };
 
 // Parameters that are safe to randomize (excludes volume and pan for user control)

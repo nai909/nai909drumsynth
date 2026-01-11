@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import './Transport.css';
 
 interface TransportProps {
@@ -63,6 +63,8 @@ const Transport: React.FC<TransportProps> = ({
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const mouseHandlersRef = useRef<{ move: (e: MouseEvent) => void; up: () => void } | null>(null);
+  const touchHandlersRef = useRef<{ move: (e: TouchEvent) => void; end: () => void } | null>(null);
 
   const MIN_TEMPO = 60;
   const MAX_TEMPO = 200;
@@ -78,44 +80,64 @@ const Transport: React.FC<TransportProps> = ({
     return Math.round(MIN_TEMPO + position * (MAX_TEMPO - MIN_TEMPO));
   }, [tempo]);
 
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      if (mouseHandlersRef.current) {
+        document.removeEventListener('mousemove', mouseHandlersRef.current.move);
+        document.removeEventListener('mouseup', mouseHandlersRef.current.up);
+      }
+      if (touchHandlersRef.current) {
+        document.removeEventListener('touchmove', touchHandlersRef.current.move);
+        document.removeEventListener('touchend', touchHandlersRef.current.end);
+      }
+    };
+  }, []);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true;
     onTempoChange(getTempoFromPosition(e.clientX));
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging.current) {
+        onTempoChange(getTempoFromPosition(e.clientX));
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      mouseHandlersRef.current = null;
+    };
+
+    mouseHandlersRef.current = { move: handleMouseMove, up: handleMouseUp };
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging.current) {
-      onTempoChange(getTempoFromPosition(e.clientX));
-    }
-  }, [getTempoFromPosition, onTempoChange]);
-
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  }, [handleMouseMove]);
-
   const handleTouchStart = (e: React.TouchEvent) => {
     isDragging.current = true;
     onTempoChange(getTempoFromPosition(e.touches[0].clientX));
+
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      if (isDragging.current) {
+        onTempoChange(getTempoFromPosition(e.touches[0].clientX));
+      }
+    };
+
+    const handleTouchEnd = () => {
+      isDragging.current = false;
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      touchHandlersRef.current = null;
+    };
+
+    touchHandlersRef.current = { move: handleTouchMove, end: handleTouchEnd };
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd);
   };
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    e.preventDefault();
-    if (isDragging.current) {
-      onTempoChange(getTempoFromPosition(e.touches[0].clientX));
-    }
-  }, [getTempoFromPosition, onTempoChange]);
-
-  const handleTouchEnd = useCallback(() => {
-    isDragging.current = false;
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-  }, [handleTouchMove]);
 
   // Calculate thumb position as percentage
   const thumbPosition = ((tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO)) * 100;

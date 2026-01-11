@@ -449,7 +449,7 @@ export class DrumSynth {
 
       setTimeout(() => {
         disposables.forEach(d => d.dispose());
-      }, 1500);
+      }, Math.max(1500, tailDecay * 1000 + 500));
     } catch (error) {
       console.error('Clap error:', error);
     }
@@ -590,6 +590,7 @@ export class DrumSynth {
       tom.chain(distortion, filter, panner, this.masterGain);
 
       const pitch = Tone.Frequency(basePitch).transpose(tune * 24);
+      const tomDecay = Math.max(0.1, decay);
       tom.triggerAttackRelease(pitch, '8n', time, Math.max(0, Math.min(1, velocity)));
 
       setTimeout(() => {
@@ -597,7 +598,7 @@ export class DrumSynth {
         filter.dispose();
         distortion.dispose();
         panner.dispose();
-      }, 1500);
+      }, Math.max(1500, tomDecay * 1000 + 500));
     } catch (error) {
       console.error('Tom error:', error);
     }
@@ -638,6 +639,7 @@ export class DrumSynth {
       fm.chain(distortion, filter, panner, this.masterGain);
 
       const pitch = Tone.Frequency(basePitch).transpose(tune * 24);
+      const fmDecay = Math.max(0.05, decay);
       fm.triggerAttackRelease(pitch, '16n', time, Math.max(0, Math.min(1, velocity)));
 
       setTimeout(() => {
@@ -645,7 +647,7 @@ export class DrumSynth {
         filter.dispose();
         distortion.dispose();
         panner.dispose();
-      }, 1000);
+      }, Math.max(1000, fmDecay * 1000 + 500));
     } catch (error) {
       console.error('FM error:', error);
     }

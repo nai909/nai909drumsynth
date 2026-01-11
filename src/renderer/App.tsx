@@ -463,6 +463,7 @@ const App: React.FC = () => {
   const sequencerRef = useRef<Sequencer | null>(null);
   const melodicSynthRef = useRef<MelodicSynth | null>(null);
   const synthSequencerRef = useRef<Tone.Sequence | null>(null);
+  const synthSequenceRef = useRef<SynthStep[]>(synthSequence); // Ref to avoid recreating sequence
   const replaceModeTracksCleared = useRef<Set<number>>(new Set());
   const lastRecordedLoopStart = useRef<number>(-1);
 
@@ -528,7 +529,13 @@ const App: React.FC = () => {
     }
   }, [pattern]);
 
+  // Keep synthSequenceRef in sync with synthSequence state
+  useEffect(() => {
+    synthSequenceRef.current = synthSequence;
+  }, [synthSequence]);
+
   // Synth sequencer playback (runs independently of UI mode)
+  // Uses ref for synthSequence to avoid recreating sequence on every step toggle
   useEffect(() => {
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
@@ -538,7 +545,8 @@ const App: React.FC = () => {
       synthSequencerRef.current = new Tone.Sequence(
         (_time, step) => {
           setSynthCurrentStep(step);
-          const currentStep = synthSequence[step];
+          // Read from ref to get current sequence without recreating
+          const currentStep = synthSequenceRef.current[step];
           if (currentStep && currentStep.active) {
             const noteToPlay = currentStep.note;
             synth.noteOn(noteToPlay, 0.8);
@@ -568,7 +576,7 @@ const App: React.FC = () => {
         synthSequencerRef.current = null;
       }
     };
-  }, [isPlaying, synthSequence, pattern.tempo, synthLoopBars]);
+  }, [isPlaying, pattern.tempo, synthLoopBars]);
 
   const handlePlay = async () => {
     if (sequencerRef.current) {
@@ -1024,6 +1032,7 @@ const App: React.FC = () => {
                       onSynthSequenceChange={setSynthSequence}
                       onPlay={handlePlay}
                       isAdvancedMode={isAdvancedMode}
+                      synthLoopBars={synthLoopBars}
                     />
                   )}
                 </>
