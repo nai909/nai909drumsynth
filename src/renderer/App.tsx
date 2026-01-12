@@ -589,6 +589,8 @@ const App: React.FC = () => {
   const synthSequenceRef = useRef<SynthStep[]>(synthSequence); // Ref to avoid recreating sequence
   const replaceModeTracksCleared = useRef<Set<number>>(new Set());
   const lastRecordedLoopStart = useRef<number>(-1);
+  // Track hits recorded in current loop to prevent double-triggering via sequencer
+  const recentlyRecordedHits = useRef<Set<string>>(new Set());
 
   // Apply theme to document
   useEffect(() => {
@@ -622,6 +624,12 @@ const App: React.FC = () => {
 
     sequencerRef.current.onStep((step) => {
       setCurrentStep(step);
+    });
+
+    // Set up callback to prevent double-triggering during recording
+    sequencerRef.current.setShouldSkipHitCallback((trackIndex, stepIndex) => {
+      const hitKey = `${trackIndex}-${stepIndex}`;
+      return recentlyRecordedHits.current.has(hitKey);
     });
 
     sequencerRef.current.setPattern(pattern);
@@ -729,6 +737,8 @@ const App: React.FC = () => {
   const handleStop = () => {
     // Always stop recording, even if sequencer isn't ready
     setIsRecording(false);
+    // Clear recently recorded hits
+    recentlyRecordedHits.current.clear();
 
     if (sequencerRef.current) {
       sequencerRef.current.stop();
@@ -861,17 +871,31 @@ const App: React.FC = () => {
       const loopLengthSteps = loopBars * 16;
       const loopLengthSeconds = loopLengthSteps * secondsPerStep;
 
+      // Input latency compensation: shift recording time earlier to account for
+      // touch/mouse event processing delay (typically 30-80ms)
+      const inputLatencyCompensation = 0.05; // 50ms compensation
+      const compensatedTransportSeconds = Math.max(0, transportSeconds - inputLatencyCompensation);
+
       // Calculate position within current loop
-      const positionInLoop = transportSeconds % loopLengthSeconds;
+      const positionInLoop = compensatedTransportSeconds % loopLengthSeconds;
       const exactStep = positionInLoop / secondsPerStep;
-      const stepIndex = Math.round(exactStep) % loopLengthSteps;
+
+      // Use floor + 0.3 threshold to bias towards current step rather than next
+      // This helps when playing slightly behind the beat
+      const stepIndex = Math.floor(exactStep + 0.3) % loopLengthSteps;
 
       // Detect loop restart for replace mode (clear tracks once per loop)
       const currentLoopNumber = Math.floor(transportSeconds / loopLengthSeconds);
       if (currentLoopNumber !== lastRecordedLoopStart.current) {
         lastRecordedLoopStart.current = currentLoopNumber;
         replaceModeTracksCleared.current.clear();
+        // Clear recently recorded hits on new loop
+        recentlyRecordedHits.current.clear();
       }
+
+      // Track this hit to prevent double-triggering via sequencer
+      const hitKey = `${trackIndex}-${stepIndex}`;
+      recentlyRecordedHits.current.add(hitKey);
 
       setPattern(prevPattern => {
         const newPattern = { ...prevPattern };
@@ -903,11 +927,8 @@ const App: React.FC = () => {
       });
     }
 
-    // When recording with playback running, skip manual trigger - sequencer will play the recorded hit
-    // This prevents double-triggering (manual + sequencer playing same hit)
-    if (isRecording && isPlaying && !justStartedPlayback) {
-      return;
-    }
+    // Always play the sound immediately for instant feedback
+    // The sequencer will be notified to skip this hit to prevent double-triggering
 
     switch (track.soundEngine) {
       case 'kick':
@@ -1257,7 +1278,13 @@ const App: React.FC = () => {
         onStop={handleStop}
         onTempoChange={handleTempoChange}
         isRecording={isRecording}
-        onRecordToggle={() => setIsRecording(!isRecording)}
+        onRecordToggle={() => {
+          if (isRecording) {
+            // Turning off recording - clear recently recorded hits
+            recentlyRecordedHits.current.clear();
+          }
+          setIsRecording(!isRecording);
+        }}
         recordMode={recordMode}
         onRecordModeToggle={() => setRecordMode(recordMode === 'overdub' ? 'replace' : 'overdub')}
         metronomeEnabled={metronomeEnabled}

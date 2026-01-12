@@ -16,6 +16,9 @@ export class Sequencer {
   private metronomeClick: Tone.MembraneSynth | null = null;
   private metronomeVolume: Tone.Volume | null = null;
 
+  // Callback to check if a hit should be skipped (e.g., just recorded during this loop)
+  private shouldSkipHitCallback: ((trackIndex: number, stepIndex: number) => boolean) | null = null;
+
   constructor(drumSynth: DrumSynth) {
     this.drumSynth = drumSynth;
     // Configure Transport for reliable looping
@@ -41,6 +44,12 @@ export class Sequencer {
 
   getMetronome(): boolean {
     return this.metronomeEnabled;
+  }
+
+  // Set callback to check if a hit should be skipped during playback
+  // Used to prevent double-triggering when recording
+  setShouldSkipHitCallback(callback: ((trackIndex: number, stepIndex: number) => boolean) | null) {
+    this.shouldSkipHitCallback = callback;
   }
 
   setPattern(pattern: Pattern) {
@@ -127,13 +136,15 @@ export class Sequencer {
     // Check if any track is soloed
     const hasSoloedTrack = this.pattern.tracks.some(t => t.solo);
 
-    this.pattern.tracks.forEach((track) => {
+    this.pattern.tracks.forEach((track, trackIndex) => {
       // Skip if muted
       if (track.muted) return;
       // If any track is soloed, only play soloed tracks
       if (hasSoloedTrack && !track.solo) return;
       // Skip if step is not active
       if (!track.steps[step]) return;
+      // Skip if this hit was just recorded (prevents double-triggering during recording)
+      if (this.shouldSkipHitCallback && this.shouldSkipHitCallback(trackIndex, step)) return;
 
       const velocity = track.velocity[step] || 1;
       const adjustedVelocity = velocity * track.volume;
