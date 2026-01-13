@@ -590,7 +590,8 @@
   }
 
   .knob-label {
-    font-size: 7px;
+    font-size: 9px;
+    color: #aaa;
   }
 
   .knob-row {
