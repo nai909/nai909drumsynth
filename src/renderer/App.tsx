@@ -1182,14 +1182,14 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <div className={`section-group ${mode === 'pad' || mode === 'params' || mode === 'sequencer' ? 'section-active' : ''}`}>
+              <div className={`section-group ${mode === 'params' || mode === 'sequencer' ? 'section-active' : ''}`}>
                 <span className="section-label">DRUMS</span>
                 <div className="mode-toggle-container">
                   <button
-                    className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
-                    onClick={() => setMode('pad')}
+                    className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
+                    onClick={() => setMode('sequencer')}
                   >
-                    PADS
+                    BEATS
                   </button>
                   {isAdvancedMode && (
                     <button
@@ -1199,12 +1199,6 @@ const App: React.FC = () => {
                       EDIT
                     </button>
                   )}
-                  <button
-                    className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
-                    onClick={() => setMode('sequencer')}
-                  >
-                    BEATS
-                  </button>
                 </div>
               </div>
             </div>
@@ -1278,7 +1272,7 @@ const App: React.FC = () => {
                 selectedTrack={selectedTrack}
                 onStepToggle={handleStepToggle}
                 onSelectTrack={setSelectedTrack}
-                mode={mode === 'pad' ? 'pad' : 'sequencer'}
+                mode="sequencer"
                 onPadTrigger={handlePadTrigger}
                 noteRepeat={noteRepeat}
                 onNoteRepeatChange={setNoteRepeat}
