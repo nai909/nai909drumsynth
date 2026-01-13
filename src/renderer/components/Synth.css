@@ -556,17 +556,17 @@
   }
 
   .synth-panel {
-    gap: 6px;
+    gap: 8px;
     padding: 5px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
   }
 
   .synth-section {
-    padding: 6px;
+    padding: 8px;
     min-width: fit-content;
     flex-shrink: 0;
-    overflow: visible;
   }
 
   .section-label {
