@@ -1131,10 +1131,10 @@ const App: React.FC = () => {
             <div className="mode-toggle-wrapper">
               <div className="synth-toggle-group">
                 <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
+                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
                   onClick={() => { setMode('synth'); setSynthMode('keys'); }}
                 >
-                  SYNTH
+                  KEYS
                 </button>
                 {isAdvancedMode && (
                   <button
@@ -1144,23 +1144,13 @@ const App: React.FC = () => {
                     EFFECTS
                   </button>
                 )}
+                <button
+                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
+                  onClick={() => { setMode('synth'); setSynthMode('seq'); }}
+                >
+                  SEQUENCE
+                </button>
               </div>
-              {mode === 'synth' && (
-                <div className="synth-submode-toggle">
-                  <button
-                    className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
-                    onClick={() => setSynthMode('keys')}
-                  >
-                    KEYS
-                  </button>
-                  <button
-                    className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
-                    onClick={() => setSynthMode('seq')}
-                  >
-                    SEQUENCE
-                  </button>
-                </div>
-              )}
               <div className="mode-toggle-container">
                 <button
                   className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
