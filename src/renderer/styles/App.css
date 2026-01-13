@@ -64,13 +64,18 @@
   border-right: 1px solid var(--accent-border);
 }
 
+.synth-toggle-group .synth-toggle:not(:first-child):not(:last-child) {
+  border-radius: 0 !important;
+  border-left: 1px solid var(--accent-border);
+  border-right: 1px solid var(--accent-border);
+}
+
 .synth-toggle-group .synth-toggle:last-child:not(:only-child) {
   border-radius: 0 8px 8px 0 !important;
   border-left: 1px solid var(--accent-border);
 }
 
 .synth-toggle {
-  border-radius: 8px !important;
   min-width: 80px;
 }
 
