@@ -581,6 +581,7 @@ const App: React.FC = () => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [projectName, setProjectName] = useState('');
+  const [audioReady, setAudioReady] = useState(false);
 
   const drumSynthRef = useRef<DrumSynth | null>(null);
   const sequencerRef = useRef<Sequencer | null>(null);
@@ -621,6 +622,7 @@ const App: React.FC = () => {
     drumSynthRef.current = new DrumSynth();
     sequencerRef.current = new Sequencer(drumSynthRef.current);
     melodicSynthRef.current = new MelodicSynth();
+    setAudioReady(true);
 
     sequencerRef.current.onStep((step) => {
       setCurrentStep(step);
@@ -1127,6 +1129,22 @@ const App: React.FC = () => {
         <div className="center-section">
           <div className="sequencer-container">
             <div className="mode-toggle-wrapper">
+              <div className="synth-toggle-group">
+                <button
+                  className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
+                  onClick={() => { setMode('synth'); setSynthMode('keys'); }}
+                >
+                  SYNTH
+                </button>
+                {isAdvancedMode && (
+                  <button
+                    className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
+                    onClick={() => setMode('effects')}
+                  >
+                    EFFECTS
+                  </button>
+                )}
+              </div>
               <div className="mode-toggle-container">
                 <button
                   className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
@@ -1149,25 +1167,9 @@ const App: React.FC = () => {
                   SEQUENCE
                 </button>
               </div>
-              <div className="synth-toggle-group">
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
-                  onClick={() => { setMode('synth'); setSynthMode('keys'); }}
-                >
-                  SYNTH
-                </button>
-                {isAdvancedMode && (
-                  <button
-                    className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
-                    onClick={() => setMode('effects')}
-                  >
-                    EFFECTS
-                  </button>
-                )}
-              </div>
             </div>
             {mode === 'synth' ? (
-              melodicSynthRef.current && (
+              audioReady && melodicSynthRef.current && (
                 <>
                   {/* Synth sub-mode toggle */}
                   <div className="synth-submode-toggle">
@@ -1230,7 +1232,7 @@ const App: React.FC = () => {
                 </>
               )
             ) : mode === 'effects' ? (
-              melodicSynthRef.current && (
+              audioReady && melodicSynthRef.current && (
                 <SynthEffects
                   synth={melodicSynthRef.current}
                   params={synthParams}
