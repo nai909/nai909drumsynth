@@ -533,7 +533,7 @@ const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [synthCurrentStep, setSynthCurrentStep] = useState(-1);
   const [selectedTrack, setSelectedTrack] = useState(0);
-  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('pad');
+  const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('synth');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [noteRepeatModifier, setNoteRepeatModifier] = useState<'normal' | 'dotted' | 'triplet'>('normal');
   const [loopBars, setLoopBars] = useState<1 | 2 | 3 | 4>(1);
