@@ -110,7 +110,26 @@
   }
 }
 
-.record-btn.active {
+/* Armed state - recording enabled but waiting to start */
+.record-btn.armed {
+  color: #ff8844;
+  background: rgba(255, 136, 68, 0.15);
+  border-color: #ff8844;
+  box-shadow: 0 0 10px rgba(255, 136, 68, 0.3);
+  animation: record-armed-pulse 1.5s ease-in-out infinite;
+}
+
+/* Actively recording */
+.record-btn.recording {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.3);
+  border-color: #ff4444;
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.6);
+  animation: record-pulse 0.5s ease-in-out infinite;
+}
+
+/* Fallback for just .active (backwards compat) */
+.record-btn.active:not(.armed):not(.recording) {
   color: #ff4444;
   background: rgba(255, 68, 68, 0.25);
   border-color: #ff4444;
@@ -127,12 +146,23 @@
   animation: none;
 }
 
+@keyframes record-armed-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 136, 68, 0.3);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 136, 68, 0.5);
+    opacity: 0.7;
+  }
+}
+
 @keyframes record-pulse {
   0%, 100% {
     box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
   }
   50% {
-    box-shadow: 0 0 25px rgba(255, 68, 68, 0.7);
+    box-shadow: 0 0 30px rgba(255, 68, 68, 0.8);
   }
 }
 

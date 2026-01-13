@@ -147,9 +147,9 @@ const Transport: React.FC<TransportProps> = ({
       <div className="transport-controls">
         <div className="record-control">
           <button
-            className={`transport-btn record-btn ${isRecording ? 'active' : ''}`}
+            className={`transport-btn record-btn ${isRecording ? (isPlaying ? 'active recording' : 'active armed') : ''}`}
             onClick={onRecordToggle}
-            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+            title={isRecording ? (isPlaying ? 'Recording... (tap to stop)' : 'Armed - tap play or a pad to start') : 'Arm Recording'}
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="8" />

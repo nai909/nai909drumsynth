@@ -73,8 +73,9 @@ const validatePattern = (pattern: unknown, defaultPattern: Pattern): Pattern => 
     return defaultPattern;
   }
   const p = pattern as Record<string, unknown>;
+  const maxTracks = defaultPattern.tracks.length;
   const validatedTracks = Array.isArray(p.tracks)
-    ? p.tracks.map((t, i) => validateDrumTrack(t, defaultPattern.tracks[i] || defaultPattern.tracks[0]))
+    ? p.tracks.slice(0, maxTracks).map((t, i) => validateDrumTrack(t, defaultPattern.tracks[i] ?? defaultPattern.tracks[0]))
     : defaultPattern.tracks;
 
   return {
@@ -771,9 +772,15 @@ const App: React.FC = () => {
   };
 
   const handleParamChange = (param: keyof DrumTrack, value: number) => {
-    const newPattern = { ...pattern };
-    (newPattern.tracks[selectedTrack] as any)[param] = value;
-    setPattern(newPattern);
+    const numericParams = ['volume', 'pan', 'tune', 'decay', 'attack', 'tone', 'snap', 'filterCutoff', 'filterResonance', 'drive'] as const;
+    if (!numericParams.includes(param as typeof numericParams[number])) return;
+
+    setPattern(prev => ({
+      ...prev,
+      tracks: prev.tracks.map((track, i) =>
+        i === selectedTrack ? { ...track, [param]: value } : track
+      )
+    }));
   };
 
   const handleClearSequence = () => {
@@ -1129,49 +1136,55 @@ const App: React.FC = () => {
         <div className="center-section">
           <div className="sequencer-container">
             <div className="mode-toggle-wrapper">
-              <div className="synth-toggle-group">
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
-                  onClick={() => { setMode('synth'); setSynthMode('keys'); }}
-                >
-                  KEYS
-                </button>
-                {isAdvancedMode && (
+              <div className={`section-group ${mode === 'synth' || mode === 'effects' ? 'section-active' : ''}`}>
+                <span className="section-label">SYNTH</span>
+                <div className="synth-toggle-group">
                   <button
-                    className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
-                    onClick={() => setMode('effects')}
+                    className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
+                    onClick={() => { setMode('synth'); setSynthMode('keys'); }}
                   >
-                    EFFECTS
+                    KEYS
                   </button>
-                )}
-                <button
-                  className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
-                  onClick={() => { setMode('synth'); setSynthMode('seq'); }}
-                >
-                  SEQUENCE
-                </button>
+                  {isAdvancedMode && (
+                    <button
+                      className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
+                      onClick={() => setMode('effects')}
+                    >
+                      FX
+                    </button>
+                  )}
+                  <button
+                    className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
+                    onClick={() => { setMode('synth'); setSynthMode('seq'); }}
+                  >
+                    MELODY
+                  </button>
+                </div>
               </div>
-              <div className="mode-toggle-container">
-                <button
-                  className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
-                  onClick={() => setMode('pad')}
-                >
-                  PAD
-                </button>
-                {isAdvancedMode && (
+              <div className={`section-group ${mode === 'pad' || mode === 'params' || mode === 'sequencer' ? 'section-active' : ''}`}>
+                <span className="section-label">DRUMS</span>
+                <div className="mode-toggle-container">
                   <button
-                    className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
-                    onClick={() => setMode('params')}
+                    className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
+                    onClick={() => setMode('pad')}
                   >
-                    EDIT
+                    PADS
                   </button>
-                )}
-                <button
-                  className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
-                  onClick={() => setMode('sequencer')}
-                >
-                  SEQUENCE
-                </button>
+                  {isAdvancedMode && (
+                    <button
+                      className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
+                      onClick={() => setMode('params')}
+                    >
+                      EDIT
+                    </button>
+                  )}
+                  <button
+                    className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
+                    onClick={() => setMode('sequencer')}
+                  >
+                    BEATS
+                  </button>
+                </div>
               </div>
             </div>
             {mode === 'synth' ? (

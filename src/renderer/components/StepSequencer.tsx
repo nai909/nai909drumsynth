@@ -53,7 +53,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   isAdvancedMode = true,
 }) => {
   const touchedRef = useRef<boolean>(false);
-  const repeatIntervalsRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // trackIndex -> intervalId
+  const repeatIntervalsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map()); // trackIndex -> timer id
 
   // Clean up intervals on unmount
   useEffect(() => {
@@ -109,14 +109,15 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
       repeatIntervalsRef.current.set(trackIndex, intervalId);
     }, intervalMs); // Wait one full interval before first repeat
 
-    // Store timeout as interval initially (will be replaced by actual interval)
-    repeatIntervalsRef.current.set(trackIndex, timeoutId as unknown as NodeJS.Timeout);
+    // Store timeout initially (will be replaced by actual interval)
+    repeatIntervalsRef.current.set(trackIndex, timeoutId);
   }, [noteRepeat, onPadTrigger, getRepeatIntervalMs]);
 
   const stopNoteRepeat = useCallback((trackIndex: number) => {
-    if (repeatIntervalsRef.current.has(trackIndex)) {
-      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
-      clearTimeout(repeatIntervalsRef.current.get(trackIndex)! as unknown as NodeJS.Timeout);
+    const timerId = repeatIntervalsRef.current.get(trackIndex);
+    if (timerId !== undefined) {
+      clearInterval(timerId);
+      clearTimeout(timerId);
       repeatIntervalsRef.current.delete(trackIndex);
     }
   }, []);
@@ -127,10 +128,11 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
     // Get velocity from touch force if available, otherwise default
     let velocity = 0.8;
     if (e && e.touches && e.touches[0]) {
-      const touch = e.touches[0] as any;
-      // Use force if available (Force Touch / 3D Touch)
-      if (touch.force && touch.force > 0) {
-        velocity = Math.min(1, 0.3 + touch.force * 0.7);
+      const touch = e.touches[0];
+      // Use force if available (Force Touch / 3D Touch - iOS only)
+      const force = (touch as Touch & { force?: number }).force;
+      if (force && force > 0) {
+        velocity = Math.min(1, 0.3 + force * 0.7);
       }
     }
 
