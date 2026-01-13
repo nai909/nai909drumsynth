@@ -563,9 +563,10 @@
   }
 
   .synth-section {
-    padding: 8px 8px 12px 8px;
+    padding: 6px;
     min-width: fit-content;
     flex-shrink: 0;
+    gap: 4px;
   }
 
   .section-label {
@@ -573,29 +574,29 @@
   }
 
   .waveform-btn {
-    width: 32px;
-    height: 32px;
-    padding: 5px;
+    width: 28px;
+    height: 28px;
+    padding: 4px;
   }
 
   .synth-knob {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
   }
 
   .knob-indicator {
-    top: 4px;
-    width: 3px;
-    height: 10px;
+    top: 3px;
+    width: 2px;
+    height: 8px;
   }
 
   .knob-label {
-    font-size: 8px;
+    font-size: 7px;
     color: #aaa;
   }
 
   .synth-knob-container {
-    gap: 4px;
+    gap: 2px;
   }
 
   .knob-row {
