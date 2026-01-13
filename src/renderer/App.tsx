@@ -627,7 +627,13 @@ const App: React.FC = () => {
     melodicSynthRef.current = new MelodicSynth();
     setAudioReady(true);
 
+    let lastStep = -1;
     sequencerRef.current.onStep((step) => {
+      // Clear recently recorded hits on loop wrap (when step goes back to 0 or lower than last)
+      if (step < lastStep) {
+        recentlyRecordedHits.current.clear();
+      }
+      lastStep = step;
       setCurrentStep(step);
     });
 
@@ -869,6 +875,11 @@ const App: React.FC = () => {
 
   const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8, scheduledTime?: number) => {
     if (!drumSynthRef.current) return;
+
+    // Get track first to validate
+    const track = pattern.tracks[trackIndex];
+    if (!track) return;
+
     await drumSynthRef.current.init();
 
     // Auto-start playback when recording is armed but not playing
@@ -880,7 +891,6 @@ const App: React.FC = () => {
       // Don't return - continue to trigger the sound and record it
     }
 
-    const track = pattern.tracks[trackIndex];
     // Use scheduled time if provided (for note repeat), otherwise use current time
     const time = scheduledTime ?? Tone.now();
     const { volume, tune, decay, filterCutoff, pan, attack, tone, snap, filterResonance, drive } = track;
