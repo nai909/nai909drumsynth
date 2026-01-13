@@ -552,20 +552,21 @@
   .synth-container {
     padding: 8px;
     gap: 8px;
+    overflow-y: auto;
   }
 
   .synth-panel {
-    gap: 8px;
+    gap: 6px;
     padding: 5px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    justify-content: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .synth-section {
-    padding: 8px;
+    padding: 6px;
     min-width: fit-content;
     flex-shrink: 0;
+    overflow: visible;
   }
 
   .section-label {
@@ -590,11 +591,17 @@
   }
 
   .knob-label {
-    font-size: 7px;
+    font-size: 8px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .synth-knob-container {
+    min-height: 50px;
   }
 
   .knob-row {
-    gap: 8px;
+    gap: 6px;
   }
 
   .octave-btn {
