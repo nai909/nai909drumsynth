@@ -593,6 +593,8 @@ const App: React.FC = () => {
   const lastRecordedLoopStart = useRef<number>(-1);
   // Track hits recorded in current loop to prevent double-triggering via sequencer
   const recentlyRecordedHits = useRef<Set<string>>(new Set());
+  // Ref to track recording state for sequencer callback
+  const isRecordingRef = useRef(false);
 
   // Apply theme to document
   useEffect(() => {
@@ -630,7 +632,9 @@ const App: React.FC = () => {
     });
 
     // Set up callback to prevent double-triggering during recording
+    // Only skip hits when actively recording AND the hit was just recorded
     sequencerRef.current.setShouldSkipHitCallback((trackIndex, stepIndex) => {
+      if (!isRecordingRef.current) return false; // Don't skip anything when not recording
       const hitKey = `${trackIndex}-${stepIndex}`;
       return recentlyRecordedHits.current.has(hitKey);
     });
@@ -667,6 +671,15 @@ const App: React.FC = () => {
   useEffect(() => {
     synthSequenceRef.current = synthSequence;
   }, [synthSequence]);
+
+  // Keep isRecordingRef in sync with isRecording state for sequencer callback
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+    // Clear recently recorded hits when recording stops
+    if (!isRecording) {
+      recentlyRecordedHits.current.clear();
+    }
+  }, [isRecording]);
 
   // Synth sequencer playback (runs independently of UI mode)
   // Uses ref for synthSequence to avoid recreating sequence on every step toggle
@@ -734,6 +747,8 @@ const App: React.FC = () => {
     if (sequencerRef.current) {
       sequencerRef.current.pause();
       setIsPlaying(false);
+      // Clear recorded hits on pause to prevent skipping on resume
+      recentlyRecordedHits.current.clear();
     }
   };
 
@@ -880,18 +895,24 @@ const App: React.FC = () => {
       const loopLengthSteps = loopBars * 16;
       const loopLengthSeconds = loopLengthSteps * secondsPerStep;
 
-      // Input latency compensation: shift recording time earlier to account for
-      // touch/mouse event processing delay (typically 30-80ms)
-      const inputLatencyCompensation = 0.05; // 50ms compensation
-      const compensatedTransportSeconds = Math.max(0, transportSeconds - inputLatencyCompensation);
+      let stepIndex: number;
 
-      // Calculate position within current loop
-      const positionInLoop = compensatedTransportSeconds % loopLengthSeconds;
-      const exactStep = positionInLoop / secondsPerStep;
+      if (justStartedPlayback) {
+        // When we just started, record to step 0
+        stepIndex = 0;
+      } else {
+        // Input latency compensation: shift recording time earlier
+        // Use smaller compensation (30ms) for tighter feel
+        const inputLatencyCompensation = 0.03;
+        const compensatedTransportSeconds = Math.max(0, transportSeconds - inputLatencyCompensation);
 
-      // Use floor + 0.3 threshold to bias towards current step rather than next
-      // This helps when playing slightly behind the beat
-      const stepIndex = Math.floor(exactStep + 0.3) % loopLengthSteps;
+        // Calculate position within current loop
+        const positionInLoop = compensatedTransportSeconds % loopLengthSeconds;
+        const exactStep = positionInLoop / secondsPerStep;
+
+        // Round to nearest step (0.5 threshold) for more natural quantization
+        stepIndex = Math.round(exactStep) % loopLengthSteps;
+      }
 
       // Detect loop restart for replace mode (clear tracks once per loop)
       const currentLoopNumber = Math.floor(transportSeconds / loopLengthSeconds);
