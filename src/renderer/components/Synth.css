@@ -552,7 +552,6 @@
   .synth-container {
     padding: 8px;
     gap: 8px;
-    overflow-y: auto;
   }
 
   .synth-panel {
@@ -591,17 +590,11 @@
   }
 
   .knob-label {
-    font-size: 8px;
-    color: #aaa;
-    margin-top: 2px;
-  }
-
-  .synth-knob-container {
-    min-height: 50px;
+    font-size: 7px;
   }
 
   .knob-row {
-    gap: 6px;
+    gap: 8px;
   }
 
   .octave-btn {
