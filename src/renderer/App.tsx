@@ -1145,6 +1145,22 @@ const App: React.FC = () => {
                   </button>
                 )}
               </div>
+              {mode === 'synth' && (
+                <div className="synth-submode-toggle">
+                  <button
+                    className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
+                    onClick={() => setSynthMode('keys')}
+                  >
+                    KEYS
+                  </button>
+                  <button
+                    className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
+                    onClick={() => setSynthMode('seq')}
+                  >
+                    SEQUENCE
+                  </button>
+                </div>
+              )}
               <div className="mode-toggle-container">
                 <button
                   className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
@@ -1171,21 +1187,6 @@ const App: React.FC = () => {
             {mode === 'synth' ? (
               audioReady && melodicSynthRef.current && (
                 <>
-                  {/* Synth sub-mode toggle */}
-                  <div className="synth-submode-toggle">
-                    <button
-                      className={`submode-btn ${synthMode === 'keys' ? 'active' : ''}`}
-                      onClick={() => setSynthMode('keys')}
-                    >
-                      KEYS
-                    </button>
-                    <button
-                      className={`submode-btn ${synthMode === 'seq' ? 'active' : ''}`}
-                      onClick={() => setSynthMode('seq')}
-                    >
-                      SEQUENCE
-                    </button>
-                  </div>
                   {synthMode === 'seq' ? (
                     <SynthSequencer
                       synth={melodicSynthRef.current}
