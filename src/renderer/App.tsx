@@ -556,7 +556,7 @@ const App: React.FC = () => {
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
   // Count-in state for recording
   const [countIn, setCountIn] = useState<number>(0); // 0 = not counting, 1-4 = current beat
-  const [countInBeats, setCountInBeats] = useState<4 | 2 | 0>(4); // Number of count-in beats (0 = off)
+  const countInBeats = 4; // Always 4 beats count-in
   // Undo state - store pattern before recording started
   const [patternBeforeRecording, setPatternBeforeRecording] = useState<Pattern | null>(null);
   const [synthSequenceBeforeRecording, setSynthSequenceBeforeRecording] = useState<SynthStep[] | null>(null);
@@ -1448,27 +1448,32 @@ const App: React.FC = () => {
         onStop={handleStop}
         onTempoChange={handleTempoChange}
         isRecording={isRecording}
-        onRecordToggle={() => {
+        onRecordToggle={async () => {
           if (isRecording) {
-            // Turning off recording - clear recently recorded hits
+            // Stop recording
             recentlyRecordedHits.current.clear();
-            // Enable undo if we were recording
             if (patternBeforeRecording) {
               setCanUndo(true);
             }
+            setIsRecording(false);
           } else {
-            // Arming recording - store current state for undo
+            // Start recording - count-in then play
             setPatternBeforeRecording(JSON.parse(JSON.stringify(pattern)));
             setSynthSequenceBeforeRecording(JSON.parse(JSON.stringify(synthSequence)));
             setCanUndo(false);
+            setIsRecording(true);
+            // Immediately start count-in and playback
+            if (countInBeats > 0 && !isPlaying) {
+              await startCountIn();
+            } else if (!isPlaying) {
+              await handlePlay();
+            }
           }
-          setIsRecording(!isRecording);
         }}
         metronomeEnabled={metronomeEnabled}
         onMetronomeToggle={handleMetronomeToggle}
         countIn={countIn}
         countInBeats={countInBeats}
-        onCountInBeatsChange={setCountInBeats}
         canUndo={canUndo}
         onUndo={handleUndo}
       />

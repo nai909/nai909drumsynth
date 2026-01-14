@@ -12,10 +12,9 @@ interface TransportProps {
   onRecordToggle: () => void;
   metronomeEnabled: boolean;
   onMetronomeToggle: () => void;
-  // Count-in
+  // Count-in (always 4 beats)
   countIn: number; // 0 = not counting, 1-4 = current beat
-  countInBeats: 4 | 2 | 0; // Number of count-in beats
-  onCountInBeatsChange: (beats: 4 | 2 | 0) => void;
+  countInBeats: number;
   // Undo
   canUndo: boolean;
   onUndo: () => void;
@@ -65,7 +64,6 @@ const Transport: React.FC<TransportProps> = ({
   onMetronomeToggle,
   countIn,
   countInBeats,
-  onCountInBeatsChange,
   canUndo,
   onUndo,
 }) => {
@@ -150,13 +148,6 @@ const Transport: React.FC<TransportProps> = ({
   // Calculate thumb position as percentage
   const thumbPosition = ((tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO)) * 100;
 
-  // Cycle through count-in options: 4 → 2 → 0 → 4
-  const cycleCountInBeats = () => {
-    const options: (4 | 2 | 0)[] = [4, 2, 0];
-    const currentIndex = options.indexOf(countInBeats);
-    const nextIndex = (currentIndex + 1) % options.length;
-    onCountInBeatsChange(options[nextIndex]);
-  };
 
   return (
     <div className={`transport ${isRecording && isPlaying ? 'recording-active' : ''} ${countIn > 0 ? 'counting-in' : ''}`}>
@@ -173,24 +164,15 @@ const Transport: React.FC<TransportProps> = ({
       )}
 
       <div className="transport-controls">
-        <div className="record-control">
-          <button
-            className={`transport-btn record-btn ${isRecording ? (isPlaying ? 'active recording' : 'active armed') : ''} ${countIn > 0 ? 'counting' : ''}`}
-            onClick={onRecordToggle}
-            title={isRecording ? (isPlaying ? 'Recording... (tap to stop)' : 'Armed - tap play or a pad to start') : 'Arm Recording'}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="8" />
-            </svg>
-          </button>
-          <button
-            className={`count-in-toggle ${countInBeats > 0 ? 'active' : ''}`}
-            onClick={cycleCountInBeats}
-            title={`Count-in: ${countInBeats === 0 ? 'Off' : `${countInBeats} beats`}`}
-          >
-            {countInBeats === 0 ? '○' : countInBeats}
-          </button>
-        </div>
+        <button
+          className={`transport-btn record-btn ${isRecording ? 'active recording' : ''} ${countIn > 0 ? 'counting' : ''}`}
+          onClick={onRecordToggle}
+          title={isRecording ? 'Recording... (tap to stop)' : 'Start Recording (4-beat count-in)'}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="12" r="8" />
+          </svg>
+        </button>
         {!isPlaying ? (
           <button className="transport-btn play-btn" onClick={onPlay}>
             <svg viewBox="0 0 24 24" fill="currentColor">
