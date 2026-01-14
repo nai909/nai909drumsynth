@@ -1,8 +1,8 @@
 .synth-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 15px;
+  padding: 15px;
   background: rgba(0, 0, 0, 0.4);
   border: 2px solid var(--accent-border);
   border-radius: 12px;
@@ -12,29 +12,48 @@
 }
 
 .synth-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, auto));
-  gap: 6px;
-  justify-content: center;
-  justify-items: center;
-  padding: 4px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  padding: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-primary) transparent;
+}
+
+.synth-panel::-webkit-scrollbar {
+  height: 6px;
+}
+
+.synth-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.synth-panel::-webkit-scrollbar-thumb {
+  background: var(--accent-primary);
+  border-radius: 3px;
 }
 
 .synth-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: 8px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--accent-border);
-  border-radius: 6px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+  min-width: fit-content;
 }
 
 .section-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   color: var(--accent-secondary);
   text-transform: uppercase;
 }
@@ -42,16 +61,16 @@
 /* Waveform buttons */
 .waveform-buttons {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .waveform-btn {
-  width: 32px;
-  height: 32px;
-  padding: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
   background: rgba(0, 0, 0, 0.3);
   border: 2px solid var(--accent-border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: #666;
   transition: all 0.2s;
   display: flex;
@@ -80,19 +99,19 @@
 /* Knobs */
 .knob-row {
   display: flex;
-  gap: 6px;
+  gap: 15px;
 }
 
 .synth-knob-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
 }
 
 .synth-knob {
-  width: 38px;
-  height: 38px;
+  width: 50px;
+  height: 50px;
   cursor: pointer;
   user-select: none;
 }
@@ -130,9 +149,9 @@
 }
 
 .knob-label {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   color: #888;
   text-transform: uppercase;
 }
@@ -287,45 +306,6 @@
 }
 
 /* Random button */
-/* Action buttons (RANDOM, MUTATE, CLEAR) */
-.action-btn {
-  padding: 8px 12px;
-  background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
-  border: 2px solid var(--accent-primary);
-  border-radius: 6px;
-  color: var(--accent-secondary);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.action-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 15px var(--accent-glow);
-}
-
-.action-btn:active {
-  transform: scale(0.95);
-}
-
-.random-melody-btn {
-  background: linear-gradient(145deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.15));
-  border-color: #8b5cf6;
-  color: #a78bfa;
-}
-
-.random-melody-btn:hover {
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
-}
-
-.mutate-btn {
-  background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
-}
-
-/* Legacy .random-btn for backwards compat */
 .random-btn {
   padding: 10px 20px;
   background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
@@ -423,6 +403,63 @@
 }
 
 .clear-btn:active {
+  transform: scale(0.95);
+}
+
+/* Action buttons (MUTATE, RANDOM, CLEAR row) */
+.action-btn {
+  padding: 8px 12px;
+  background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-secondary);
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.action-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+.mutate-btn,
+.random-melody-btn {
+  /* Inherits from .action-btn */
+}
+
+/* Mobile action buttons */
+.action-btn-mobile {
+  flex: 1;
+  padding: 10px 12px;
+  background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-secondary);
+  border-radius: 8px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.action-btn-mobile:hover {
+  box-shadow: 0 0 15px var(--accent-glow);
+}
+
+.action-btn-mobile:active {
   transform: scale(0.95);
 }
 
@@ -658,34 +695,22 @@
 
   .synth-mobile-actions {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     padding: 6px 10px;
   }
 
-  .action-btn-mobile {
+  .random-btn-mobile {
     display: block;
     flex: 1;
-    padding: 8px 6px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    background: linear-gradient(145deg, var(--accent-bg-active), var(--accent-bg));
-    border: 2px solid var(--accent-primary);
-    border-radius: 6px;
-    color: var(--accent-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-    touch-action: manipulation;
+    padding: 8px 12px;
+    font-size: 11px;
   }
 
-  .action-btn-mobile.random-melody-btn {
-    background: linear-gradient(145deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.15));
-    border-color: #8b5cf6;
-    color: #a78bfa;
-  }
-
-  .action-btn-mobile:active {
-    transform: scale(0.95);
+  .clear-btn-mobile {
+    display: block;
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 11px;
   }
 
   .keyboard-container {
