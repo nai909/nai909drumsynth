@@ -11,7 +11,7 @@
   flex: 1;
   display: flex;
   overflow: hidden;
-  padding: 115px 10px 10px 10px;
+  padding: 75px 10px 10px 10px;
   gap: 10px;
   min-height: 0;
   position: relative;
@@ -194,7 +194,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 90px;
+  height: 65px;
   background: linear-gradient(180deg, rgba(13, 13, 13, 1) 0%, rgba(13, 13, 13, 0.98) 60%, rgba(13, 13, 13, 0) 100%);
   z-index: 50;
   pointer-events: none;
@@ -208,8 +208,8 @@
   transform: translateX(-50%) translateZ(0);
   -webkit-transform: translateX(-50%) translateZ(0);
   z-index: 100;
-  width: 85px;
-  height: 105px;
+  width: 50px;
+  height: 62px;
   padding: 0;
   background: transparent;
   border: none;
