@@ -1357,6 +1357,10 @@ const App: React.FC = () => {
                     setIsSynthLoopCapture(true);
                     setSynthLoopBars(1);
                   }}
+                  onSynthLoopBarsChange={(bars) => {
+                    setSynthLoopBars(bars);
+                    setIsSynthLoopCapture(false);
+                  }}
                   scaleEnabled={synthScaleEnabled}
                   onScaleEnabledChange={setSynthScaleEnabled}
                   scaleRoot={synthScaleRoot}

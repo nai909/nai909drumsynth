@@ -24,6 +24,8 @@ interface SynthProps {
   synthCurrentStep?: number;
   // Clear sequence callback - resets to capture mode
   onClearSequence?: () => void;
+  // Set synth loop bars (exits capture mode)
+  onSynthLoopBarsChange?: (bars: 1 | 2 | 4 | 8 | 16) => void;
   // Scale props
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
@@ -235,6 +237,7 @@ const Synth: React.FC<SynthProps> = ({
   isSynthLoopCapture = false,
   synthCurrentStep = -1,
   onClearSequence,
+  onSynthLoopBarsChange,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -563,6 +566,10 @@ const Synth: React.FC<SynthProps> = ({
     const barsToGenerate = isSynthLoopCapture ? 2 : synthLoopBars; // Default to 2 bars in capture mode
     const newPattern = generateMelodicPattern(scaleNotesArray, barsToGenerate);
     onSynthSequenceChange(newPattern);
+    // If in capture mode, set loop to 2 bars and exit capture mode
+    if (isSynthLoopCapture && onSynthLoopBarsChange) {
+      onSynthLoopBarsChange(2);
+    }
   };
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
