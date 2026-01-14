@@ -1327,16 +1327,16 @@ const App: React.FC = () => {
                     PADS
                   </button>
                   <button
-                    className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
-                    onClick={() => setMode('sequencer')}
-                  >
-                    BEATS
-                  </button>
-                  <button
                     className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
                     onClick={() => setMode('params')}
                   >
                     EDIT
+                  </button>
+                  <button
+                    className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
+                    onClick={() => setMode('sequencer')}
+                  >
+                    LOOP
                   </button>
                 </div>
               </div>
