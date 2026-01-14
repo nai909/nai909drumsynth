@@ -14,6 +14,13 @@ interface TransportProps {
   onRecordModeToggle: () => void;
   metronomeEnabled: boolean;
   onMetronomeToggle: () => void;
+  // Count-in
+  countIn: number; // 0 = not counting, 1-4 = current beat
+  countInBeats: 4 | 2 | 0; // Number of count-in beats
+  onCountInBeatsChange: (beats: 4 | 2 | 0) => void;
+  // Undo
+  canUndo: boolean;
+  onUndo: () => void;
 }
 
 // Drippy Smiley Slider Thumb
@@ -60,6 +67,11 @@ const Transport: React.FC<TransportProps> = ({
   onRecordModeToggle,
   metronomeEnabled,
   onMetronomeToggle,
+  countIn,
+  countInBeats,
+  onCountInBeatsChange,
+  canUndo,
+  onUndo,
 }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -142,12 +154,32 @@ const Transport: React.FC<TransportProps> = ({
   // Calculate thumb position as percentage
   const thumbPosition = ((tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO)) * 100;
 
+  // Cycle through count-in options: 4 → 2 → 0 → 4
+  const cycleCountInBeats = () => {
+    const options: (4 | 2 | 0)[] = [4, 2, 0];
+    const currentIndex = options.indexOf(countInBeats);
+    const nextIndex = (currentIndex + 1) % options.length;
+    onCountInBeatsChange(options[nextIndex]);
+  };
+
   return (
-    <div className="transport">
+    <div className={`transport ${isRecording && isPlaying ? 'recording-active' : ''} ${countIn > 0 ? 'counting-in' : ''}`}>
+      {/* Count-in overlay */}
+      {countIn > 0 && (
+        <div className="count-in-overlay">
+          <div className="count-in-number">{countIn}</div>
+          <div className="count-in-dots">
+            {Array.from({ length: countInBeats }, (_, i) => (
+              <div key={i} className={`count-in-dot ${i < countIn ? 'active' : ''}`} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="transport-controls">
         <div className="record-control">
           <button
-            className={`transport-btn record-btn ${isRecording ? (isPlaying ? 'active recording' : 'active armed') : ''}`}
+            className={`transport-btn record-btn ${isRecording ? (isPlaying ? 'active recording' : 'active armed') : ''} ${countIn > 0 ? 'counting' : ''}`}
             onClick={onRecordToggle}
             title={isRecording ? (isPlaying ? 'Recording... (tap to stop)' : 'Armed - tap play or a pad to start') : 'Arm Recording'}
           >
@@ -155,13 +187,22 @@ const Transport: React.FC<TransportProps> = ({
               <circle cx="12" cy="12" r="8" />
             </svg>
           </button>
-          <button
-            className={`record-mode-toggle ${recordMode}`}
-            onClick={onRecordModeToggle}
-            title={recordMode === 'overdub' ? 'Overdub Mode (layer)' : 'Replace Mode (clear)'}
-          >
-            {recordMode === 'overdub' ? 'OVERDUB' : 'REPLACE'}
-          </button>
+          <div className="record-options">
+            <button
+              className={`record-mode-toggle ${recordMode}`}
+              onClick={onRecordModeToggle}
+              title={recordMode === 'overdub' ? 'Layer mode - adds to existing' : 'Clear mode - replaces track'}
+            >
+              {recordMode === 'overdub' ? 'LAYER' : 'CLEAR'}
+            </button>
+            <button
+              className={`count-in-toggle ${countInBeats > 0 ? 'active' : ''}`}
+              onClick={cycleCountInBeats}
+              title={`Count-in: ${countInBeats === 0 ? 'Off' : `${countInBeats} beats`}`}
+            >
+              {countInBeats === 0 ? '○' : countInBeats}
+            </button>
+          </div>
         </div>
         {!isPlaying ? (
           <button className="transport-btn play-btn" onClick={onPlay}>
@@ -195,6 +236,18 @@ const Transport: React.FC<TransportProps> = ({
             <circle cx="15" cy="4" r="1.5" />
           </svg>
         </button>
+        {/* Undo button - only visible when undo is available */}
+        {canUndo && (
+          <button
+            className="transport-btn undo-btn"
+            onClick={onUndo}
+            title="Undo last recording"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="tempo-control">

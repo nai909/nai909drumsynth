@@ -22,7 +22,6 @@ interface SynthSequencerProps {
   onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
-  isAdvancedMode?: boolean;
   // Scale props (shared with keys mode)
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
@@ -357,7 +356,7 @@ const generateMelodicPattern = (
 
 const SynthSequencer: React.FC<SynthSequencerProps> = ({
   synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep,
-  loopBars, onLoopBarsChange, currentPage, onPageChange, isAdvancedMode = true,
+  loopBars, onLoopBarsChange, currentPage, onPageChange,
   scaleEnabled = true,
   onScaleEnabledChange,
   scaleRoot: scaleRootProp = 'C',
@@ -537,53 +536,48 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           </div>
         </div>
 
-        {/* Advanced controls - only in PRO mode */}
-        {isAdvancedMode && (
-          <>
-            <div className="seq-control-group">
-              <label className="seq-label">WAVE</label>
-              <div className="waveform-buttons-small">
-                {waveforms.map((wf) => (
-                  <button
-                    key={wf}
-                    className={`waveform-btn-small ${params.waveform === wf ? 'active' : ''}`}
-                    onClick={() => handleParamChange('waveform', wf)}
-                  >
-                    <WaveformIcon type={wf} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="seq-control-group">
-              <label className="seq-label">KEY</label>
-              <select
-                className="seq-select"
-                value={scaleRoot}
-                onChange={(e) => setScaleRoot(e.target.value)}
+        <div className="seq-control-group">
+          <label className="seq-label">WAVE</label>
+          <div className="waveform-buttons-small">
+            {waveforms.map((wf) => (
+              <button
+                key={wf}
+                className={`waveform-btn-small ${params.waveform === wf ? 'active' : ''}`}
+                onClick={() => handleParamChange('waveform', wf)}
               >
-                {ROOT_NOTES.map((note) => (
-                  <option key={note} value={note}>{note}</option>
-                ))}
-              </select>
-            </div>
+                <WaveformIcon type={wf} />
+              </button>
+            ))}
+          </div>
+        </div>
 
-            <div className="seq-control-group">
-              <label className="seq-label">SCALE</label>
-              <select
-                className="seq-select"
-                value={scaleType}
-                onChange={(e) => setScaleType(e.target.value)}
-              >
-                {Object.keys(SCALES).map((scale) => (
-                  <option key={scale} value={scale}>
-                    {scale.charAt(0).toUpperCase() + scale.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        )}
+        <div className="seq-control-group">
+          <label className="seq-label">KEY</label>
+          <select
+            className="seq-select"
+            value={scaleRoot}
+            onChange={(e) => setScaleRoot(e.target.value)}
+          >
+            {ROOT_NOTES.map((note) => (
+              <option key={note} value={note}>{note}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="seq-control-group">
+          <label className="seq-label">SCALE</label>
+          <select
+            className="seq-select"
+            value={scaleType}
+            onChange={(e) => setScaleType(e.target.value)}
+          >
+            {Object.keys(SCALES).map((scale) => (
+              <option key={scale} value={scale}>
+                {scale.charAt(0).toUpperCase() + scale.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* DICE, MUTATE, CLEAR - always visible */}
         <div className="seq-actions-simple">
@@ -592,55 +586,50 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
 
-        {/* Loop and Page controls - only in PRO mode */}
-        {isAdvancedMode && (
-          <>
-            <div className="seq-control-group">
-              <label className="seq-label">LOOP</label>
-              <div className="loop-bars-buttons">
-                {([1, 2, 3, 4] as const).map((bars) => (
+        <div className="seq-control-group">
+          <label className="seq-label">LOOP</label>
+          <div className="loop-bars-buttons">
+            {([1, 2, 3, 4] as const).map((bars) => (
+              <button
+                key={bars}
+                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                onClick={() => onLoopBarsChange(bars)}
+              >
+                {bars}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loopBars > 1 && (
+          <div className="seq-control-group">
+            <label className="seq-label">PAGE</label>
+            <div className="page-nav-buttons">
+              <button
+                className="page-nav-btn"
+                onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+              >
+                ◀
+              </button>
+              <div className="page-dots">
+                {Array.from({ length: loopBars }, (_, i) => (
                   <button
-                    key={bars}
-                    className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
-                    onClick={() => onLoopBarsChange(bars)}
-                  >
-                    {bars}
-                  </button>
+                    key={i}
+                    className={`page-dot ${i === currentPage ? 'active' : ''}`}
+                    onClick={() => onPageChange(i)}
+                  />
                 ))}
               </div>
+              <button
+                className="page-nav-btn"
+                onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
+                disabled={currentPage === loopBars - 1}
+              >
+                ▶
+              </button>
             </div>
-
-            {loopBars > 1 && (
-              <div className="seq-control-group">
-                <label className="seq-label">PAGE</label>
-                <div className="page-nav-buttons">
-                  <button
-                    className="page-nav-btn"
-                    onClick={() => onPageChange(Math.max(0, currentPage - 1))}
-                    disabled={currentPage === 0}
-                  >
-                    ◀
-                  </button>
-                  <div className="page-dots">
-                    {Array.from({ length: loopBars }, (_, i) => (
-                      <button
-                        key={i}
-                        className={`page-dot ${i === currentPage ? 'active' : ''}`}
-                        onClick={() => onPageChange(i)}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    className="page-nav-btn"
-                    onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
-                    disabled={currentPage === loopBars - 1}
-                  >
-                    ▶
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
 

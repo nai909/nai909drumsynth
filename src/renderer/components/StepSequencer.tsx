@@ -25,7 +25,10 @@ interface StepSequencerProps {
   onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
-  isAdvancedMode?: boolean;
+  // Recording visual feedback
+  isRecording?: boolean;
+  isPlayingWhileRecording?: boolean;
+  recentlyRecordedSteps?: Set<string>;
 }
 
 const NOTE_REPEAT_RATES: NoteRepeatRate[] = ['off', '1/2', '1/4', '1/8', '1/16'];
@@ -50,7 +53,9 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onLoopBarsChange,
   currentPage,
   onPageChange,
-  isAdvancedMode = true,
+  isRecording = false,
+  isPlayingWhileRecording = false,
+  recentlyRecordedSteps = new Set(),
 }) => {
   const touchedRef = useRef<boolean>(false);
   const repeatIntervalsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map()); // trackIndex -> timer id
@@ -147,41 +152,39 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
 
   if (mode === 'pad') {
     return (
-      <div className="pad-mode-container">
-        {/* Note Repeat Selector - only in advanced mode */}
-        {isAdvancedMode && (
-          <div className="note-repeat-selector">
-            <div className="note-repeat-label-group">
-              <span className="note-repeat-label">REPEAT</span>
-              <span className="note-repeat-hint">(Hold Pad)</span>
+      <div className={`pad-mode-container ${isPlayingWhileRecording ? 'recording-active' : ''}`}>
+        {/* Note Repeat Selector */}
+        <div className="note-repeat-selector">
+          <div className="note-repeat-label-group">
+            <span className="note-repeat-label">REPEAT</span>
+            <span className="note-repeat-hint">(Hold Pad)</span>
+          </div>
+          <div className="note-repeat-controls">
+            <div className="note-repeat-buttons">
+              {NOTE_REPEAT_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
+                  onClick={() => onNoteRepeatChange(rate)}
+                >
+                  {rate === 'off' ? 'OFF' : rate}
+                </button>
+              ))}
             </div>
-            <div className="note-repeat-controls">
-              <div className="note-repeat-buttons">
-                {NOTE_REPEAT_RATES.map((rate) => (
-                  <button
-                    key={rate}
-                    className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
-                    onClick={() => onNoteRepeatChange(rate)}
-                  >
-                    {rate === 'off' ? 'OFF' : rate}
-                  </button>
-                ))}
-              </div>
-              <div className="note-repeat-modifiers">
-                {NOTE_REPEAT_MODIFIERS.map((mod) => (
-                  <button
-                    key={mod}
-                    className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
-                    onClick={() => onNoteRepeatModifierChange(mod)}
-                    disabled={noteRepeat === 'off'}
-                  >
-                    {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
-                  </button>
-                ))}
-              </div>
+            <div className="note-repeat-modifiers">
+              {NOTE_REPEAT_MODIFIERS.map((mod) => (
+                <button
+                  key={mod}
+                  className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
+                  onClick={() => onNoteRepeatModifierChange(mod)}
+                  disabled={noteRepeat === 'off'}
+                >
+                  {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+        </div>
 
         <div className="drum-pads">
           {tracks.map((track, trackIndex) => (
@@ -254,51 +257,49 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   const totalSteps = loopBars * 16;
 
   return (
-    <div className="step-sequencer">
-      {/* Page navigation and loop length selector - only in PRO mode */}
-      {isAdvancedMode && (
-        <div className="sequencer-header">
-          <div className="loop-bars-selector">
-            <span className="loop-bars-label">BARS</span>
-            <div className="loop-bars-buttons">
-              {([1, 2, 3, 4] as const).map((bars) => (
-                <button
-                  key={bars}
-                  className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
-                  onClick={() => onLoopBarsChange(bars)}
-                >
-                  {bars}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="page-navigation">
-            <button
-              className="page-nav-btn"
-              onClick={() => onPageChange(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-            >
-              ◀
-            </button>
-            <div className="page-dots">
-              {Array.from({ length: loopBars }, (_, i) => (
-                <button
-                  key={i}
-                  className={`page-dot ${i === currentPage ? 'active' : ''}`}
-                  onClick={() => onPageChange(i)}
-                />
-              ))}
-            </div>
-            <button
-              className="page-nav-btn"
-              onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
-              disabled={currentPage >= loopBars - 1}
-            >
-              ▶
-            </button>
+    <div className={`step-sequencer ${isPlayingWhileRecording ? 'recording-active' : ''}`}>
+      {/* Page navigation and loop length selector */}
+      <div className="sequencer-header">
+        <div className="loop-bars-selector">
+          <span className="loop-bars-label">BARS</span>
+          <div className="loop-bars-buttons">
+            {([1, 2, 3, 4] as const).map((bars) => (
+              <button
+                key={bars}
+                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                onClick={() => onLoopBarsChange(bars)}
+              >
+                {bars}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+        <div className="page-navigation">
+          <button
+            className="page-nav-btn"
+            onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+          >
+            ◀
+          </button>
+          <div className="page-dots">
+            {Array.from({ length: loopBars }, (_, i) => (
+              <button
+                key={i}
+                className={`page-dot ${i === currentPage ? 'active' : ''}`}
+                onClick={() => onPageChange(i)}
+              />
+            ))}
+          </div>
+          <button
+            className="page-nav-btn"
+            onClick={() => onPageChange(Math.min(loopBars - 1, currentPage + 1))}
+            disabled={currentPage >= loopBars - 1}
+          >
+            ▶
+          </button>
+        </div>
+      </div>
       <div className="step-grid">
         {tracks.map((track, trackIndex) => (
           <div
@@ -321,12 +322,13 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
               {track.steps.slice(pageStartStep, pageEndStep).map((active, localStepIndex) => {
                 const globalStepIndex = pageStartStep + localStepIndex;
                 const isCurrentStep = globalStepIndex === (currentStep % totalSteps);
+                const isJustRecorded = recentlyRecordedSteps.has(`drum-${trackIndex}-${globalStepIndex}`);
                 return (
                   <button
                     key={localStepIndex}
                     className={`step-btn ${active ? 'active' : ''} ${
                       isCurrentStep ? 'current' : ''
-                    } ${localStepIndex % 4 === 0 ? 'beat' : ''}`}
+                    } ${localStepIndex % 4 === 0 ? 'beat' : ''} ${isJustRecorded ? 'just-recorded' : ''}`}
                     onClick={() => onStepToggle(trackIndex, globalStepIndex)}
                   >
                     <div className="step-led" />

@@ -552,13 +552,18 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('drumsynth-theme');
     return (saved as Theme) || 'purple';
   });
-  const [isAdvancedMode, setIsAdvancedMode] = useState(() => {
-    const saved = localStorage.getItem('drumsynth-advanced-mode');
-    return saved === 'true';
-  });
   const [isRecording, setIsRecording] = useState(false);
   const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+  // Count-in state for recording
+  const [countIn, setCountIn] = useState<number>(0); // 0 = not counting, 1-4 = current beat
+  const [countInBeats, setCountInBeats] = useState<4 | 2 | 0>(4); // Number of count-in beats (0 = off)
+  // Undo state - store pattern before recording started
+  const [patternBeforeRecording, setPatternBeforeRecording] = useState<Pattern | null>(null);
+  const [synthSequenceBeforeRecording, setSynthSequenceBeforeRecording] = useState<SynthStep[] | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  // Recently recorded steps for visual feedback
+  const [recentlyRecordedSteps, setRecentlyRecordedSteps] = useState<Set<string>>(new Set());
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -595,6 +600,11 @@ const App: React.FC = () => {
   const recentlyRecordedHits = useRef<Set<string>>(new Set());
   // Ref to track recording state for sequencer callback
   const isRecordingRef = useRef(false);
+  // Count-in timer and synth for clicks
+  const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countInSynthRef = useRef<Tone.MembraneSynth | null>(null);
+  // Track if we're in the middle of a count-in to prevent race conditions
+  const isCountingInRef = useRef(false);
 
   // Apply theme to document
   useEffect(() => {
@@ -606,25 +616,23 @@ const App: React.FC = () => {
     localStorage.setItem('drumsynth-theme', theme);
   }, [theme]);
 
-  // Persist advanced mode setting
-  useEffect(() => {
-    localStorage.setItem('drumsynth-advanced-mode', String(isAdvancedMode));
-  }, [isAdvancedMode]);
-
-  // Force basic-compatible modes when switching to basic
-  useEffect(() => {
-    if (!isAdvancedMode) {
-      // In basic mode, hide EDIT (params) and EFFECTS
-      if (mode === 'params' || mode === 'effects') {
-        setMode('pad');
-      }
-    }
-  }, [isAdvancedMode, mode]);
 
   useEffect(() => {
     drumSynthRef.current = new DrumSynth();
     sequencerRef.current = new Sequencer(drumSynthRef.current);
     melodicSynthRef.current = new MelodicSynth();
+    // Initialize count-in click synth (distinct from metronome)
+    const countInVolume = new Tone.Volume(-3).toDestination();
+    countInSynthRef.current = new Tone.MembraneSynth({
+      pitchDecay: 0.005,
+      octaves: 4,
+      envelope: {
+        attack: 0.001,
+        decay: 0.08,
+        sustain: 0,
+        release: 0.02,
+      },
+    }).connect(countInVolume);
     setAudioReady(true);
 
     let lastStep = -1;
@@ -664,6 +672,10 @@ const App: React.FC = () => {
       sequencerRef.current?.dispose();
       drumSynthRef.current?.dispose();
       melodicSynthRef.current?.dispose();
+      countInSynthRef.current?.dispose();
+      if (countInTimerRef.current) {
+        clearTimeout(countInTimerRef.current);
+      }
     };
   }, []);
 
@@ -742,10 +754,72 @@ const App: React.FC = () => {
     };
   }, [isPlaying, pattern.tempo, synthLoopBars]);
 
-  const handlePlay = async () => {
+  // Count-in and play function
+  const startCountIn = async () => {
+    if (isCountingInRef.current) return; // Prevent double count-in
+
+    // Store current state for undo BEFORE we start recording
+    if (isRecording) {
+      setPatternBeforeRecording(JSON.parse(JSON.stringify(pattern)));
+      setSynthSequenceBeforeRecording(JSON.parse(JSON.stringify(synthSequence)));
+      setCanUndo(false); // Will enable after recording stops
+    }
+
+    isCountingInRef.current = true;
+
+    // Init audio context
+    if (drumSynthRef.current) {
+      await drumSynthRef.current.init();
+    }
+    await Tone.start();
+
+    const beatDurationMs = 60000 / pattern.tempo;
+    let currentBeat = 1;
+
+    const playCountInBeat = () => {
+      if (!isCountingInRef.current) return; // Cancelled
+
+      setCountIn(currentBeat);
+
+      // Play click sound - higher pitch on beat 1
+      if (countInSynthRef.current) {
+        const pitch = currentBeat === 1 ? 'G5' : 'C5';
+        countInSynthRef.current.triggerAttackRelease(pitch, '32n');
+      }
+
+      if (currentBeat < countInBeats) {
+        currentBeat++;
+        countInTimerRef.current = setTimeout(playCountInBeat, beatDurationMs);
+      } else {
+        // Count-in complete - start actual playback
+        countInTimerRef.current = setTimeout(() => {
+          setCountIn(0);
+          isCountingInRef.current = false;
+          actuallyStartPlayback();
+        }, beatDurationMs);
+      }
+    };
+
+    playCountInBeat();
+  };
+
+  const actuallyStartPlayback = async () => {
     if (sequencerRef.current) {
       await sequencerRef.current.play();
       setIsPlaying(true);
+    }
+  };
+
+  const handlePlay = async () => {
+    // If recording is armed AND count-in is enabled, do count-in first
+    if (isRecording && countInBeats > 0 && !isPlaying && !isCountingInRef.current) {
+      await startCountIn();
+    } else if (!isCountingInRef.current) {
+      // Direct play without count-in
+      if (sequencerRef.current) {
+        await sequencerRef.current.play();
+        setIsPlaying(true);
+      }
     }
   };
 
@@ -759,16 +833,46 @@ const App: React.FC = () => {
   };
 
   const handleStop = () => {
+    // Cancel count-in if in progress
+    if (isCountingInRef.current) {
+      isCountingInRef.current = false;
+      if (countInTimerRef.current) {
+        clearTimeout(countInTimerRef.current);
+        countInTimerRef.current = null;
+      }
+      setCountIn(0);
+    }
+
+    // Enable undo if we were recording and have stored state
+    if (isRecording && patternBeforeRecording) {
+      setCanUndo(true);
+    }
+
     // Always stop recording, even if sequencer isn't ready
     setIsRecording(false);
     // Clear recently recorded hits
     recentlyRecordedHits.current.clear();
+    // Clear visual feedback
+    setRecentlyRecordedSteps(new Set());
 
     if (sequencerRef.current) {
       sequencerRef.current.stop();
       setIsPlaying(false);
       setCurrentStep(0);
     }
+  };
+
+  // Undo last recording take
+  const handleUndo = () => {
+    if (patternBeforeRecording) {
+      setPattern(patternBeforeRecording);
+      setPatternBeforeRecording(null);
+    }
+    if (synthSequenceBeforeRecording) {
+      setSynthSequence(synthSequenceBeforeRecording);
+      setSynthSequenceBeforeRecording(null);
+    }
+    setCanUndo(false);
   };
 
   const handleTempoChange = (tempo: number) => {
@@ -884,7 +988,12 @@ const App: React.FC = () => {
 
     // Auto-start playback when recording is armed but not playing
     let justStartedPlayback = false;
-    if (isRecording && !isPlaying) {
+    if (isRecording && !isPlaying && !isCountingInRef.current) {
+      // Store pattern for undo before we start recording
+      if (!patternBeforeRecording) {
+        setPatternBeforeRecording(JSON.parse(JSON.stringify(pattern)));
+        setSynthSequenceBeforeRecording(JSON.parse(JSON.stringify(synthSequence)));
+      }
       // Start playback first, then continue to trigger the sound below
       await handlePlay();
       justStartedPlayback = true;
@@ -965,6 +1074,18 @@ const App: React.FC = () => {
         newPattern.tracks = newTracks;
         return newPattern;
       });
+
+      // Visual feedback: highlight the recorded step briefly
+      const feedbackKey = `drum-${trackIndex}-${stepIndex}`;
+      setRecentlyRecordedSteps(prev => new Set([...prev, feedbackKey]));
+      // Remove the highlight after 300ms
+      setTimeout(() => {
+        setRecentlyRecordedSteps(prev => {
+          const next = new Set(prev);
+          next.delete(feedbackKey);
+          return next;
+        });
+      }, 300);
     }
 
     // Always play the sound immediately for instant feedback
@@ -1093,13 +1214,6 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      {/* Basic/Pro Mode Toggle */}
-      <button
-        className={`mode-toggle-btn ${isAdvancedMode ? 'advanced' : 'basic'}`}
-        onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-      >
-        {isAdvancedMode ? 'PRO' : 'BASIC'}
-      </button>
 
       {/* Save Modal */}
       {showSaveModal && (
@@ -1176,14 +1290,12 @@ const App: React.FC = () => {
                   >
                     KEYS
                   </button>
-                  {isAdvancedMode && (
-                    <button
-                      className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
-                      onClick={() => setMode('effects')}
-                    >
-                      FX
-                    </button>
-                  )}
+                  <button
+                    className={`mode-toggle synth-toggle ${mode === 'effects' ? 'active' : ''}`}
+                    onClick={() => setMode('effects')}
+                  >
+                    FX
+                  </button>
                   <button
                     className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
                     onClick={() => { setMode('synth'); setSynthMode('seq'); }}
@@ -1192,23 +1304,27 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <div className={`section-group ${mode === 'params' || mode === 'sequencer' ? 'section-active' : ''}`}>
+              <div className={`section-group ${mode === 'params' || mode === 'sequencer' || mode === 'pad' ? 'section-active' : ''}`}>
                 <span className="section-label">DRUMS</span>
                 <div className="mode-toggle-container">
+                  <button
+                    className={`mode-toggle ${mode === 'pad' ? 'active' : ''}`}
+                    onClick={() => setMode('pad')}
+                  >
+                    PADS
+                  </button>
                   <button
                     className={`mode-toggle ${mode === 'sequencer' ? 'active' : ''}`}
                     onClick={() => setMode('sequencer')}
                   >
                     BEATS
                   </button>
-                  {isAdvancedMode && (
-                    <button
-                      className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
-                      onClick={() => setMode('params')}
-                    >
-                      EDIT
-                    </button>
-                  )}
+                  <button
+                    className={`mode-toggle ${mode === 'params' ? 'active' : ''}`}
+                    onClick={() => setMode('params')}
+                  >
+                    EDIT
+                  </button>
                 </div>
               </div>
             </div>
@@ -1229,7 +1345,6 @@ const App: React.FC = () => {
                       onLoopBarsChange={handleSynthLoopBarsChange}
                       currentPage={synthCurrentPage}
                       onPageChange={setSynthCurrentPage}
-                      isAdvancedMode={isAdvancedMode}
                       scaleEnabled={synthScaleEnabled}
                       onScaleEnabledChange={setSynthScaleEnabled}
                       scaleRoot={synthScaleRoot}
@@ -1248,7 +1363,6 @@ const App: React.FC = () => {
                       synthSequence={synthSequence}
                       onSynthSequenceChange={setSynthSequence}
                       onPlay={handlePlay}
-                      isAdvancedMode={isAdvancedMode}
                       synthLoopBars={synthLoopBars}
                       scaleEnabled={synthScaleEnabled}
                       onScaleEnabledChange={setSynthScaleEnabled}
@@ -1275,6 +1389,30 @@ const App: React.FC = () => {
                 onParamChange={handleParamChange}
                 onTrigger={handlePadTrigger}
               />
+            ) : mode === 'pad' ? (
+              <StepSequencer
+                tracks={pattern.tracks}
+                currentStep={currentStep}
+                selectedTrack={selectedTrack}
+                onStepToggle={handleStepToggle}
+                onSelectTrack={setSelectedTrack}
+                mode="pad"
+                onPadTrigger={handlePadTrigger}
+                noteRepeat={noteRepeat}
+                onNoteRepeatChange={setNoteRepeat}
+                noteRepeatModifier={noteRepeatModifier}
+                onNoteRepeatModifierChange={setNoteRepeatModifier}
+                tempo={pattern.tempo}
+                onClearSequence={handleClearSequence}
+                onRandomize={handleRandomize}
+                loopBars={loopBars}
+                onLoopBarsChange={handleLoopBarsChange}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                isRecording={isRecording}
+                isPlayingWhileRecording={isRecording && isPlaying}
+                recentlyRecordedSteps={recentlyRecordedSteps}
+              />
             ) : (
               <StepSequencer
                 tracks={pattern.tracks}
@@ -1295,7 +1433,9 @@ const App: React.FC = () => {
                 onLoopBarsChange={handleLoopBarsChange}
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
-                isAdvancedMode={isAdvancedMode}
+                isRecording={isRecording}
+                isPlayingWhileRecording={isRecording && isPlaying}
+                recentlyRecordedSteps={recentlyRecordedSteps}
               />
             )}
           </div>
@@ -1313,6 +1453,15 @@ const App: React.FC = () => {
           if (isRecording) {
             // Turning off recording - clear recently recorded hits
             recentlyRecordedHits.current.clear();
+            // Enable undo if we were recording
+            if (patternBeforeRecording) {
+              setCanUndo(true);
+            }
+          } else {
+            // Arming recording - store current state for undo
+            setPatternBeforeRecording(JSON.parse(JSON.stringify(pattern)));
+            setSynthSequenceBeforeRecording(JSON.parse(JSON.stringify(synthSequence)));
+            setCanUndo(false);
           }
           setIsRecording(!isRecording);
         }}
@@ -1320,6 +1469,11 @@ const App: React.FC = () => {
         onRecordModeToggle={() => setRecordMode(recordMode === 'overdub' ? 'replace' : 'overdub')}
         metronomeEnabled={metronomeEnabled}
         onMetronomeToggle={handleMetronomeToggle}
+        countIn={countIn}
+        countInBeats={countInBeats}
+        onCountInBeatsChange={setCountInBeats}
+        canUndo={canUndo}
+        onUndo={handleUndo}
       />
     </div>
   );
