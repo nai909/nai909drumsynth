@@ -708,7 +708,8 @@ const App: React.FC = () => {
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
       const stepDurationMs = 60000 / pattern.tempo / 4; // Duration of one 16th note step
-      const synthLoopLength = synthLoopBars * 16;
+      // In capture mode, use full 4 bars (64 steps) so recording can span all bars
+      const synthLoopLength = isSynthLoopCapture ? 64 : synthLoopBars * 16;
 
       synthSequencerRef.current = new Tone.Sequence(
         (_time, step) => {
@@ -753,7 +754,7 @@ const App: React.FC = () => {
         synthSequencerRef.current = null;
       }
     };
-  }, [isPlaying, pattern.tempo, synthLoopBars]);
+  }, [isPlaying, pattern.tempo, synthLoopBars, isSynthLoopCapture]);
 
   // Count-in and play function
   const startCountIn = async () => {
