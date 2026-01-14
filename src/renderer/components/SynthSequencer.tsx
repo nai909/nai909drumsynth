@@ -596,7 +596,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
 
         {/* Loop control - shows CAPTURE mode or loop bars */}
         <div className="seq-control-group">
-          <label className="seq-label">{isSynthLoopCapture ? 'MODE' : 'LOOP'}</label>
+          <label className="seq-label">{isSynthLoopCapture ? 'MODE' : 'BARS'}</label>
           {isSynthLoopCapture ? (
             <div className="capture-mode-indicator">
               <span className="capture-badge">CAPTURE</span>
