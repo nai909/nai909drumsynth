@@ -204,7 +204,8 @@
   position: fixed;
   top: 5px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
+  -webkit-transform: translateX(-50%) translateZ(0);
   z-index: 100;
   width: 85px;
   height: 105px;
@@ -214,15 +215,19 @@
   cursor: pointer;
   transition: all 0.2s ease;
   filter: drop-shadow(0 0 12px var(--accent-glow));
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .theme-smiley-btn:hover {
-  transform: translateX(-50%) scale(1.15);
+  transform: translateX(-50%) scale(1.15) translateZ(0);
+  -webkit-transform: translateX(-50%) scale(1.15) translateZ(0);
   filter: drop-shadow(0 0 20px var(--accent-glow));
 }
 
 .theme-smiley-btn:active {
-  transform: translateX(-50%) scale(0.95);
+  transform: translateX(-50%) scale(0.95) translateZ(0);
+  -webkit-transform: translateX(-50%) scale(0.95) translateZ(0);
 }
 
 .theme-smiley-btn svg {
