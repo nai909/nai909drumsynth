@@ -250,16 +250,20 @@
 
 @media (max-width: 768px) {
   .theme-smiley-btn {
-    top: 3px;
-    width: 65px;
-    height: 80px;
+    top: 2px;
+    width: 45px;
+    height: 56px;
+  }
+
+  .app::before {
+    height: 60px;
   }
 }
 
 @media (max-width: 768px) {
   .main-content {
     flex-direction: column;
-    padding: 90px 5px 5px 5px;
+    padding: 62px 5px 5px 5px;
     gap: 5px;
     overflow-y: auto;
     overflow-x: hidden;
