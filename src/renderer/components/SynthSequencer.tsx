@@ -29,6 +29,10 @@ interface SynthSequencerProps {
   onScaleRootChange?: (root: string) => void;
   scaleType?: string;
   onScaleTypeChange?: (type: string) => void;
+  // Callback when sequence is cleared - used to reset loop capture mode
+  onSequenceCleared?: () => void;
+  // Visual indicator for capture mode
+  isSynthLoopCapture?: boolean;
 }
 
 const STEPS_PER_PAGE = 16;
@@ -363,6 +367,8 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
   onScaleRootChange,
   scaleType: scaleTypeProp = 'major',
   onScaleTypeChange,
+  onSequenceCleared,
+  isSynthLoopCapture = false,
 }) => {
   const [viewMode, setViewMode] = useState<'bars' | 'pianoroll'>('pianoroll');
 
@@ -479,14 +485,16 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
     onParamsChange(newParams);
   };
 
-  // Clear sequence (only clear current loop length)
+  // Clear sequence - clears all 64 steps and resets to capture mode
   const clearSequence = () => {
-    const totalSteps = loopBars * STEPS_PER_PAGE;
+    // Clear all 64 steps (full 4 bars) to fully reset
     const newSteps = [...steps];
-    for (let i = 0; i < totalSteps; i++) {
+    for (let i = 0; i < 64; i++) {
       newSteps[i] = { active: false, note: 'C4' };
     }
     onStepsChange(newSteps);
+    // Notify parent to reset to capture mode
+    onSequenceCleared?.();
   };
 
   // Snap existing notes to new scale
@@ -586,22 +594,29 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
 
+        {/* Loop control - shows CAPTURE mode or loop bars */}
         <div className="seq-control-group">
-          <label className="seq-label">LOOP</label>
-          <div className="loop-bars-buttons">
-            {([1, 2, 3, 4] as const).map((bars) => (
-              <button
-                key={bars}
-                className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
-                onClick={() => onLoopBarsChange(bars)}
-              >
-                {bars}
-              </button>
-            ))}
-          </div>
+          <label className="seq-label">{isSynthLoopCapture ? 'MODE' : 'LOOP'}</label>
+          {isSynthLoopCapture ? (
+            <div className="capture-mode-indicator">
+              <span className="capture-badge">CAPTURE</span>
+            </div>
+          ) : (
+            <div className="loop-bars-buttons">
+              {([1, 2, 3, 4] as const).map((bars) => (
+                <button
+                  key={bars}
+                  className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                  onClick={() => onLoopBarsChange(bars)}
+                >
+                  {bars}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {loopBars > 1 && (
+        {!isSynthLoopCapture && loopBars > 1 && (
           <div className="seq-control-group">
             <label className="seq-label">PAGE</label>
             <div className="page-nav-buttons">

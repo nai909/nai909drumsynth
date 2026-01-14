@@ -10,8 +10,6 @@ interface TransportProps {
   onTempoChange: (tempo: number) => void;
   isRecording: boolean;
   onRecordToggle: () => void;
-  recordMode: 'overdub' | 'replace';
-  onRecordModeToggle: () => void;
   metronomeEnabled: boolean;
   onMetronomeToggle: () => void;
   // Count-in
@@ -63,8 +61,6 @@ const Transport: React.FC<TransportProps> = ({
   onTempoChange,
   isRecording,
   onRecordToggle,
-  recordMode,
-  onRecordModeToggle,
   metronomeEnabled,
   onMetronomeToggle,
   countIn,
@@ -187,22 +183,13 @@ const Transport: React.FC<TransportProps> = ({
               <circle cx="12" cy="12" r="8" />
             </svg>
           </button>
-          <div className="record-options">
-            <button
-              className={`record-mode-toggle ${recordMode}`}
-              onClick={onRecordModeToggle}
-              title={recordMode === 'overdub' ? 'Layer mode - adds to existing' : 'Clear mode - replaces track'}
-            >
-              {recordMode === 'overdub' ? 'LAYER' : 'CLEAR'}
-            </button>
-            <button
-              className={`count-in-toggle ${countInBeats > 0 ? 'active' : ''}`}
-              onClick={cycleCountInBeats}
-              title={`Count-in: ${countInBeats === 0 ? 'Off' : `${countInBeats} beats`}`}
-            >
-              {countInBeats === 0 ? '○' : countInBeats}
-            </button>
-          </div>
+          <button
+            className={`count-in-toggle ${countInBeats > 0 ? 'active' : ''}`}
+            onClick={cycleCountInBeats}
+            title={`Count-in: ${countInBeats === 0 ? 'Off' : `${countInBeats} beats`}`}
+          >
+            {countInBeats === 0 ? '○' : countInBeats}
+          </button>
         </div>
         {!isPlaying ? (
           <button className="transport-btn play-btn" onClick={onPlay}>

@@ -553,7 +553,6 @@ const App: React.FC = () => {
     return (saved as Theme) || 'purple';
   });
   const [isRecording, setIsRecording] = useState(false);
-  const [recordMode, setRecordMode] = useState<'overdub' | 'replace'>('overdub');
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
   // Count-in state for recording
   const [countIn, setCountIn] = useState<number>(0); // 0 = not counting, 1-4 = current beat
@@ -564,6 +563,9 @@ const App: React.FC = () => {
   const [canUndo, setCanUndo] = useState(false);
   // Recently recorded steps for visual feedback
   const [recentlyRecordedSteps, setRecentlyRecordedSteps] = useState<Set<string>>(new Set());
+  // Synth loop capture mode - first recording pass defines the loop length
+  const [isSynthLoopCapture, setIsSynthLoopCapture] = useState(true); // True when sequence is empty
+  const [synthRecordingStartStep, setSynthRecordingStartStep] = useState<number | null>(null);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -594,7 +596,6 @@ const App: React.FC = () => {
   const melodicSynthRef = useRef<MelodicSynth | null>(null);
   const synthSequencerRef = useRef<Tone.Sequence | null>(null);
   const synthSequenceRef = useRef<SynthStep[]>(synthSequence); // Ref to avoid recreating sequence
-  const replaceModeTracksCleared = useRef<Set<number>>(new Set());
   const lastRecordedLoopStart = useRef<number>(-1);
   // Track hits recorded in current loop to prevent double-triggering via sequencer
   const recentlyRecordedHits = useRef<Set<string>>(new Set());
@@ -843,6 +844,28 @@ const App: React.FC = () => {
       setCountIn(0);
     }
 
+    // Auto-set synth loop length if we were in capture mode
+    if (isRecording && isSynthLoopCapture) {
+      // Find the highest step index with an active note
+      let highestActiveStep = -1;
+      synthSequence.forEach((step, index) => {
+        if (step.active) {
+          // Account for note length extending past the step
+          const noteEnd = index + (step.length || 1) - 1;
+          highestActiveStep = Math.max(highestActiveStep, noteEnd);
+        }
+      });
+
+      if (highestActiveStep >= 0) {
+        // Calculate bars needed (round up to nearest bar)
+        const barsNeeded = Math.ceil((highestActiveStep + 1) / 16) as 1 | 2 | 3 | 4;
+        const newLoopBars = Math.min(4, Math.max(1, barsNeeded)) as 1 | 2 | 3 | 4;
+        setSynthLoopBars(newLoopBars);
+        // Exit capture mode - now in layer mode
+        setIsSynthLoopCapture(false);
+      }
+    }
+
     // Enable undo if we were recording and have stored state
     if (isRecording && patternBeforeRecording) {
       setCanUndo(true);
@@ -1033,11 +1056,10 @@ const App: React.FC = () => {
         stepIndex = Math.round(exactStep) % loopLengthSteps;
       }
 
-      // Detect loop restart for replace mode (clear tracks once per loop)
+      // Detect loop restart to clear recently recorded hits
       const currentLoopNumber = Math.floor(transportSeconds / loopLengthSeconds);
       if (currentLoopNumber !== lastRecordedLoopStart.current) {
         lastRecordedLoopStart.current = currentLoopNumber;
-        replaceModeTracksCleared.current.clear();
         // Clear recently recorded hits on new loop
         recentlyRecordedHits.current.clear();
       }
@@ -1051,20 +1073,13 @@ const App: React.FC = () => {
         const newTracks = [...newPattern.tracks];
         const newTrack = { ...newTracks[trackIndex] };
 
-        // In replace mode, clear track on first hit (once per loop)
-        if (recordMode === 'replace' && !replaceModeTracksCleared.current.has(trackIndex)) {
-          newTrack.steps = new Array(MAX_STEPS).fill(false);
-          newTrack.velocity = new Array(MAX_STEPS).fill(1);
-          replaceModeTracksCleared.current.add(trackIndex);
-        }
-
-        // Record the hit
+        // Record the hit (always layer/overdub mode)
         newTrack.steps = [...newTrack.steps];
         newTrack.velocity = [...newTrack.velocity];
         newTrack.steps[stepIndex] = true;
 
-        // In overdub mode, keep higher velocity if step already has a hit
-        if (recordMode === 'overdub' && prevPattern.tracks[trackIndex].steps[stepIndex]) {
+        // Keep higher velocity if step already has a hit (layer behavior)
+        if (prevPattern.tracks[trackIndex].steps[stepIndex]) {
           newTrack.velocity[stepIndex] = Math.max(newTrack.velocity[stepIndex], velocity);
         } else {
           newTrack.velocity[stepIndex] = velocity;
@@ -1351,6 +1366,11 @@ const App: React.FC = () => {
                       onScaleRootChange={setSynthScaleRoot}
                       scaleType={synthScaleType}
                       onScaleTypeChange={setSynthScaleType}
+                      isSynthLoopCapture={isSynthLoopCapture}
+                      onSequenceCleared={() => {
+                        setIsSynthLoopCapture(true);
+                        setSynthLoopBars(1);
+                      }}
                     />
                   ) : (
                     <Synth
@@ -1364,6 +1384,7 @@ const App: React.FC = () => {
                       onSynthSequenceChange={setSynthSequence}
                       onPlay={handlePlay}
                       synthLoopBars={synthLoopBars}
+                      isSynthLoopCapture={isSynthLoopCapture}
                       scaleEnabled={synthScaleEnabled}
                       onScaleEnabledChange={setSynthScaleEnabled}
                       scaleRoot={synthScaleRoot}
@@ -1465,8 +1486,6 @@ const App: React.FC = () => {
           }
           setIsRecording(!isRecording);
         }}
-        recordMode={recordMode}
-        onRecordModeToggle={() => setRecordMode(recordMode === 'overdub' ? 'replace' : 'overdub')}
         metronomeEnabled={metronomeEnabled}
         onMetronomeToggle={handleMetronomeToggle}
         countIn={countIn}

@@ -17,6 +17,8 @@ interface SynthProps {
   onSynthSequenceChange?: (steps: SynthStep[]) => void;
   onPlay?: () => Promise<void>;
   synthLoopBars?: 1 | 2 | 3 | 4;
+  // Loop capture mode - first recording defines the loop length
+  isSynthLoopCapture?: boolean;
   // Scale props (shared with sequencer)
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
@@ -123,6 +125,7 @@ const Synth: React.FC<SynthProps> = ({
   onSynthSequenceChange,
   onPlay,
   synthLoopBars = 1,
+  isSynthLoopCapture = false,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -210,7 +213,9 @@ const Synth: React.FC<SynthProps> = ({
 
     // Record note to synth sequencer if recording and playing, or if we just started
     if (isRecording && (isPlaying || justStartedPlayback) && onSynthSequenceChange && synthSequence) {
-      const loopLengthSteps = synthLoopBars * 16;
+      // In capture mode, use full 4 bars (64 steps) to capture the phrase
+      // After recording stops, loop length will be auto-set based on where notes landed
+      const loopLengthSteps = isSynthLoopCapture ? 64 : synthLoopBars * 16;
       let stepIndex: number;
       let transportSeconds: number;
 
@@ -241,7 +246,7 @@ const Synth: React.FC<SynthProps> = ({
       synthSequenceRef.current = newSteps;
       onSynthSequenceChange(newSteps);
     }
-  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay, synthLoopBars]);
+  }, [synth, isRecording, isPlaying, tempo, synthSequence, onSynthSequenceChange, onPlay, synthLoopBars, isSynthLoopCapture]);
 
   const handleNoteOff = useCallback((note: string, touchId?: number) => {
     if (touchId !== undefined) {
@@ -262,7 +267,8 @@ const Synth: React.FC<SynthProps> = ({
     // The isPlaying state may not have updated yet due to async React state
     if (noteStart && onSynthSequenceChange && currentSequence) {
       const msPerStep = 60000 / tempo / 4; // Duration of one 16th note step in ms
-      const loopLengthSteps = synthLoopBars * 16;
+      // In capture mode, use full 4 bars
+      const loopLengthSteps = isSynthLoopCapture ? 64 : synthLoopBars * 16;
 
       // Calculate how many steps the note was held using real elapsed time
       const elapsedMs = performance.now() - noteStart.realTime;
@@ -288,7 +294,7 @@ const Synth: React.FC<SynthProps> = ({
     // Always clean up the tracking, regardless of recording state
     // This prevents stale entries if recording stops while a note is held
     recordingNoteStarts.current.delete(note);
-  }, [synth, isRecording, isPlaying, tempo, onSynthSequenceChange, synthLoopBars]);
+  }, [synth, isRecording, isPlaying, tempo, onSynthSequenceChange, synthLoopBars, isSynthLoopCapture]);
 
   // Global event handlers - catches any missed releases
   useEffect(() => {
