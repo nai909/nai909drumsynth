@@ -1386,6 +1386,7 @@ const App: React.FC = () => {
                       onPlay={handlePlay}
                       synthLoopBars={synthLoopBars}
                       isSynthLoopCapture={isSynthLoopCapture}
+                      synthCurrentStep={synthCurrentStep}
                       scaleEnabled={synthScaleEnabled}
                       onScaleEnabledChange={setSynthScaleEnabled}
                       scaleRoot={synthScaleRoot}

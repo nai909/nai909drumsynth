@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import * as Tone from 'tone';
 import { MelodicSynth, SynthParams, WaveformType, ArpMode } from '../audio/MelodicSynth';
 import WaveformVisualizer from './WaveformVisualizer';
+import CaptureRibbon, { RecordedNote } from './CaptureRibbon';
 import { Step as SynthStep } from './SynthSequencer';
 import './Synth.css';
 
@@ -19,6 +20,8 @@ interface SynthProps {
   synthLoopBars?: 1 | 2 | 3 | 4;
   // Loop capture mode - first recording defines the loop length
   isSynthLoopCapture?: boolean;
+  // Current step position for capture ribbon visualization
+  synthCurrentStep?: number;
   // Scale props (shared with sequencer)
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
@@ -126,6 +129,7 @@ const Synth: React.FC<SynthProps> = ({
   onPlay,
   synthLoopBars = 1,
   isSynthLoopCapture = false,
+  synthCurrentStep = -1,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -146,6 +150,14 @@ const Synth: React.FC<SynthProps> = ({
 
   // Scale notes derived from props
   const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+
+  // Extract recorded notes from synthSequence for the capture ribbon
+  const recordedNotes: RecordedNote[] = useMemo(() => {
+    if (!synthSequence) return [];
+    return synthSequence
+      .map((step, index) => step.active ? { step: index, note: step.note, length: step.length } : null)
+      .filter((n): n is RecordedNote => n !== null);
+  }, [synthSequence]);
 
   // Scale change handlers (call parent if available)
   const setScaleEnabled = (enabled: boolean) => onScaleEnabledChange?.(enabled);
@@ -770,6 +782,19 @@ const Synth: React.FC<SynthProps> = ({
           })}
         </div>
       </div>
+
+      {/* Capture Ribbon - Visual timeline for recording */}
+      {(isSynthLoopCapture || recordedNotes.length > 0) && (
+        <CaptureRibbon
+          currentStep={synthCurrentStep >= 0 ? synthCurrentStep : 0}
+          isRecording={isRecording || false}
+          isPlaying={isPlaying || false}
+          isCaptureMode={isSynthLoopCapture}
+          recordedNotes={recordedNotes}
+          capturedBars={!isSynthLoopCapture ? synthLoopBars : undefined}
+          maxBars={4}
+        />
+      )}
 
       {/* Waveform Visualizer */}
       <WaveformVisualizer synth={synth} />
