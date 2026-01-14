@@ -347,7 +347,7 @@ const createInitialPattern = (): Pattern => {
   };
 };
 
-const MAX_SYNTH_STEPS = 64; // 4 bars max
+const MAX_SYNTH_STEPS = 256; // 16 bars max
 const createInitialSynthSequence = (): SynthStep[] =>
   Array.from({ length: MAX_SYNTH_STEPS }, () => ({ active: false, note: 'C4' }));
 

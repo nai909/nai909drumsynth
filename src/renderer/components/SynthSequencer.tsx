@@ -238,9 +238,9 @@ const generateMelodicPattern = (
   const totalSteps = loopBars * 16;
   const selectedGenre = genre || MELODIC_GENRES[Math.floor(Math.random() * MELODIC_GENRES.length)];
 
-  // Initialize empty pattern
+  // Initialize empty pattern (256 steps = 16 bars max)
   const pattern: { active: boolean; note: string }[] = Array.from(
-    { length: 64 },
+    { length: 256 },
     () => ({ active: false, note: 'C4' })
   );
 
@@ -487,9 +487,9 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
 
   // Clear sequence - clears all 64 steps and resets to capture mode
   const clearSequence = () => {
-    // Clear all 64 steps (full 4 bars) to fully reset
+    // Clear all 256 steps (full 16 bars) to fully reset
     const newSteps = [...steps];
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < 256; i++) {
       newSteps[i] = { active: false, note: 'C4' };
     }
     onStepsChange(newSteps);
@@ -598,7 +598,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
         <div className="seq-control-group">
           <label className="seq-label">BARS</label>
           <div className="loop-bars-buttons">
-            {([1, 2, 4] as const).map((bars) => (
+            {([1, 2, 4, 8, 16] as const).map((bars) => (
               <button
                 key={bars}
                 className={`loop-bars-btn ${loopBars === bars ? 'active' : ''} ${isSynthLoopCapture ? 'capture-mode' : ''}`}

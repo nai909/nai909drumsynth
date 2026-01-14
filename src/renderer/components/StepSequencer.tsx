@@ -263,7 +263,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
         <div className="loop-bars-selector">
           <span className="loop-bars-label">BARS</span>
           <div className="loop-bars-buttons">
-            {([1, 2, 4, 8, 16] as const).map((bars) => (
+            {([1, 2, 4, 8] as const).map((bars) => (
               <button
                 key={bars}
                 className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
