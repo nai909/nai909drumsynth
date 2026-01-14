@@ -794,10 +794,11 @@ const App: React.FC = () => {
         countInTimerRef.current = setTimeout(playCountInBeat, beatDurationMs);
       } else {
         // Count-in complete - start actual playback
-        countInTimerRef.current = setTimeout(() => {
+        countInTimerRef.current = setTimeout(async () => {
           setCountIn(0);
+          // Start playback BEFORE clearing the counting flag to prevent race condition
+          await actuallyStartPlayback();
           isCountingInRef.current = false;
-          actuallyStartPlayback();
         }, beatDurationMs);
       }
     };
