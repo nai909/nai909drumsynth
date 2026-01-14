@@ -17,14 +17,14 @@ interface SynthProps {
   synthSequence?: SynthStep[];
   onSynthSequenceChange?: (steps: SynthStep[]) => void;
   onPlay?: () => Promise<void>;
-  synthLoopBars?: 1 | 2 | 3 | 4;
-  // Loop capture mode - first recording defines the loop length
+  synthLoopBars?: 1 | 2 | 4 | 8 | 16;
+  // Loop capture mode - first recording defines the loop length (up to 16 bars)
   isSynthLoopCapture?: boolean;
   // Current step position for capture ribbon visualization
   synthCurrentStep?: number;
-  // Navigation callback - switch to MELODY view
-  onNavigateToMelody?: () => void;
-  // Scale props (shared with sequencer)
+  // Clear sequence callback - resets to capture mode
+  onClearSequence?: () => void;
+  // Scale props
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
   scaleRoot?: string;
@@ -132,7 +132,7 @@ const Synth: React.FC<SynthProps> = ({
   synthLoopBars = 1,
   isSynthLoopCapture = false,
   synthCurrentStep = -1,
-  onNavigateToMelody,
+  onClearSequence,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -228,9 +228,9 @@ const Synth: React.FC<SynthProps> = ({
 
     // Record note to synth sequencer if recording and playing, or if we just started
     if (isRecording && (isPlaying || justStartedPlayback) && onSynthSequenceChange && synthSequence) {
-      // In capture mode, use full 4 bars (64 steps) to capture the phrase
+      // In capture mode, use full 16 bars (256 steps) to capture the phrase
       // After recording stops, loop length will be auto-set based on where notes landed
-      const loopLengthSteps = isSynthLoopCapture ? 64 : synthLoopBars * 16;
+      const loopLengthSteps = isSynthLoopCapture ? 256 : synthLoopBars * 16;
       let stepIndex: number;
       let transportSeconds: number;
 
@@ -282,8 +282,8 @@ const Synth: React.FC<SynthProps> = ({
     // The isPlaying state may not have updated yet due to async React state
     if (noteStart && onSynthSequenceChange && currentSequence) {
       const msPerStep = 60000 / tempo / 4; // Duration of one 16th note step in ms
-      // In capture mode, use full 4 bars
-      const loopLengthSteps = isSynthLoopCapture ? 64 : synthLoopBars * 16;
+      // In capture mode, use full 16 bars
+      const loopLengthSteps = isSynthLoopCapture ? 256 : synthLoopBars * 16;
 
       // Calculate how many steps the note was held using real elapsed time
       const elapsedMs = performance.now() - noteStart.realTime;
@@ -447,16 +447,10 @@ const Synth: React.FC<SynthProps> = ({
     onParamsChange(newParams);
   };
 
-  // Clear the synth sequence
+  // Clear sequence - use parent callback to reset to capture mode
   const clearSequence = () => {
-    if (onSynthSequenceChange && synthSequence) {
-      const totalSteps = synthLoopBars * 16;
-      const newSteps = [...synthSequence];
-      for (let i = 0; i < totalSteps; i++) {
-        newSteps[i] = { active: false, note: 'C4' };
-      }
-      synthSequenceRef.current = newSteps;
-      onSynthSequenceChange(newSteps);
+    if (onClearSequence) {
+      onClearSequence();
     }
   };
 
@@ -795,8 +789,7 @@ const Synth: React.FC<SynthProps> = ({
           isCaptureMode={isSynthLoopCapture}
           recordedNotes={recordedNotes}
           capturedBars={!isSynthLoopCapture ? synthLoopBars : undefined}
-          maxBars={isSynthLoopCapture ? 4 : synthLoopBars}
-          onTap={onNavigateToMelody}
+          maxBars={isSynthLoopCapture ? 16 : synthLoopBars}
         />
       )}
 

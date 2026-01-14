@@ -9,7 +9,7 @@ import Transport from './components/Transport';
 import TrackParams from './components/TrackParams';
 import Synth from './components/Synth';
 import SynthEffects from './components/SynthEffects';
-import SynthSequencer, { Step as SynthStep } from './components/SynthSequencer';
+import { Step as SynthStep } from './components/SynthSequencer';
 import PsychedelicBackground from './components/PsychedelicBackground';
 import './styles/App.css';
 
@@ -539,7 +539,7 @@ const App: React.FC = () => {
   const [noteRepeatModifier, setNoteRepeatModifier] = useState<'normal' | 'dotted' | 'triplet'>('normal');
   const [loopBars, setLoopBars] = useState<1 | 2 | 4 | 8 | 16>(1);
   const [currentPage, setCurrentPage] = useState(0);
-  const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
+  // synthMode removed - keys only, no sequencer view
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
   const [synthLoopBars, setSynthLoopBars] = useState<1 | 2 | 4 | 8 | 16>(1);
   const [synthCurrentPage, setSynthCurrentPage] = useState(0);
@@ -1304,8 +1304,8 @@ const App: React.FC = () => {
                 <span className="section-label">SYNTH</span>
                 <div className="synth-toggle-group">
                   <button
-                    className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'keys' ? 'active' : ''}`}
-                    onClick={() => { setMode('synth'); setSynthMode('keys'); }}
+                    className={`mode-toggle synth-toggle ${mode === 'synth' ? 'active' : ''}`}
+                    onClick={() => setMode('synth')}
                   >
                     KEYS
                   </button>
@@ -1314,12 +1314,6 @@ const App: React.FC = () => {
                     onClick={() => setMode('effects')}
                   >
                     FX
-                  </button>
-                  <button
-                    className={`mode-toggle synth-toggle ${mode === 'synth' && synthMode === 'seq' ? 'active' : ''}`}
-                    onClick={() => { setMode('synth'); setSynthMode('seq'); }}
-                  >
-                    MELODY
                   </button>
                 </div>
               </div>
@@ -1349,57 +1343,33 @@ const App: React.FC = () => {
             </div>
             {mode === 'synth' ? (
               audioReady && melodicSynthRef.current && (
-                <>
-                  {synthMode === 'seq' ? (
-                    <SynthSequencer
-                      synth={melodicSynthRef.current}
-                      isPlaying={isPlaying}
-                      tempo={pattern.tempo}
-                      steps={synthSequence}
-                      onStepsChange={setSynthSequence}
-                      params={synthParams}
-                      onParamsChange={handleSynthParamsChange}
-                      currentStep={synthCurrentStep}
-                      loopBars={synthLoopBars}
-                      onLoopBarsChange={handleSynthLoopBarsChange}
-                      currentPage={synthCurrentPage}
-                      onPageChange={setSynthCurrentPage}
-                      scaleEnabled={synthScaleEnabled}
-                      onScaleEnabledChange={setSynthScaleEnabled}
-                      scaleRoot={synthScaleRoot}
-                      onScaleRootChange={setSynthScaleRoot}
-                      scaleType={synthScaleType}
-                      onScaleTypeChange={setSynthScaleType}
-                      isSynthLoopCapture={isSynthLoopCapture}
-                      onSequenceCleared={() => {
-                        setIsSynthLoopCapture(true);
-                        setSynthLoopBars(1);
-                      }}
-                    />
-                  ) : (
-                    <Synth
-                      synth={melodicSynthRef.current}
-                      params={synthParams}
-                      onParamsChange={handleSynthParamsChange}
-                      isRecording={isRecording}
-                      isPlaying={isPlaying}
-                      tempo={pattern.tempo}
-                      synthSequence={synthSequence}
-                      onSynthSequenceChange={setSynthSequence}
-                      onPlay={handlePlay}
-                      synthLoopBars={synthLoopBars}
-                      isSynthLoopCapture={isSynthLoopCapture}
-                      synthCurrentStep={synthCurrentStep}
-                      onNavigateToMelody={() => setSynthMode('seq')}
-                      scaleEnabled={synthScaleEnabled}
-                      onScaleEnabledChange={setSynthScaleEnabled}
-                      scaleRoot={synthScaleRoot}
-                      onScaleRootChange={setSynthScaleRoot}
-                      scaleType={synthScaleType}
-                      onScaleTypeChange={setSynthScaleType}
-                    />
-                  )}
-                </>
+                <Synth
+                  synth={melodicSynthRef.current}
+                  params={synthParams}
+                  onParamsChange={handleSynthParamsChange}
+                  isRecording={isRecording}
+                  isPlaying={isPlaying}
+                  tempo={pattern.tempo}
+                  synthSequence={synthSequence}
+                  onSynthSequenceChange={setSynthSequence}
+                  onPlay={handlePlay}
+                  synthLoopBars={synthLoopBars}
+                  isSynthLoopCapture={isSynthLoopCapture}
+                  synthCurrentStep={synthCurrentStep}
+                  onClearSequence={() => {
+                    // Clear sequence and reset to capture mode
+                    const newSteps = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
+                    setSynthSequence(newSteps);
+                    setIsSynthLoopCapture(true);
+                    setSynthLoopBars(1);
+                  }}
+                  scaleEnabled={synthScaleEnabled}
+                  onScaleEnabledChange={setSynthScaleEnabled}
+                  scaleRoot={synthScaleRoot}
+                  onScaleRootChange={setSynthScaleRoot}
+                  scaleType={synthScaleType}
+                  onScaleTypeChange={setSynthScaleType}
+                />
               )
             ) : mode === 'effects' ? (
               audioReady && melodicSynthRef.current && (

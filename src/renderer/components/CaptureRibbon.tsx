@@ -8,14 +8,13 @@ export interface RecordedNote {
 }
 
 interface CaptureRibbonProps {
-  currentStep: number; // 0-63 during capture
+  currentStep: number; // 0-255 during capture (up to 16 bars)
   isRecording: boolean;
   isPlaying: boolean;
   isCaptureMode: boolean;
   recordedNotes: RecordedNote[];
-  capturedBars?: 1 | 2 | 3 | 4; // Set when capture completes
-  maxBars?: number; // 4 during capture
-  onTap?: () => void; // Navigate to MELODY view when tapped
+  capturedBars?: 1 | 2 | 4 | 8 | 16; // Set when capture completes
+  maxBars?: number; // Up to 16 during capture
 }
 
 // Convert note to a height percentage (for visual pitch representation)
@@ -36,8 +35,7 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
   isCaptureMode,
   recordedNotes,
   capturedBars,
-  maxBars = 4,
-  onTap,
+  maxBars = 16,
 }) => {
   // Idle fade state - fade out after 10 seconds of inactivity
   const [isIdle, setIsIdle] = useState(false);
@@ -108,20 +106,17 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
     return null;
   }
 
-  // Handle tap - wake from idle and/or navigate
+  // Handle tap - wake from idle
   const handleTap = () => {
     if (isIdle) {
       setIsIdle(false);
       lastActivityRef.current = Date.now();
     }
-    if (onTap && recordedNotes.length > 0 && !isRecording) {
-      onTap();
-    }
   };
 
   return (
     <div
-      className={`capture-ribbon ${isActive ? 'active' : ''} ${isRecording ? 'recording' : ''} ${isIdle ? 'idle' : ''} ${isOnBeatOne ? 'beat-one' : ''} ${onTap && recordedNotes.length > 0 && !isRecording ? 'tappable' : ''}`}
+      className={`capture-ribbon ${isActive ? 'active' : ''} ${isRecording ? 'recording' : ''} ${isIdle ? 'idle' : ''} ${isOnBeatOne ? 'beat-one' : ''}`}
       onClick={handleTap}
     >
       {/* Bar indicator */}
@@ -133,7 +128,6 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
         ) : capturedBars ? (
           <span className="bar-text captured">
             {capturedBars} bar{capturedBars > 1 ? 's' : ''}
-            {onTap && !isPlaying && <span className="tap-hint"> · tap to edit</span>}
           </span>
         ) : null}
       </div>
