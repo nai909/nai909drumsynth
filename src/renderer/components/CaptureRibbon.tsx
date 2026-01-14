@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import './CaptureRibbon.css';
 
 export interface RecordedNote {
@@ -15,6 +15,7 @@ interface CaptureRibbonProps {
   recordedNotes: RecordedNote[];
   capturedBars?: 1 | 2 | 3 | 4; // Set when capture completes
   maxBars?: number; // 4 during capture
+  onTap?: () => void; // Navigate to MELODY view when tapped
 }
 
 // Convert note to a height percentage (for visual pitch representation)
@@ -36,12 +37,43 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
   recordedNotes,
   capturedBars,
   maxBars = 4,
+  onTap,
 }) => {
+  // Idle fade state - fade out after 10 seconds of inactivity
+  const [isIdle, setIsIdle] = useState(false);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  // Reset idle timer on activity
+  useEffect(() => {
+    if (isPlaying || isRecording || isCaptureMode) {
+      setIsIdle(false);
+      lastActivityRef.current = Date.now();
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    } else if (recordedNotes.length > 0) {
+      // Start idle timer when stopped but notes exist
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        setIsIdle(true);
+      }, 10000); // 10 seconds
+    }
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [isPlaying, isRecording, isCaptureMode, recordedNotes.length]);
+
   // Total steps in the capture window
   const totalSteps = maxBars * 16;
 
   // Calculate which bar we're in (1-indexed for display)
   const currentBar = Math.floor(currentStep / 16) + 1;
+
+  // Detect beat 1 of any bar (step 0, 16, 32, 48 within the loop)
+  const isOnBeatOne = isPlaying && (currentStep % 16 === 0);
 
   // Playhead position as percentage
   const playheadPosition = (currentStep / totalSteps) * 100;
@@ -76,8 +108,22 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
     return null;
   }
 
+  // Handle tap - wake from idle and/or navigate
+  const handleTap = () => {
+    if (isIdle) {
+      setIsIdle(false);
+      lastActivityRef.current = Date.now();
+    }
+    if (onTap && recordedNotes.length > 0 && !isRecording) {
+      onTap();
+    }
+  };
+
   return (
-    <div className={`capture-ribbon ${isActive ? 'active' : ''} ${isRecording ? 'recording' : ''}`}>
+    <div
+      className={`capture-ribbon ${isActive ? 'active' : ''} ${isRecording ? 'recording' : ''} ${isIdle ? 'idle' : ''} ${isOnBeatOne ? 'beat-one' : ''} ${onTap && recordedNotes.length > 0 && !isRecording ? 'tappable' : ''}`}
+      onClick={handleTap}
+    >
       {/* Bar indicator */}
       <div className="ribbon-bar-indicator">
         {isRecording && isPlaying ? (
@@ -85,7 +131,10 @@ const CaptureRibbon: React.FC<CaptureRibbonProps> = ({
         ) : isCaptureMode ? (
           <span className="bar-text ready">Ready to capture</span>
         ) : capturedBars ? (
-          <span className="bar-text captured">{capturedBars} bar{capturedBars > 1 ? 's' : ''} captured</span>
+          <span className="bar-text captured">
+            {capturedBars} bar{capturedBars > 1 ? 's' : ''}
+            {onTap && !isPlaying && <span className="tap-hint"> · tap to edit</span>}
+          </span>
         ) : null}
       </div>
 

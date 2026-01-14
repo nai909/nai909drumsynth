@@ -22,6 +22,8 @@ interface SynthProps {
   isSynthLoopCapture?: boolean;
   // Current step position for capture ribbon visualization
   synthCurrentStep?: number;
+  // Navigation callback - switch to MELODY view
+  onNavigateToMelody?: () => void;
   // Scale props (shared with sequencer)
   scaleEnabled?: boolean;
   onScaleEnabledChange?: (enabled: boolean) => void;
@@ -130,6 +132,7 @@ const Synth: React.FC<SynthProps> = ({
   synthLoopBars = 1,
   isSynthLoopCapture = false,
   synthCurrentStep = -1,
+  onNavigateToMelody,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -792,7 +795,8 @@ const Synth: React.FC<SynthProps> = ({
           isCaptureMode={isSynthLoopCapture}
           recordedNotes={recordedNotes}
           capturedBars={!isSynthLoopCapture ? synthLoopBars : undefined}
-          maxBars={4}
+          maxBars={isSynthLoopCapture ? 4 : synthLoopBars}
+          onTap={onNavigateToMelody}
         />
       )}
 

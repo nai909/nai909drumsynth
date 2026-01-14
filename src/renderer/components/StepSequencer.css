@@ -215,27 +215,61 @@
 }
 
 @media (max-width: 768px) {
+  /* Compact note repeat selector on mobile */
+  .note-repeat-selector {
+    padding: 6px 8px;
+    gap: 8px;
+  }
+
+  .note-repeat-label-group {
+    display: none; /* Hide label on mobile to save space */
+  }
+
+  .note-repeat-controls {
+    gap: 6px;
+  }
+
+  .note-repeat-buttons {
+    gap: 4px;
+  }
+
+  .note-repeat-btn {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .note-repeat-modifiers {
+    gap: 3px;
+  }
+
+  .note-repeat-mod-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
   .drum-pads {
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(4, 1fr);
-    min-height: 250px;
-    gap: 8px;
-    padding: 8px;
+    min-height: 0;
+    gap: 6px;
+    padding: 6px;
     flex: 1;
     flex-shrink: 1;
   }
 
   .drum-pad {
-    min-height: 60px;
+    min-height: 50px;
+    gap: 4px;
   }
 
   .pad-icon-svg {
-    width: 48px;
-    height: 48px;
+    width: 32px;
+    height: 32px;
   }
 
   .drum-pad-name {
-    font-size: 12px;
+    font-size: 10px;
   }
 }
 

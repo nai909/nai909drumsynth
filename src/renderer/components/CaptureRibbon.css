@@ -24,6 +24,37 @@
   box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
 }
 
+/* Idle state - fade out when inactive */
+.capture-ribbon.idle {
+  opacity: 0.3;
+  transform: scale(0.98);
+}
+
+/* Beat one pulse */
+.capture-ribbon.beat-one {
+  animation: beat-pulse 0.15s ease-out;
+}
+
+@keyframes beat-pulse {
+  0% {
+    box-shadow: 0 0 15px var(--accent-glow), inset 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+}
+
+/* Tappable state */
+.capture-ribbon.tappable {
+  cursor: pointer;
+}
+
+.capture-ribbon.tappable:hover {
+  opacity: 1;
+  border-color: var(--accent-primary);
+  transform: scale(1);
+}
+
 /* Bar indicator text */
 .ribbon-bar-indicator {
   position: absolute;
@@ -50,6 +81,17 @@
   color: #4CAF50;
 }
 
+.tap-hint {
+  color: #888;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.capture-ribbon.tappable:hover .tap-hint {
+  opacity: 1;
+  color: var(--accent-secondary);
+}
+
 @keyframes pulse-ready {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
@@ -70,6 +112,7 @@
   flex: 1;
   position: relative;
   border-right: 1px solid rgba(255, 255, 255, 0.15);
+  transition: flex 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ribbon-bar:last-child {
@@ -124,6 +167,7 @@
   transform: translateY(50%);
   box-shadow: 0 0 8px var(--accent-glow);
   animation: note-appear 0.15s ease-out;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes note-appear {

@@ -1387,6 +1387,7 @@ const App: React.FC = () => {
                       synthLoopBars={synthLoopBars}
                       isSynthLoopCapture={isSynthLoopCapture}
                       synthCurrentStep={synthCurrentStep}
+                      onNavigateToMelody={() => setSynthMode('seq')}
                       scaleEnabled={synthScaleEnabled}
                       onScaleEnabledChange={setSynthScaleEnabled}
                       scaleRoot={synthScaleRoot}
