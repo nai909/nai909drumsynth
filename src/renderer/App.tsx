@@ -537,11 +537,11 @@ const App: React.FC = () => {
   const [mode, setMode] = useState<'sequencer' | 'pad' | 'params' | 'synth' | 'effects'>('synth');
   const [noteRepeat, setNoteRepeat] = useState<'off' | '1/2' | '1/4' | '1/8' | '1/16'>('off');
   const [noteRepeatModifier, setNoteRepeatModifier] = useState<'normal' | 'dotted' | 'triplet'>('normal');
-  const [loopBars, setLoopBars] = useState<1 | 2 | 3 | 4>(1);
+  const [loopBars, setLoopBars] = useState<1 | 2 | 4 | 8 | 16>(1);
   const [currentPage, setCurrentPage] = useState(0);
   const [synthMode, setSynthMode] = useState<'keys' | 'seq'>('keys');
   const [synthSequence, setSynthSequence] = useState<SynthStep[]>(createInitialSynthSequence);
-  const [synthLoopBars, setSynthLoopBars] = useState<1 | 2 | 3 | 4>(1);
+  const [synthLoopBars, setSynthLoopBars] = useState<1 | 2 | 4 | 8 | 16>(1);
   const [synthCurrentPage, setSynthCurrentPage] = useState(0);
   const [synthParams, setSynthParams] = useState<SynthParams>(DEFAULT_SYNTH_PARAMS);
   // Shared scale state for synth keys and sequencer
@@ -858,9 +858,12 @@ const App: React.FC = () => {
       });
 
       if (highestActiveStep >= 0) {
-        // Calculate bars needed (round up to nearest bar)
-        const barsNeeded = Math.ceil((highestActiveStep + 1) / 16) as 1 | 2 | 3 | 4;
-        const newLoopBars = Math.min(4, Math.max(1, barsNeeded)) as 1 | 2 | 3 | 4;
+        // Calculate bars needed (round up to nearest bar, max 4 for synth)
+        const barsNeeded = Math.ceil((highestActiveStep + 1) / 16);
+        // Find nearest valid bar count (1, 2, 4)
+        let newLoopBars: 1 | 2 | 4 | 8 | 16 = 1;
+        if (barsNeeded > 2) newLoopBars = 4;
+        else if (barsNeeded > 1) newLoopBars = 2;
         setSynthLoopBars(newLoopBars);
         // Exit capture mode - now in layer mode
         setIsSynthLoopCapture(false);
@@ -971,7 +974,7 @@ const App: React.FC = () => {
     }
   }, [loopBars, currentPage]);
 
-  const handleLoopBarsChange = (bars: 1 | 2 | 3 | 4) => {
+  const handleLoopBarsChange = (bars: 1 | 2 | 4 | 8 | 16) => {
     setLoopBars(bars);
     // Update pattern step count for sequencer
     const newPattern = { ...pattern, steps: bars * 16 };
@@ -997,7 +1000,7 @@ const App: React.FC = () => {
     }
   }, [synthLoopBars, synthCurrentPage]);
 
-  const handleSynthLoopBarsChange = (bars: 1 | 2 | 3 | 4) => {
+  const handleSynthLoopBarsChange = (bars: 1 | 2 | 4 | 8 | 16) => {
     setSynthLoopBars(bars);
   };
 

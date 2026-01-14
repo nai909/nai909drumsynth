@@ -422,6 +422,24 @@
   color: var(--accent-secondary);
 }
 
+.loop-bars-btn.capture-mode {
+  border-color: rgba(255, 100, 100, 0.5);
+  animation: capture-btn-pulse 2s ease-in-out infinite;
+}
+
+.loop-bars-btn.capture-mode.active {
+  border-color: #ff6666;
+}
+
+@keyframes capture-btn-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(255, 100, 100, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(255, 100, 100, 0.4);
+  }
+}
+
 /* Page navigation */
 .page-nav-buttons {
   display: flex;

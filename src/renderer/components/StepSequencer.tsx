@@ -21,8 +21,8 @@ interface StepSequencerProps {
   tempo: number;
   onClearSequence?: () => void;
   onRandomize?: () => void;
-  loopBars: 1 | 2 | 3 | 4;
-  onLoopBarsChange: (bars: 1 | 2 | 3 | 4) => void;
+  loopBars: 1 | 2 | 4 | 8 | 16;
+  onLoopBarsChange: (bars: 1 | 2 | 4 | 8 | 16) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
   // Recording visual feedback
@@ -263,7 +263,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
         <div className="loop-bars-selector">
           <span className="loop-bars-label">BARS</span>
           <div className="loop-bars-buttons">
-            {([1, 2, 3, 4] as const).map((bars) => (
+            {([1, 2, 4, 8, 16] as const).map((bars) => (
               <button
                 key={bars}
                 className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
