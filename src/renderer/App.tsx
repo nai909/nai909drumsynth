@@ -588,6 +588,7 @@ const App: React.FC = () => {
   });
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [audioReady, setAudioReady] = useState(false);
 
@@ -1472,6 +1473,26 @@ const App: React.FC = () => {
         canUndo={canUndo}
         onUndo={handleUndo}
       />
+
+      {/* Info button */}
+      <button className="info-btn" onClick={() => setShowInfo(true)} aria-label="Help">
+        ?
+      </button>
+
+      {/* Info overlay */}
+      {showInfo && (
+        <div className="info-overlay" onClick={() => setShowInfo(false)}>
+          <div className="info-content">
+            <h2>Play. Record. Loop.</h2>
+            <ul>
+              <li>Tap keys or pads to make sound</li>
+              <li>Hit record → play → your loop captures automatically</li>
+              <li>MUTATE for surprises, RANDOM for melodies and drum patterns</li>
+              <li>Tap the smiley to change colors</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
