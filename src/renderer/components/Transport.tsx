@@ -5,7 +5,6 @@ interface TransportProps {
   isPlaying: boolean;
   tempo: number;
   onPlay: () => void;
-  onPause: () => void;
   onStop: () => void;
   onTempoChange: (tempo: number) => void;
   isRecording: boolean;
@@ -55,7 +54,6 @@ const Transport: React.FC<TransportProps> = ({
   isPlaying,
   tempo,
   onPlay,
-  onPause,
   onStop,
   onTempoChange,
   isRecording,
@@ -173,19 +171,15 @@ const Transport: React.FC<TransportProps> = ({
             <circle cx="12" cy="12" r="8" />
           </svg>
         </button>
-        {!isPlaying ? (
-          <button className="transport-btn play-btn" onClick={onPlay}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-        ) : (
-          <button className="transport-btn pause-btn" onClick={onPause}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-            </svg>
-          </button>
-        )}
+        <button
+          className={`transport-btn play-btn ${isPlaying ? 'playing' : ''}`}
+          onClick={onPlay}
+          disabled={isPlaying}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </button>
         <button className="transport-btn stop-btn" onClick={onStop}>
           <svg viewBox="0 0 24 24" fill="currentColor">
             <rect x="6" y="6" width="12" height="12" />

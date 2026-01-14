@@ -826,15 +826,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePause = () => {
-    if (sequencerRef.current) {
-      sequencerRef.current.pause();
-      setIsPlaying(false);
-      // Clear recorded hits on pause to prevent skipping on resume
-      recentlyRecordedHits.current.clear();
-    }
-  };
-
   const handleStop = () => {
     // Cancel count-in if in progress
     if (isCountingInRef.current) {
@@ -1445,7 +1436,6 @@ const App: React.FC = () => {
         isPlaying={isPlaying}
         tempo={pattern.tempo}
         onPlay={handlePlay}
-        onPause={handlePause}
         onStop={handleStop}
         onTempoChange={handleTempoChange}
         isRecording={isRecording}

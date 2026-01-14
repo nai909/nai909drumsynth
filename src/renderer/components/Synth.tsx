@@ -84,6 +84,108 @@ const SCALES: { [key: string]: number[] } = {
 
 const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+// Melodic pattern generation types
+type MelodyType = 'arpeggio' | 'stepwise' | 'jumpy' | 'repetitive';
+
+interface MelodicGenre {
+  name: string;
+  rhythmPatterns: number[][];
+  melodyType: MelodyType;
+  noteRangeStart: number;
+  noteRangeEnd: number;
+  variationChance: number;
+}
+
+const MELODIC_GENRES: MelodicGenre[] = [
+  { name: 'House', rhythmPatterns: [[0, 3, 4, 7, 8, 11, 12, 14], [0, 2, 4, 6, 8, 10, 12, 14]], melodyType: 'arpeggio', noteRangeStart: 8, noteRangeEnd: 20, variationChance: 0.2 },
+  { name: 'Techno', rhythmPatterns: [[0, 2, 4, 6, 8, 10, 12, 14], [0, 4, 8, 12]], melodyType: 'repetitive', noteRangeStart: 6, noteRangeEnd: 14, variationChance: 0.1 },
+  { name: 'Ambient', rhythmPatterns: [[0, 8], [0, 4, 12]], melodyType: 'stepwise', noteRangeStart: 10, noteRangeEnd: 24, variationChance: 0.4 },
+  { name: 'Hip Hop', rhythmPatterns: [[0, 3, 6, 10, 12], [0, 2, 7, 8, 11, 14]], melodyType: 'jumpy', noteRangeStart: 8, noteRangeEnd: 18, variationChance: 0.3 },
+  { name: 'Trance', rhythmPatterns: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]], melodyType: 'arpeggio', noteRangeStart: 10, noteRangeEnd: 22, variationChance: 0.15 },
+  { name: 'Lo-fi', rhythmPatterns: [[0, 4, 7, 10, 14], [0, 3, 8, 11]], melodyType: 'stepwise', noteRangeStart: 8, noteRangeEnd: 18, variationChance: 0.35 },
+  { name: 'DnB', rhythmPatterns: [[0, 3, 6, 8, 11, 14], [0, 2, 5, 8, 10, 13]], melodyType: 'jumpy', noteRangeStart: 6, noteRangeEnd: 18, variationChance: 0.25 },
+];
+
+// Generate scale notes across octaves
+const generateScaleNotes = (root: string, scaleType: string): string[] => {
+  const intervals = SCALES[scaleType] || SCALES['major'];
+  const rootIndex = ROOT_NOTES.indexOf(root);
+  const notes: string[] = [];
+
+  for (let octave = 2; octave <= 5; octave++) {
+    intervals.forEach(interval => {
+      const noteIndex = (rootIndex + interval) % 12;
+      const noteOctave = octave + Math.floor((rootIndex + interval) / 12);
+      if (noteOctave <= 5) {
+        notes.push(`${ROOT_NOTES[noteIndex]}${noteOctave}`);
+      }
+    });
+  }
+  return notes;
+};
+
+// Generate melodic pattern
+const generateMelodicPattern = (scaleNotes: string[], loopBars: number): SynthStep[] => {
+  const totalSteps = loopBars * 16;
+  const genre = MELODIC_GENRES[Math.floor(Math.random() * MELODIC_GENRES.length)];
+  const pattern: SynthStep[] = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
+
+  const rhythmPattern = genre.rhythmPatterns[Math.floor(Math.random() * genre.rhythmPatterns.length)];
+  const rangeStart = Math.min(genre.noteRangeStart, scaleNotes.length - 1);
+  const rangeEnd = Math.min(genre.noteRangeEnd, scaleNotes.length - 1);
+  const noteRange = scaleNotes.slice(rangeStart, rangeEnd + 1);
+
+  if (noteRange.length === 0) return pattern;
+
+  let melodicSequence: number[] = [];
+  const seqLength = rhythmPattern.length;
+
+  switch (genre.melodyType) {
+    case 'arpeggio':
+      const dir = Math.random();
+      if (dir < 0.33) {
+        for (let i = 0; i < seqLength; i++) melodicSequence.push(i % noteRange.length);
+      } else if (dir < 0.66) {
+        for (let i = 0; i < seqLength; i++) melodicSequence.push((noteRange.length - 1) - (i % noteRange.length));
+      } else {
+        const upDown = [...Array(noteRange.length).keys()];
+        for (let i = noteRange.length - 2; i > 0; i--) upDown.push(i);
+        for (let i = 0; i < seqLength; i++) melodicSequence.push(upDown[i % upDown.length]);
+      }
+      break;
+    case 'stepwise':
+      let curr = Math.floor(noteRange.length / 2);
+      for (let i = 0; i < seqLength; i++) {
+        melodicSequence.push(curr);
+        const step = Math.random() < 0.7 ? (Math.random() < 0.5 ? 1 : -1) : (Math.random() < 0.5 ? 2 : -2);
+        curr = Math.max(0, Math.min(noteRange.length - 1, curr + step));
+      }
+      break;
+    case 'jumpy':
+      for (let i = 0; i < seqLength; i++) melodicSequence.push(Math.floor(Math.random() * noteRange.length));
+      break;
+    case 'repetitive':
+      const motifLen = 2 + Math.floor(Math.random() * 3);
+      const motif = Array.from({ length: motifLen }, () => Math.floor(Math.random() * Math.min(noteRange.length, 6)));
+      for (let i = 0; i < seqLength; i++) melodicSequence.push(motif[i % motifLen]);
+      break;
+  }
+
+  for (let bar = 0; bar < loopBars; bar++) {
+    rhythmPattern.forEach((step, i) => {
+      const globalStep = bar * 16 + step;
+      if (globalStep < totalSteps) {
+        const noteIdx = bar > 0 && Math.random() < genre.variationChance
+          ? Math.max(0, Math.min(noteRange.length - 1, melodicSequence[i % melodicSequence.length] + (Math.random() < 0.5 ? 1 : -1)))
+          : melodicSequence[i % melodicSequence.length];
+        pattern[globalStep] = { active: true, note: noteRange[noteIdx], length: 1 };
+      }
+    });
+  }
+
+  return pattern;
+};
+
 // Get notes in a scale
 const getScaleNotes = (root: string, scale: string): Set<string> => {
   const scaleNotes = new Set<string>();
@@ -454,6 +556,15 @@ const Synth: React.FC<SynthProps> = ({
     }
   };
 
+  // Generate random melody
+  const randomizeMelody = () => {
+    if (!onSynthSequenceChange) return;
+    const scaleNotesArray = generateScaleNotes(scaleRoot, scaleType);
+    const barsToGenerate = isSynthLoopCapture ? 2 : synthLoopBars; // Default to 2 bars in capture mode
+    const newPattern = generateMelodicPattern(scaleNotesArray, barsToGenerate);
+    onSynthSequenceChange(newPattern);
+  };
+
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
   const arpModes: ArpMode[] = ['off', 'up', 'down', 'updown', 'random'];
 
@@ -634,39 +745,11 @@ const Synth: React.FC<SynthProps> = ({
           </div>
         </div>
 
-        {/* Random/MUTATE and CLEAR - desktop only, mobile version is below keyboard */}
+        {/* Action buttons - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
-          <button className="random-btn" onClick={randomizeParams}>
-            MUTATE
-            <svg viewBox="0 0 64 80" className="mutate-smiley">
-              <path
-                className="mutate-smiley-face"
-                d="M32 4
-                   C14 4 4 16 4 32
-                   C4 44 10 52 14 56
-                   L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
-                   C18 64 22 66 24 68
-                   L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
-                   C28 71 30 71 32 71
-                   C34 71 36 71 38 70
-                   L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
-                   C42 66 46 64 48 62
-                   L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
-                   C54 54 60 46 60 32
-                   C60 16 50 4 32 4Z"
-              />
-              <ellipse className="mutate-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
-              <ellipse className="mutate-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
-              <path
-                className="mutate-smiley-mouth"
-                d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
-                strokeWidth="4"
-                fill="none"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-          <button className="clear-btn" onClick={clearSequence}>CLEAR</button>
+          <button className="action-btn mutate-btn" onClick={randomizeParams}>MUTATE</button>
+          <button className="action-btn random-melody-btn" onClick={randomizeMelody}>RANDOM</button>
+          <button className="action-btn clear-btn" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
 
@@ -798,37 +881,9 @@ const Synth: React.FC<SynthProps> = ({
 
       {/* Action buttons - mobile only, below keyboard */}
       <div className="synth-mobile-actions">
-        <button className="random-btn random-btn-mobile" onClick={randomizeParams}>
-          MUTATE
-          <svg viewBox="0 0 64 80" className="mutate-smiley">
-            <path
-              className="mutate-smiley-face"
-              d="M32 4
-                 C14 4 4 16 4 32
-                 C4 44 10 52 14 56
-                 L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
-                 C18 64 22 66 24 68
-                 L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
-                 C28 71 30 71 32 71
-                 C34 71 36 71 38 70
-                 L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
-                 C42 66 46 64 48 62
-                 L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
-                 C54 54 60 46 60 32
-                 C60 16 50 4 32 4Z"
-            />
-            <ellipse className="mutate-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
-            <ellipse className="mutate-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
-            <path
-              className="mutate-smiley-mouth"
-              d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
-              strokeWidth="4"
-              fill="none"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-        <button className="clear-btn clear-btn-mobile" onClick={clearSequence}>CLEAR</button>
+        <button className="action-btn-mobile mutate-btn" onClick={randomizeParams}>MUTATE</button>
+        <button className="action-btn-mobile random-melody-btn" onClick={randomizeMelody}>RANDOM</button>
+        <button className="action-btn-mobile clear-btn" onClick={clearSequence}>CLEAR</button>
       </div>
     </div>
   );
