@@ -621,6 +621,43 @@ const Synth: React.FC<SynthProps> = ({
           </button>
         </div>
 
+        {/* Scale */}
+        <div className="synth-section">
+          <div className="section-label">SCALE</div>
+          <div className="scale-controls">
+            <button
+              className={`scale-toggle ${scaleEnabled ? 'active' : ''}`}
+              onClick={() => setScaleEnabled(!scaleEnabled)}
+            >
+              {scaleEnabled ? 'ON' : 'OFF'}
+            </button>
+            {scaleEnabled && (
+              <>
+                <select
+                  className="scale-select"
+                  value={scaleRoot}
+                  onChange={(e) => setScaleRoot(e.target.value)}
+                >
+                  {ROOT_NOTES.map((note) => (
+                    <option key={note} value={note}>{note}</option>
+                  ))}
+                </select>
+                <select
+                  className="scale-select"
+                  value={scaleType}
+                  onChange={(e) => setScaleType(e.target.value)}
+                >
+                  {Object.keys(SCALES).map((scale) => (
+                    <option key={scale} value={scale}>
+                      {scale.charAt(0).toUpperCase() + scale.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Waveform selector */}
         <div className="synth-section">
           <div className="section-label">WAVEFORM</div>
@@ -712,43 +749,6 @@ const Synth: React.FC<SynthProps> = ({
               value={params.arpRate}
               onChange={(v) => handleParamChange('arpRate', v)}
             />
-          </div>
-        </div>
-
-        {/* Scale */}
-        <div className="synth-section">
-          <div className="section-label">SCALE</div>
-          <div className="scale-controls">
-            <button
-              className={`scale-toggle ${scaleEnabled ? 'active' : ''}`}
-              onClick={() => setScaleEnabled(!scaleEnabled)}
-            >
-              {scaleEnabled ? 'ON' : 'OFF'}
-            </button>
-            {scaleEnabled && (
-              <>
-                <select
-                  className="scale-select"
-                  value={scaleRoot}
-                  onChange={(e) => setScaleRoot(e.target.value)}
-                >
-                  {ROOT_NOTES.map((note) => (
-                    <option key={note} value={note}>{note}</option>
-                  ))}
-                </select>
-                <select
-                  className="scale-select"
-                  value={scaleType}
-                  onChange={(e) => setScaleType(e.target.value)}
-                >
-                  {Object.keys(SCALES).map((scale) => (
-                    <option key={scale} value={scale}>
-                      {scale.charAt(0).toUpperCase() + scale.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
           </div>
         </div>
 
