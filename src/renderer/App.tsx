@@ -708,8 +708,8 @@ const App: React.FC = () => {
     if (isPlaying && melodicSynthRef.current) {
       const synth = melodicSynthRef.current;
       const stepDurationMs = 60000 / pattern.tempo / 4; // Duration of one 16th note step
-      // In capture mode, use full 4 bars (64 steps) so recording can span all bars
-      const synthLoopLength = isSynthLoopCapture ? 64 : synthLoopBars * 16;
+      // In capture mode, use full 16 bars (256 steps) so recording can span all bars
+      const synthLoopLength = isSynthLoopCapture ? 256 : synthLoopBars * 16;
 
       synthSequencerRef.current = new Tone.Sequence(
         (_time, step) => {
@@ -858,11 +858,13 @@ const App: React.FC = () => {
       });
 
       if (highestActiveStep >= 0) {
-        // Calculate bars needed (round up to nearest bar, max 4 for synth)
+        // Calculate bars needed (round up to nearest bar, max 16 for synth)
         const barsNeeded = Math.ceil((highestActiveStep + 1) / 16);
-        // Find nearest valid bar count (1, 2, 4)
+        // Find nearest valid bar count (1, 2, 4, 8, 16)
         let newLoopBars: 1 | 2 | 4 | 8 | 16 = 1;
-        if (barsNeeded > 2) newLoopBars = 4;
+        if (barsNeeded > 8) newLoopBars = 16;
+        else if (barsNeeded > 4) newLoopBars = 8;
+        else if (barsNeeded > 2) newLoopBars = 4;
         else if (barsNeeded > 1) newLoopBars = 2;
         setSynthLoopBars(newLoopBars);
         // Exit capture mode - now in layer mode

@@ -156,8 +156,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
         {/* Note Repeat Selector */}
         <div className="note-repeat-selector">
           <div className="note-repeat-label-group">
-            <span className="note-repeat-label">REPEAT</span>
-            <span className="note-repeat-hint">(Hold Pad)</span>
+            <span className="note-repeat-label">NOTE REPEAT</span>
           </div>
           <div className="note-repeat-controls">
             <div className="note-repeat-buttons">
