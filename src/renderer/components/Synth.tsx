@@ -248,9 +248,6 @@ const Synth: React.FC<SynthProps> = ({
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
-  const [displayedNote, setDisplayedNote] = useState<string | null>(null);
-  const [noteVisible, setNoteVisible] = useState(false);
-  const noteFadeTimeout = useRef<NodeJS.Timeout | null>(null);
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNotes = useRef<Set<string>>(new Set()); // track which notes are held by mouse
@@ -326,13 +323,6 @@ const Synth: React.FC<SynthProps> = ({
     await synth.noteOn(note, 0.8);
     setActiveNotes((prev) => new Set([...prev, note]));
 
-    // Show note indicator
-    if (noteFadeTimeout.current) {
-      clearTimeout(noteFadeTimeout.current);
-    }
-    setDisplayedNote(note);
-    setNoteVisible(true);
-
     // Auto-start playback when recording is armed but not playing
     let justStartedPlayback = false;
     if (isRecording && !isPlaying && onPlay) {
@@ -386,12 +376,6 @@ const Synth: React.FC<SynthProps> = ({
     setActiveNotes((prev) => {
       const next = new Set(prev);
       next.delete(note);
-      // Fade out note indicator when no notes are playing
-      if (next.size === 0) {
-        noteFadeTimeout.current = setTimeout(() => {
-          setNoteVisible(false);
-        }, 800);
-      }
       return next;
     });
 
@@ -778,10 +762,6 @@ const Synth: React.FC<SynthProps> = ({
 
       {/* Keyboard */}
       <div className="keyboard-container">
-        {/* Note indicator */}
-        <div className={`note-indicator ${noteVisible ? 'visible' : ''}`}>
-          {displayedNote}
-        </div>
         <div className="keyboard">
           {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => {
             const playable = canPlayNote(noteObj.note);
