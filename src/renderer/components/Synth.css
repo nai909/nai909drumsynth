@@ -625,68 +625,68 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .synth-container {
-    padding: 8px;
-    gap: 8px;
+    padding: 5px;
+    gap: 5px;
   }
 
   .synth-panel {
-    gap: 8px;
-    padding: 5px;
+    gap: 6px;
+    padding: 3px;
     flex-wrap: nowrap;
     overflow-x: auto;
     justify-content: flex-start;
   }
 
   .synth-section {
-    padding: 6px;
+    padding: 4px 5px;
     min-width: fit-content;
     flex-shrink: 0;
-    gap: 3px;
+    gap: 2px;
     justify-content: center;
   }
 
   .section-label {
-    font-size: 8px;
+    font-size: 7px;
   }
 
   .waveform-btn {
-    width: 28px;
-    height: 28px;
-    padding: 4px;
+    width: 24px;
+    height: 24px;
+    padding: 3px;
   }
 
   .synth-knob {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
   }
 
   .knob-indicator {
-    top: 3px;
+    top: 2px;
     width: 2px;
-    height: 8px;
+    height: 6px;
   }
 
   .knob-label {
-    font-size: 7px;
+    font-size: 6px;
     color: #aaa;
   }
 
   .synth-knob-container {
-    gap: 2px;
+    gap: 1px;
   }
 
   .knob-row {
-    gap: 6px;
+    gap: 4px;
   }
 
   .octave-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 16px;
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
   }
 
   .octave-display {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   /* Hide desktop random, show mobile random */
@@ -696,33 +696,33 @@
 
   .synth-mobile-actions {
     display: flex;
-    gap: 8px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 4px 8px;
   }
 
   .random-btn-mobile {
     display: block;
     flex: 1;
-    padding: 8px 12px;
-    font-size: 11px;
+    padding: 6px 10px;
+    font-size: 10px;
   }
 
   .clear-btn-mobile {
     display: block;
     flex: 1;
-    padding: 8px 12px;
-    font-size: 11px;
+    padding: 6px 10px;
+    font-size: 10px;
   }
 
   .keyboard-container {
-    padding: 8px;
-    flex: 1;
-    min-height: 160px;
+    padding: 5px;
+    flex: 2;
+    min-height: 180px;
   }
 
   .keyboard {
     height: 100%;
-    min-height: 150px;
+    min-height: 170px;
     min-width: 100%;
   }
 
@@ -732,49 +732,50 @@
   }
 
   .white-key .key-label {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .black-key {
-    width: 28px;
-    height: 60%;
+    width: 26px;
+    height: 55%;
   }
 
   .black-key.active {
-    height: calc(60% - 2px);
+    height: calc(55% - 2px);
   }
 }
 
 @media (max-width: 480px) {
   .synth-section {
-    padding: 6px;
+    padding: 3px 4px;
   }
 
   .waveform-buttons {
-    gap: 4px;
+    gap: 3px;
   }
 
   .waveform-btn {
-    width: 28px;
-    height: 28px;
-    padding: 4px;
+    width: 22px;
+    height: 22px;
+    padding: 2px;
   }
 
   .synth-knob {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
   }
 
   .knob-row {
-    gap: 6px;
+    gap: 3px;
   }
 
   .keyboard-container {
-    min-height: 140px;
+    min-height: 160px;
+    flex: 2;
   }
 
   .keyboard {
-    min-height: 90px;
+    min-height: 150px;
   }
 }
 

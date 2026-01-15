@@ -222,8 +222,8 @@
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .capture-ribbon {
-    height: 50px;
-    margin-top: 8px;
+    height: 38px;
+    margin-top: 5px;
   }
 
   .ribbon-bar-indicator {
@@ -232,38 +232,38 @@
   }
 
   .bar-text {
-    font-size: 9px;
-  }
-
-  .ribbon-timeline {
-    top: 16px;
-  }
-
-  .bar-number {
     font-size: 8px;
-  }
-
-  .ribbon-note {
-    height: 5px;
-  }
-}
-
-@media (max-width: 480px) {
-  .capture-ribbon {
-    height: 44px;
-  }
-
-  .bar-text {
-    font-size: 8px;
-    letter-spacing: 0.5px;
   }
 
   .ribbon-timeline {
     top: 14px;
   }
 
+  .bar-number {
+    font-size: 7px;
+  }
+
   .ribbon-note {
     height: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .capture-ribbon {
+    height: 34px;
+  }
+
+  .bar-text {
+    font-size: 7px;
+    letter-spacing: 0.5px;
+  }
+
+  .ribbon-timeline {
+    top: 12px;
+  }
+
+  .ribbon-note {
+    height: 3px;
     min-width: 2px;
   }
 
