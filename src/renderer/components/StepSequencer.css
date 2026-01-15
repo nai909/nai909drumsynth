@@ -242,7 +242,11 @@
   }
 
   .note-repeat-label-group {
-    display: none; /* Hide label on mobile to save space */
+    flex-shrink: 0;
+  }
+
+  .note-repeat-label {
+    font-size: 8px;
   }
 
   .note-repeat-controls {
