@@ -172,7 +172,7 @@ const ThemeSmiley: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   </button>
 );
 
-const MAX_STEPS = 64; // 4 bars of 16 steps
+const MAX_STEPS = 128; // 8 bars of 16 steps (max supported)
 
 const createInitialPattern = (): Pattern => {
   const tracks: DrumTrack[] = [
@@ -941,11 +941,17 @@ const App: React.FC = () => {
   const handleRandomize = () => {
     const { steps, velocities } = generateDrumPattern(loopBars);
     const newPattern = { ...pattern };
-    newPattern.tracks = newPattern.tracks.map((track, trackIndex) => ({
-      ...track,
-      steps: [...steps[trackIndex], ...new Array(MAX_STEPS - steps[trackIndex].length).fill(false)],
-      velocity: [...velocities[trackIndex], ...new Array(MAX_STEPS - velocities[trackIndex].length).fill(1)],
-    }));
+    newPattern.tracks = newPattern.tracks.map((track, trackIndex) => {
+      // Create full-length arrays, taking generated steps or padding with defaults
+      const newSteps = new Array(MAX_STEPS).fill(false);
+      const newVelocity = new Array(MAX_STEPS).fill(1);
+      // Copy generated pattern
+      for (let i = 0; i < Math.min(steps[trackIndex].length, MAX_STEPS); i++) {
+        newSteps[i] = steps[trackIndex][i];
+        newVelocity[i] = velocities[trackIndex][i];
+      }
+      return { ...track, steps: newSteps, velocity: newVelocity };
+    });
     setPattern(newPattern);
   };
 
