@@ -808,6 +808,10 @@ export class MelodicSynth {
   }
 
   dispose() {
+    // Stop arpeggiator and LFO before disposing nodes
+    this.stopArpeggiator();
+    this.flangerLfo.stop();
+
     this.synth?.dispose();
     this.filter.dispose();
     this.filterEnv.dispose();

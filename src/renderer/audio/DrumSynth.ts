@@ -33,6 +33,16 @@ export class DrumSynth {
       if (!this.initialized) {
         this.initialized = true;
         console.log('Audio engine initialized');
+
+        // Listen for audio context state changes (e.g., tab switch on mobile)
+        Tone.context.rawContext.addEventListener('statechange', () => {
+          if (Tone.context.state === 'suspended') {
+            // Attempt to resume when context gets suspended
+            Tone.context.resume().catch(err => {
+              console.warn('Could not auto-resume audio context:', err);
+            });
+          }
+        });
       }
     } catch (error) {
       console.error('Failed to initialize audio:', error);

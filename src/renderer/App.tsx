@@ -606,6 +606,8 @@ const App: React.FC = () => {
   const countInSynthRef = useRef<Tone.MembraneSynth | null>(null);
   // Track if we're in the middle of a count-in to prevent race conditions
   const isCountingInRef = useRef(false);
+  // Track visual feedback timeouts for cleanup
+  const feedbackTimeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   // Apply theme to document
   useEffect(() => {
@@ -677,6 +679,9 @@ const App: React.FC = () => {
       if (countInTimerRef.current) {
         clearTimeout(countInTimerRef.current);
       }
+      // Clean up visual feedback timeouts
+      feedbackTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+      feedbackTimeoutsRef.current.clear();
     };
   }, []);
 
@@ -694,9 +699,13 @@ const App: React.FC = () => {
   // Keep isRecordingRef in sync with isRecording state for sequencer callback
   useEffect(() => {
     isRecordingRef.current = isRecording;
-    // Clear recently recorded hits when recording stops
+    // Clear recently recorded hits and pending feedback timeouts when recording stops
     if (!isRecording) {
       recentlyRecordedHits.current.clear();
+      // Clean up any pending visual feedback timeouts
+      feedbackTimeoutsRef.current.forEach(timeoutId => clearTimeout(timeoutId));
+      feedbackTimeoutsRef.current.clear();
+      setRecentlyRecordedSteps(new Set());
     }
   }, [isRecording]);
 
@@ -795,6 +804,11 @@ const App: React.FC = () => {
       } else {
         // Count-in complete - start actual playback
         countInTimerRef.current = setTimeout(async () => {
+          // Guard against race condition where stop was called during count-in
+          if (!isCountingInRef.current) {
+            setCountIn(0);
+            return;
+          }
           setCountIn(0);
           // Start playback BEFORE clearing the counting flag to prevent race condition
           await actuallyStartPlayback();
@@ -1097,14 +1111,16 @@ const App: React.FC = () => {
       // Visual feedback: highlight the recorded step briefly
       const feedbackKey = `drum-${trackIndex}-${stepIndex}`;
       setRecentlyRecordedSteps(prev => new Set([...prev, feedbackKey]));
-      // Remove the highlight after 300ms
-      setTimeout(() => {
+      // Remove the highlight after 300ms (track timeout for cleanup)
+      const timeoutId = setTimeout(() => {
+        feedbackTimeoutsRef.current.delete(timeoutId);
         setRecentlyRecordedSteps(prev => {
           const next = new Set(prev);
           next.delete(feedbackKey);
           return next;
         });
       }, 300);
+      feedbackTimeoutsRef.current.add(timeoutId);
     }
 
     // Always play the sound immediately for instant feedback

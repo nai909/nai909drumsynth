@@ -60,11 +60,12 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   const touchedRef = useRef<boolean>(false);
   const repeatIntervalsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map()); // trackIndex -> timer id
 
-  // Clean up intervals on unmount
+  // Clean up intervals and timeouts on unmount
   useEffect(() => {
     return () => {
-      repeatIntervalsRef.current.forEach((intervalId) => {
-        clearInterval(intervalId);
+      repeatIntervalsRef.current.forEach((timerId) => {
+        clearTimeout(timerId);
+        clearInterval(timerId);
       });
       repeatIntervalsRef.current.clear();
     };
@@ -91,9 +92,11 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   }, [tempo, noteRepeatModifier]);
 
   const startNoteRepeat = useCallback((trackIndex: number, velocity: number) => {
-    // Stop any existing repeat for this specific pad
+    // Stop any existing repeat for this specific pad (handle both timeout and interval)
     if (repeatIntervalsRef.current.has(trackIndex)) {
-      clearInterval(repeatIntervalsRef.current.get(trackIndex)!);
+      const existingId = repeatIntervalsRef.current.get(trackIndex)!;
+      clearTimeout(existingId);
+      clearInterval(existingId);
       repeatIntervalsRef.current.delete(trackIndex);
     }
 
