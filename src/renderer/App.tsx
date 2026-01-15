@@ -139,38 +139,49 @@ const validateSynthParams = (params: unknown): SynthParams => {
   };
 };
 
-// Clickable theme smiley component
-const ThemeSmiley: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button className="theme-smiley-btn" onClick={onClick} aria-label="Change color theme">
-    <svg viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        className="theme-smiley-face"
-        d="M32 4
-           C14 4 4 16 4 32
-           C4 44 10 52 14 56
-           L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
-           C18 64 22 66 24 68
-           L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
-           C28 71 30 71 32 71
-           C34 71 36 71 38 70
-           L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
-           C42 66 46 64 48 62
-           L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
-           C54 54 60 46 60 32
-           C60 16 50 4 32 4Z"
-      />
-      <ellipse className="theme-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
-      <ellipse className="theme-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
-      <path
-        className="theme-smiley-mouth"
-        d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
-        strokeWidth="4"
-        fill="none"
-        strokeLinecap="round"
-      />
-    </svg>
-  </button>
-);
+// Clickable theme smiley component with beat animation
+const ThemeSmiley: React.FC<{ onClick: () => void; isPlaying: boolean; currentStep: number }> = ({ onClick, isPlaying, currentStep }) => {
+  // Bounce on quarter notes (every 4 steps)
+  const isOnBeat = isPlaying && currentStep % 4 === 0;
+  // Extra emphasis on downbeat (first beat of bar)
+  const isDownbeat = isPlaying && currentStep % 16 === 0;
+
+  return (
+    <button
+      className={`theme-smiley-btn ${isOnBeat ? 'on-beat' : ''} ${isDownbeat ? 'on-downbeat' : ''}`}
+      onClick={onClick}
+      aria-label="Change color theme"
+    >
+      <svg viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          className="theme-smiley-face"
+          d="M32 4
+             C14 4 4 16 4 32
+             C4 44 10 52 14 56
+             L14 66 C14 70 12 74 12 74 C12 78 16 78 16 74 L16 62
+             C18 64 22 66 24 68
+             L24 72 C24 76 22 80 22 80 C22 84 26 84 26 80 L26 70
+             C28 71 30 71 32 71
+             C34 71 36 71 38 70
+             L38 76 C38 80 36 84 36 84 C36 88 40 88 40 80 L40 68
+             C42 66 46 64 48 62
+             L48 70 C48 74 46 78 46 78 C46 82 50 82 50 78 L50 58
+             C54 54 60 46 60 32
+             C60 16 50 4 32 4Z"
+        />
+        <ellipse className="theme-smiley-eye" cx="20" cy="28" rx="5" ry="8" />
+        <ellipse className="theme-smiley-eye" cx="44" cy="28" rx="5" ry="8" />
+        <path
+          className="theme-smiley-mouth"
+          d="M16 44 Q24 54, 32 52 Q40 50, 48 44"
+          strokeWidth="4"
+          fill="none"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
+  );
+};
 
 const MAX_STEPS = 128; // 8 bars of 16 steps (max supported)
 
@@ -1230,8 +1241,8 @@ const App: React.FC = () => {
   return (
     <div className="app">
       <PsychedelicBackground />
-      {/* Clickable theme smiley */}
-      <ThemeSmiley onClick={handleThemeChange} />
+      {/* Clickable theme smiley - bounces to the beat */}
+      <ThemeSmiley onClick={handleThemeChange} isPlaying={isPlaying} currentStep={currentStep} />
 
       {/* Save/Load buttons */}
       <div className="project-buttons">

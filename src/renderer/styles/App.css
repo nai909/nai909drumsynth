@@ -249,6 +249,43 @@
   stroke: rgba(0, 0, 0, 0.7);
 }
 
+/* Beat animation - subtle bounce on quarter notes */
+.theme-smiley-btn.on-beat {
+  animation: smiley-bounce 0.1s ease-out;
+}
+
+/* Stronger bounce on downbeat (first beat of bar) */
+.theme-smiley-btn.on-downbeat {
+  animation: smiley-bounce-big 0.15s ease-out;
+}
+
+@keyframes smiley-bounce {
+  0% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-3px) scale(1.05);
+  }
+  100% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes smiley-bounce-big {
+  0% {
+    transform: translateX(-50%) translateY(0) scale(1);
+    filter: drop-shadow(0 0 12px var(--accent-glow));
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px) scale(1.1);
+    filter: drop-shadow(0 0 20px var(--accent-glow));
+  }
+  100% {
+    transform: translateX(-50%) translateY(0) scale(1);
+    filter: drop-shadow(0 0 12px var(--accent-glow));
+  }
+}
+
 @media (max-width: 768px) {
   .theme-smiley-btn {
     top: 2px;
