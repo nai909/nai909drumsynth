@@ -505,8 +505,9 @@
   border-radius: 0 0 6px 6px;
   margin: 0 1px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-bottom: 8px;
   box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.3),
     inset 0 -2px 4px rgba(0, 0, 0, 0.1);
