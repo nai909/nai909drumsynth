@@ -153,34 +153,53 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   if (mode === 'pad') {
     return (
       <div className={`pad-mode-container ${isPlayingWhileRecording ? 'recording-active' : ''}`}>
-        {/* Note Repeat Selector */}
-        <div className="note-repeat-selector">
-          <div className="note-repeat-label-group">
-            <span className="note-repeat-label">NOTE REPEAT</span>
-          </div>
-          <div className="note-repeat-controls">
-            <div className="note-repeat-buttons">
-              {NOTE_REPEAT_RATES.map((rate) => (
+        {/* Pad mode header - Loop Bars and Note Repeat */}
+        <div className="pad-mode-header">
+          {/* Loop Bars Selector */}
+          <div className="loop-bars-selector pad-loop-bars">
+            <span className="loop-bars-label">BARS</span>
+            <div className="loop-bars-buttons">
+              {([1, 2, 4, 8] as const).map((bars) => (
                 <button
-                  key={rate}
-                  className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
-                  onClick={() => onNoteRepeatChange(rate)}
+                  key={bars}
+                  className={`loop-bars-btn ${loopBars === bars ? 'active' : ''}`}
+                  onClick={() => onLoopBarsChange(bars)}
                 >
-                  {rate === 'off' ? 'OFF' : rate}
+                  {bars}
                 </button>
               ))}
             </div>
-            <div className="note-repeat-modifiers">
-              {NOTE_REPEAT_MODIFIERS.map((mod) => (
-                <button
-                  key={mod}
-                  className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
-                  onClick={() => onNoteRepeatModifierChange(mod)}
-                  disabled={noteRepeat === 'off'}
-                >
-                  {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
-                </button>
-              ))}
+          </div>
+
+          {/* Note Repeat Selector */}
+          <div className="note-repeat-selector">
+            <div className="note-repeat-label-group">
+              <span className="note-repeat-label">NOTE REPEAT</span>
+            </div>
+            <div className="note-repeat-controls">
+              <div className="note-repeat-buttons">
+                {NOTE_REPEAT_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    className={`note-repeat-btn ${noteRepeat === rate ? 'active' : ''}`}
+                    onClick={() => onNoteRepeatChange(rate)}
+                  >
+                    {rate === 'off' ? 'OFF' : rate}
+                  </button>
+                ))}
+              </div>
+              <div className="note-repeat-modifiers">
+                {NOTE_REPEAT_MODIFIERS.map((mod) => (
+                  <button
+                    key={mod}
+                    className={`note-repeat-mod-btn ${noteRepeatModifier === mod ? 'active' : ''} ${noteRepeat === 'off' ? 'disabled' : ''}`}
+                    onClick={() => onNoteRepeatModifierChange(mod)}
+                    disabled={noteRepeat === 'off'}
+                  >
+                    {mod === 'normal' ? '•' : mod === 'dotted' ? '••' : '•••'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

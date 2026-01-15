@@ -7,6 +7,26 @@
   min-height: 0;
 }
 
+/* Pad Mode Header - contains loop bars and note repeat */
+.pad-mode-header {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.pad-loop-bars {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pad-mode-header .note-repeat-selector {
+  flex: 1;
+}
+
 /* Note Repeat Selector */
 .note-repeat-selector {
   display: flex;
