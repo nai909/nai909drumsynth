@@ -41,31 +41,61 @@ const validateSynthStep = (step: unknown): SynthStep => {
   };
 };
 
+// Helper to validate numeric value with bounds
+const validateNumber = (val: unknown, defaultVal: number, min?: number, max?: number): number => {
+  if (typeof val !== 'number' || !Number.isFinite(val)) return defaultVal;
+  let result = val;
+  if (min !== undefined) result = Math.max(min, result);
+  if (max !== undefined) result = Math.min(max, result);
+  return result;
+};
+
 const validateDrumTrack = (track: unknown, defaultTrack: DrumTrack): DrumTrack => {
   if (!track || typeof track !== 'object') {
     return defaultTrack;
   }
   const t = track as Record<string, unknown>;
   const validTypes: DrumTrack['type'][] = ['analog', 'fm', 'pcm', 'sample'];
+
+  // Validate and cap arrays to MAX_STEPS length
+  const maxSteps = defaultTrack.steps.length;
+  let steps: boolean[] = defaultTrack.steps;
+  let velocity: number[] = defaultTrack.velocity;
+
+  if (Array.isArray(t.steps)) {
+    steps = new Array(maxSteps).fill(false);
+    for (let i = 0; i < Math.min(t.steps.length, maxSteps); i++) {
+      steps[i] = Boolean(t.steps[i]);
+    }
+  }
+
+  if (Array.isArray(t.velocity)) {
+    velocity = new Array(maxSteps).fill(1);
+    for (let i = 0; i < Math.min(t.velocity.length, maxSteps); i++) {
+      const v = t.velocity[i];
+      velocity[i] = typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
+    }
+  }
+
   return {
     id: typeof t.id === 'string' ? t.id : defaultTrack.id,
     name: typeof t.name === 'string' ? t.name : defaultTrack.name,
     type: validTypes.includes(t.type as DrumTrack['type']) ? t.type as DrumTrack['type'] : defaultTrack.type,
     soundEngine: typeof t.soundEngine === 'string' ? t.soundEngine : defaultTrack.soundEngine,
-    steps: Array.isArray(t.steps) ? t.steps.map(s => Boolean(s)) : defaultTrack.steps,
-    velocity: Array.isArray(t.velocity) ? t.velocity.map(v => typeof v === 'number' ? v : 1) : defaultTrack.velocity,
+    steps,
+    velocity,
     muted: typeof t.muted === 'boolean' ? t.muted : false,
     solo: typeof t.solo === 'boolean' ? t.solo : false,
-    volume: typeof t.volume === 'number' ? t.volume : defaultTrack.volume,
-    pan: typeof t.pan === 'number' ? t.pan : 0,
-    tune: typeof t.tune === 'number' ? t.tune : 0,
-    decay: typeof t.decay === 'number' ? t.decay : 0,
-    attack: typeof t.attack === 'number' ? t.attack : 0.001,
-    tone: typeof t.tone === 'number' ? t.tone : 0.5,
-    snap: typeof t.snap === 'number' ? t.snap : 0.3,
-    filterCutoff: typeof t.filterCutoff === 'number' ? t.filterCutoff : 0.8,
-    filterResonance: typeof t.filterResonance === 'number' ? t.filterResonance : 0.2,
-    drive: typeof t.drive === 'number' ? t.drive : 0,
+    volume: validateNumber(t.volume, defaultTrack.volume, 0, 1),
+    pan: validateNumber(t.pan, 0, -1, 1),
+    tune: validateNumber(t.tune, 0, -1, 1),
+    decay: validateNumber(t.decay, 0, 0, 2),
+    attack: validateNumber(t.attack, 0.001, 0.001, 1),
+    tone: validateNumber(t.tone, 0.5, 0, 1),
+    snap: validateNumber(t.snap, 0.3, 0, 1),
+    filterCutoff: validateNumber(t.filterCutoff, 0.8, 0, 1),
+    filterResonance: validateNumber(t.filterResonance, 0.2, 0, 1),
+    drive: validateNumber(t.drive, 0, 0, 1),
   };
 };
 
@@ -79,12 +109,18 @@ const validatePattern = (pattern: unknown, defaultPattern: Pattern): Pattern => 
     ? p.tracks.slice(0, maxTracks).map((t, i) => validateDrumTrack(t, defaultPattern.tracks[i] ?? defaultPattern.tracks[0]))
     : defaultPattern.tracks;
 
+  // Validate tempo with Number.isFinite to catch NaN/Infinity
+  const validTempo = typeof p.tempo === 'number' && Number.isFinite(p.tempo) && p.tempo > 0 && p.tempo <= 300;
+  // Validate steps - must be a valid loop length
+  const validStepsValues = [16, 32, 64, 128];
+  const validSteps = typeof p.steps === 'number' && validStepsValues.includes(p.steps);
+
   return {
     id: typeof p.id === 'string' ? p.id : defaultPattern.id,
     name: typeof p.name === 'string' ? p.name : defaultPattern.name,
     tracks: validatedTracks,
-    tempo: typeof p.tempo === 'number' && p.tempo > 0 && p.tempo <= 300 ? p.tempo : defaultPattern.tempo,
-    steps: typeof p.steps === 'number' ? p.steps : defaultPattern.steps,
+    tempo: validTempo ? p.tempo : defaultPattern.tempo,
+    steps: validSteps ? p.steps : defaultPattern.steps,
   };
 };
 
@@ -629,7 +665,6 @@ const App: React.FC = () => {
   const [recentlyRecordedSteps, setRecentlyRecordedSteps] = useState<Set<string>>(new Set());
   // Synth loop capture mode - first recording pass defines the loop length
   const [isSynthLoopCapture, setIsSynthLoopCapture] = useState(true); // True when sequence is empty
-  const [synthRecordingStartStep, setSynthRecordingStartStep] = useState<number | null>(null);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -1088,10 +1123,6 @@ const App: React.FC = () => {
     }
   }, [synthLoopBars, synthCurrentPage]);
 
-  const handleSynthLoopBarsChange = (bars: 1 | 2 | 4 | 8 | 16) => {
-    setSynthLoopBars(bars);
-  };
-
   const handlePadTrigger = async (trackIndex: number, velocity: number = 0.8, scheduledTime?: number) => {
     if (!drumSynthRef.current) return;
 
@@ -1144,8 +1175,12 @@ const App: React.FC = () => {
         const positionInLoop = compensatedTransportSeconds % loopLengthSeconds;
         const exactStep = positionInLoop / secondsPerStep;
 
-        // Round to nearest step (0.5 threshold) for more natural quantization
-        stepIndex = Math.round(exactStep) % loopLengthSteps;
+        // Round to nearest step, then clamp to valid range
+        // Using Math.floor + 0.5 check prevents boundary issues where step 16 wraps to 0
+        const roundedStep = exactStep - Math.floor(exactStep) >= 0.5
+          ? Math.ceil(exactStep)
+          : Math.floor(exactStep);
+        stepIndex = Math.min(roundedStep, loopLengthSteps - 1);
       }
 
       // Detect loop restart to clear recently recorded hits

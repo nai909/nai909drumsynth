@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import * as Tone from 'tone';
-import { MelodicSynth, SynthParams, WaveformType, ArpMode, DEFAULT_SYNTH_PARAMS } from '../audio/MelodicSynth';
+import { MelodicSynth, SynthParams, WaveformType, ArpMode } from '../audio/MelodicSynth';
 import './SynthSequencer.css';
 
 export interface Step {
@@ -575,10 +574,10 @@ const generateMelodicPattern = (
 };
 
 const SynthSequencer: React.FC<SynthSequencerProps> = ({
-  synth, isPlaying, tempo, steps, onStepsChange, params, onParamsChange, currentStep,
+  synth, isPlaying: _isPlaying, tempo: _tempo, steps, onStepsChange, params, onParamsChange, currentStep,
   loopBars, onLoopBarsChange, currentPage, onPageChange,
-  scaleEnabled = true,
-  onScaleEnabledChange,
+  scaleEnabled: _scaleEnabled = true,
+  onScaleEnabledChange: _onScaleEnabledChange,
   scaleRoot: scaleRootProp = 'C',
   onScaleRootChange,
   scaleType: scaleTypeProp = 'major',

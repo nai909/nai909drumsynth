@@ -1,6 +1,6 @@
 import * as Tone from 'tone';
 import { DrumSynth } from './DrumSynth';
-import { DrumTrack, Pattern } from '../types';
+import { Pattern } from '../types';
 
 export class Sequencer {
   private drumSynth: DrumSynth;

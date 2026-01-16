@@ -262,9 +262,13 @@ const Synth: React.FC<SynthProps> = ({
   // Extract recorded notes from synthSequence for the capture ribbon
   const recordedNotes: RecordedNote[] = useMemo(() => {
     if (!synthSequence) return [];
-    return synthSequence
-      .map((step, index) => step.active ? { step: index, note: step.note, length: step.length } : null)
-      .filter((n): n is RecordedNote => n !== null);
+    const notes: RecordedNote[] = [];
+    synthSequence.forEach((step, index) => {
+      if (step.active) {
+        notes.push({ step: index, note: step.note, length: step.length });
+      }
+    });
+    return notes;
   }, [synthSequence]);
 
   // Scale change handlers (call parent if available)

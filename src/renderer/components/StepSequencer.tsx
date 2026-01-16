@@ -53,7 +53,7 @@ const StepSequencer: React.FC<StepSequencerProps> = ({
   onLoopBarsChange,
   currentPage,
   onPageChange,
-  isRecording = false,
+  isRecording: _isRecording = false,
   isPlayingWhileRecording = false,
   recentlyRecordedSteps = new Set(),
 }) => {

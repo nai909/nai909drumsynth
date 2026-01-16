@@ -1,5 +1,4 @@
 import * as Tone from 'tone';
-import { SynthEngine, DrumSynthParams } from '../types';
 
 export class DrumSynth {
   private synths: Map<string, any> = new Map();
@@ -109,8 +108,8 @@ export class DrumSynth {
       merger.chain(distortion, panner, this.masterGain);
 
       // 808 kick pitch - around 45-60Hz base
-      const basePitch = Tone.Frequency(48 + (tune * 20));
-      const clickPitch = Tone.Frequency(150 + (tune * 30));
+      const basePitch = 48 + (tune * 20);
+      const clickPitch = 150 + (tune * 30);
 
       kick.triggerAttackRelease(basePitch, kickDecay + 0.1, time, Math.max(0.4, Math.min(1, velocity)));
       click.triggerAttackRelease(clickPitch, 0.05, time, Math.max(0.2, Math.min(0.6, velocity * snap * clickLevel)));
@@ -206,7 +205,7 @@ export class DrumSynth {
       disposables.push(body, crack, sizzle, bodyFilter, crackFilter, sizzleFilter, distortion, panner, merger);
 
       // Trigger all layers
-      const bodyPitch = Tone.Frequency(200 + (tune * 40));
+      const bodyPitch = 200 + (tune * 40);
       body.triggerAttackRelease(bodyPitch, '64n', time, Math.max(0.5, Math.min(1, velocity)));
       crack.triggerAttackRelease(snareDecay, time, Math.max(0.4, Math.min(1, velocity * 0.9)));
       sizzle.triggerAttackRelease(snareDecay * 0.5, time, Math.max(0.2, Math.min(0.5, velocity * tone * 0.6)));
@@ -599,7 +598,7 @@ export class DrumSynth {
 
       tom.chain(distortion, filter, panner, this.masterGain);
 
-      const pitch = Tone.Frequency(basePitch).transpose(tune * 24);
+      const pitch = Tone.Frequency(basePitch).transpose(tune * 24).toFrequency();
       const tomDecay = Math.max(0.1, decay);
       tom.triggerAttackRelease(pitch, '8n', time, Math.max(0, Math.min(1, velocity)));
 
@@ -648,7 +647,7 @@ export class DrumSynth {
 
       fm.chain(distortion, filter, panner, this.masterGain);
 
-      const pitch = Tone.Frequency(basePitch).transpose(tune * 24);
+      const pitch = Tone.Frequency(basePitch).transpose(tune * 24).toFrequency();
       const fmDecay = Math.max(0.05, decay);
       fm.triggerAttackRelease(pitch, '16n', time, Math.max(0, Math.min(1, velocity)));
 

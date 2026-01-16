@@ -130,6 +130,9 @@ export class MelodicSynth {
   private _recordTimeout: number | null = null;
   private _onRecordDone: (() => void) | null = null;
 
+  // Disposed flag to prevent operations after disposal
+  private _disposed: boolean = false;
+
   constructor() {
     this.params = { ...DEFAULT_SYNTH_PARAMS };
     // Limiter to prevent clipping
@@ -294,7 +297,6 @@ export class MelodicSynth {
       if (!this.initialized) {
         // Limit polyphony to prevent CPU overload
         this.synth = new Tone.PolySynth(Tone.Synth, {
-          maxPolyphony: 12, // Max 12 simultaneous voices
           oscillator: {
             type: this.params.waveform,
           },
@@ -305,6 +307,7 @@ export class MelodicSynth {
             release: this.params.release,
           },
         });
+        this.synth.maxPolyphony = 12; // Max 12 simultaneous voices
 
         this.synth.set({ detune: this.params.detune * 100 });
         this.synth.connect(this.gain);
@@ -317,6 +320,7 @@ export class MelodicSynth {
   }
 
   updateParams(params: Partial<SynthParams>) {
+    if (this._disposed) return;
     this.params = { ...this.params, ...params };
 
     if (this.synth) {
@@ -553,8 +557,9 @@ export class MelodicSynth {
   }
 
   async noteOn(note: string, velocity: number = 0.8) {
+    if (this._disposed) return;
     await this.init();
-    if (!this.synth) return;
+    if (!this.synth || this._disposed) return;
 
     // Record if recording
     this.recordNoteStart(note, velocity);
@@ -586,7 +591,7 @@ export class MelodicSynth {
   }
 
   noteOff(note: string) {
-    if (!this.synth) return;
+    if (this._disposed || !this.synth) return;
 
     // Record if recording
     this.recordNoteEnd(note);
@@ -718,7 +723,7 @@ export class MelodicSynth {
   }
 
   // Called when a note is pressed during recording
-  private recordNoteStart(note: string, velocity: number) {
+  private recordNoteStart(note: string, _velocity: number) {
     console.log('recordNoteStart', { note, isRecording: this._isRecording });
     if (!this._isRecording) return;
     this._noteStartTimes.set(note, Date.now());
@@ -808,9 +813,14 @@ export class MelodicSynth {
   }
 
   dispose() {
+    if (this._disposed) return;
+    this._disposed = true;
+
     // Stop arpeggiator and LFO before disposing nodes
     this.stopArpeggiator();
+    this.stopPlayback();
     this.flangerLfo.stop();
+    this.lfo.stop();
 
     this.synth?.dispose();
     this.filter.dispose();
@@ -832,5 +842,9 @@ export class MelodicSynth {
     this.flanger.dispose();
     this.flangerLfo.dispose();
     this.flangerWet.dispose();
+  }
+
+  get isDisposed(): boolean {
+    return this._disposed;
   }
 }
