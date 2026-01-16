@@ -456,6 +456,58 @@ const GENRE_PATTERNS: GenrePattern[] = [
     clap: { required: [], optional: [4, 12], probability: 0.5 },
     extras: [{ track: 6, steps: [7, 15], probability: 0.25 }],
   },
+  // UK Drill - 140bpm, sliding kicks, half-time snare, busy hats
+  {
+    name: 'UK Drill',
+    kick: { required: [0, 5, 10], optional: [3, 7, 12, 14, 15], probability: 0.4 },
+    snare: { required: [8], optional: [4], probability: 0.15 },
+    closedHH: { required: [0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14, 15], optional: [1, 5, 9, 13], probability: 0.6 },
+    openHH: { required: [], optional: [3, 7, 15], probability: 0.35 },
+    clap: { required: [8], optional: [4, 12], probability: 0.25 },
+    extras: [
+      { track: 7, steps: [2, 6, 10, 14], probability: 0.3 },
+      { track: 5, steps: [13, 15], probability: 0.2 },
+    ],
+  },
+  // UK Drill 2 - variation with more syncopation
+  {
+    name: 'UK Drill 2',
+    kick: { required: [0, 3, 10, 14], optional: [6, 7, 12], probability: 0.35 },
+    snare: { required: [8], optional: [], probability: 0 },
+    closedHH: { required: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], optional: [], probability: 0 },
+    openHH: { required: [7], optional: [3, 11, 15], probability: 0.4 },
+    clap: { required: [8], optional: [3, 11], probability: 0.2 },
+    extras: [
+      { track: 7, steps: [4, 12], probability: 0.35 },
+      { track: 6, steps: [6, 14], probability: 0.25 },
+    ],
+  },
+  // Grime - 140bpm, aggressive, bouncy
+  {
+    name: 'Grime',
+    kick: { required: [0, 3, 8, 11], optional: [6, 14], probability: 0.3 },
+    snare: { required: [4, 12], optional: [2, 10], probability: 0.25 },
+    closedHH: { required: [0, 2, 4, 6, 8, 10, 12, 14], optional: [1, 3, 5, 7, 9, 11, 13, 15], probability: 0.5 },
+    openHH: { required: [], optional: [6, 14], probability: 0.3 },
+    clap: { required: [4, 12], optional: [8], probability: 0.2 },
+    extras: [
+      { track: 7, steps: [2, 6, 10, 14], probability: 0.4 },
+      { track: 5, steps: [0, 8], probability: 0.15 },
+    ],
+  },
+  // Grime 2 - more skippy, percussive
+  {
+    name: 'Grime 2',
+    kick: { required: [0, 6, 10], optional: [3, 8, 14, 15], probability: 0.35 },
+    snare: { required: [4, 12], optional: [7, 11], probability: 0.3 },
+    closedHH: { required: [0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14, 15], optional: [1, 5, 9, 13], probability: 0.45 },
+    openHH: { required: [7], optional: [3, 15], probability: 0.35 },
+    clap: { required: [4, 12], optional: [], probability: 0 },
+    extras: [
+      { track: 7, steps: [1, 5, 9, 13], probability: 0.5 },
+      { track: 6, steps: [3, 11], probability: 0.3 },
+    ],
+  },
 ];
 
 const generateDrumPattern = (loopBars: number): { steps: boolean[][]; velocities: number[][] } => {
