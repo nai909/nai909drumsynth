@@ -228,6 +228,85 @@ const MELODIC_GENRES: MelodicGenre[] = [
     variationChance: 0.3,
     allowRepeats: true,
   },
+  // R&B and Soul melodic genres
+  {
+    name: 'R&B',
+    rhythmPatterns: [
+      [0, 3, 4, 7, 10, 12, 14],         // Smooth groove
+      [0, 2, 6, 8, 10, 14],             // Laid back
+      [0, 4, 6, 7, 10, 12, 15],         // Syncopated soul
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 8,
+    noteRangeEnd: 18,
+    variationChance: 0.25,
+    allowRepeats: false,
+  },
+  {
+    name: 'Neo Soul',
+    rhythmPatterns: [
+      [0, 3, 7, 10, 14],                // Spacious, breathing
+      [0, 2, 4, 8, 11, 14],             // Erykah Badu feel
+      [0, 6, 8, 12],                    // Minimal, expressive
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 10,
+    noteRangeEnd: 20,
+    variationChance: 0.35,
+    allowRepeats: false,
+  },
+  {
+    name: 'Soul',
+    rhythmPatterns: [
+      [0, 2, 4, 6, 8, 10, 12, 14],      // Classic Motown 8ths
+      [0, 3, 4, 8, 11, 12],             // Call and response
+      [0, 4, 7, 8, 12, 15],             // Gospel influenced
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 8,
+    noteRangeEnd: 16,
+    variationChance: 0.2,
+    allowRepeats: true,
+  },
+  {
+    name: 'Slow Jam',
+    rhythmPatterns: [
+      [0, 4, 8, 12],                    // Quarter notes, spacious
+      [0, 6, 10, 14],                   // Dreamy
+      [0, 3, 8, 11],                    // Gentle syncopation
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 10,
+    noteRangeEnd: 20,
+    variationChance: 0.3,
+    allowRepeats: false,
+  },
+  {
+    name: 'Gospel Run',
+    rhythmPatterns: [
+      [0, 1, 2, 3, 8, 9, 10, 11],       // Melismatic runs
+      [0, 1, 2, 4, 8, 9, 10, 12],       // Expressive phrases
+      [4, 5, 6, 7, 12, 13, 14, 15],     // Ascending runs
+    ],
+    melodyType: 'ascending',
+    noteRangeStart: 8,
+    noteRangeEnd: 18,
+    variationChance: 0.15,
+    allowRepeats: true,
+  },
+  {
+    name: 'Smooth Jazz',
+    rhythmPatterns: [
+      [0, 3, 6, 10, 12],                // Sophisticated
+      [0, 2, 5, 8, 11, 14],             // Walking feel
+      [0, 4, 7, 10, 14],                // Breezy
+    ],
+    melodyType: 'stepwise',
+    noteRangeStart: 10,
+    noteRangeEnd: 22,
+    variationChance: 0.4,
+    allowRepeats: false,
+  },
   // Chord-based genres - broken/arpeggiated chords on consecutive steps
   // With polyphony enabled, these overlap and create chord sounds
   {
