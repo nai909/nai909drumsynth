@@ -228,58 +228,85 @@ const MELODIC_GENRES: MelodicGenre[] = [
     variationChance: 0.3,
     allowRepeats: true,
   },
-  // Chord-based genres
+  // Chord-based genres - broken/arpeggiated chords on consecutive steps
+  // With polyphony enabled, these overlap and create chord sounds
   {
     name: 'Pop Chords',
     rhythmPatterns: [
-      [0, 1, 2, 8, 9, 10],              // Two chords per bar
-      [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14], // Four chords per bar
-      [0, 1, 2, 3, 8, 9, 10, 11],       // Two big chords
+      [0, 1, 2, 8, 9, 10],              // Two triads per bar
+      [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14], // Four triads per bar
+      [0, 1, 2, 3, 8, 9, 10, 11],       // Two 4-note chords
     ],
     melodyType: 'chords',
     noteRangeStart: 7,
-    noteRangeEnd: 18,
-    variationChance: 0.15,
+    noteRangeEnd: 15,
+    variationChance: 0.1,
     allowRepeats: true,
   },
   {
     name: 'Ballad',
     rhythmPatterns: [
-      [0, 1, 2, 3],                     // One chord per bar
-      [0, 1, 2, 8, 9, 10],              // Two chords, gentle
-      [0, 1, 2, 3, 12, 13, 14],         // Slow changes
+      [0, 1, 2, 3],                     // One slow 4-note chord
+      [0, 1, 2, 8, 9, 10],              // Two gentle triads
+      [0, 1, 2, 3, 12, 13, 14, 15],     // Two 4-note chords
     ],
     melodyType: 'chords',
     noteRangeStart: 8,
-    noteRangeEnd: 20,
+    noteRangeEnd: 16,
     variationChance: 0.1,
     allowRepeats: true,
   },
   {
     name: 'R&B Chords',
     rhythmPatterns: [
-      [0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15], // Jazzy changes
-      [0, 1, 2, 3, 4, 8, 9, 10, 11, 12], // Neo-soul feel
-      [2, 3, 4, 5, 10, 11, 12, 13],     // Offbeat chords
+      [0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15], // Three 4-note chords
+      [0, 1, 2, 3, 8, 9, 10, 11],       // Neo-soul feel
+      [2, 3, 4, 5, 10, 11, 12, 13],     // Offbeat 4-note chords
     ],
     melodyType: 'chords',
     noteRangeStart: 6,
-    noteRangeEnd: 18,
-    variationChance: 0.25,
+    noteRangeEnd: 14,
+    variationChance: 0.15,
     allowRepeats: true,
   },
   {
     name: 'Lo-fi Chords',
     rhythmPatterns: [
-      [0, 1, 2, 8, 9],                  // Sparse broken chords
-      [0, 1, 4, 5, 8, 9, 12, 13],       // Gentle rhythm
-      [2, 3, 4, 10, 11, 12],            // Lazy feel
+      [0, 1, 2, 8, 9, 10],              // Sparse triads
+      [0, 1, 2, 4, 5, 8, 9, 10, 12, 13], // Gentle broken chords
+      [2, 3, 4, 10, 11, 12],            // Lazy triads
     ],
     melodyType: 'chords',
     noteRangeStart: 8,
-    noteRangeEnd: 18,
-    variationChance: 0.3,
+    noteRangeEnd: 15,
+    variationChance: 0.2,
     allowRepeats: false,
+  },
+  {
+    name: 'Gospel Chords',
+    rhythmPatterns: [
+      [0, 1, 2, 3, 4, 8, 9, 10, 11, 12], // Big 5-note chords
+      [0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15], // Rich progression
+      [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17], // Extended voicings (will wrap)
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 5,
+    noteRangeEnd: 14,
+    variationChance: 0.1,
+    allowRepeats: true,
+  },
+  {
+    name: 'Jazz Voicings',
+    rhythmPatterns: [
+      [0, 1, 2, 3, 8, 9, 10, 11],       // Two 7th chords
+      [0, 1, 2, 3, 4, 10, 11, 12, 13, 14], // Extended voicings
+      [2, 3, 4, 5, 8, 9, 10, 11, 14, 15], // Syncopated changes
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 6,
+    noteRangeEnd: 16,
+    variationChance: 0.2,
+    allowRepeats: true,
   },
 ];
 

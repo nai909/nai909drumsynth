@@ -49,7 +49,7 @@ export interface SynthParams {
 }
 
 export const DEFAULT_SYNTH_PARAMS: SynthParams = {
-  waveform: 'sine',
+  waveform: 'triangle',
   attack: 0.01,
   decay: 0.2,
   sustain: 0.5,
