@@ -11,6 +11,7 @@ import Synth from './components/Synth';
 import SynthEffects from './components/SynthEffects';
 import { Step as SynthStep } from './components/SynthSequencer';
 import PsychedelicBackground from './components/PsychedelicBackground';
+import { generateRandomParams } from './constants/instrumentDefaults';
 import './styles/App.css';
 
 const THEMES = ['purple', 'blue', 'red', 'orange', 'green', 'cyan', 'pink'] as const;
@@ -980,6 +981,16 @@ const App: React.FC = () => {
     setPattern(newPattern);
   };
 
+  // Randomize drum sounds (parameters) for all 8 pads
+  const handleRandomizeSounds = () => {
+    const newPattern = { ...pattern };
+    newPattern.tracks = newPattern.tracks.map(track => {
+      const randomParams = generateRandomParams();
+      return { ...track, ...randomParams };
+    });
+    setPattern(newPattern);
+  };
+
   // Auto-advance page to follow playhead
   useEffect(() => {
     if (isPlaying) {
@@ -1432,7 +1443,7 @@ const App: React.FC = () => {
                 onNoteRepeatModifierChange={setNoteRepeatModifier}
                 tempo={pattern.tempo}
                 onClearSequence={handleClearSequence}
-                onRandomize={handleRandomize}
+                onRandomize={handleRandomizeSounds}
                 loopBars={loopBars}
                 onLoopBarsChange={handleLoopBarsChange}
                 currentPage={currentPage}

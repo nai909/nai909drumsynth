@@ -114,7 +114,7 @@ type MelodicGenre = {
   // Rhythm patterns for one bar (which steps have notes) - multiple options
   rhythmPatterns: number[][];
   // Melodic movement type
-  melodyType: 'arpeggio' | 'stepwise' | 'jumpy' | 'repetitive' | 'descending' | 'ascending';
+  melodyType: 'arpeggio' | 'stepwise' | 'jumpy' | 'repetitive' | 'descending' | 'ascending' | 'chords';
   // Note range within scale (0 = root, higher = higher notes)
   noteRangeStart: number;
   noteRangeEnd: number;
@@ -228,6 +228,59 @@ const MELODIC_GENRES: MelodicGenre[] = [
     variationChance: 0.3,
     allowRepeats: true,
   },
+  // Chord-based genres
+  {
+    name: 'Pop Chords',
+    rhythmPatterns: [
+      [0, 1, 2, 8, 9, 10],              // Two chords per bar
+      [0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14], // Four chords per bar
+      [0, 1, 2, 3, 8, 9, 10, 11],       // Two big chords
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 7,
+    noteRangeEnd: 18,
+    variationChance: 0.15,
+    allowRepeats: true,
+  },
+  {
+    name: 'Ballad',
+    rhythmPatterns: [
+      [0, 1, 2, 3],                     // One chord per bar
+      [0, 1, 2, 8, 9, 10],              // Two chords, gentle
+      [0, 1, 2, 3, 12, 13, 14],         // Slow changes
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 8,
+    noteRangeEnd: 20,
+    variationChance: 0.1,
+    allowRepeats: true,
+  },
+  {
+    name: 'R&B Chords',
+    rhythmPatterns: [
+      [0, 1, 2, 3, 6, 7, 8, 9, 12, 13, 14, 15], // Jazzy changes
+      [0, 1, 2, 3, 4, 8, 9, 10, 11, 12], // Neo-soul feel
+      [2, 3, 4, 5, 10, 11, 12, 13],     // Offbeat chords
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 6,
+    noteRangeEnd: 18,
+    variationChance: 0.25,
+    allowRepeats: true,
+  },
+  {
+    name: 'Lo-fi Chords',
+    rhythmPatterns: [
+      [0, 1, 2, 8, 9],                  // Sparse broken chords
+      [0, 1, 4, 5, 8, 9, 12, 13],       // Gentle rhythm
+      [2, 3, 4, 10, 11, 12],            // Lazy feel
+    ],
+    melodyType: 'chords',
+    noteRangeStart: 8,
+    noteRangeEnd: 18,
+    variationChance: 0.3,
+    allowRepeats: false,
+  },
 ];
 
 const generateMelodicPattern = (
@@ -323,6 +376,63 @@ const generateMelodicPattern = (
     case 'descending':
       for (let i = 0; i < seqLength; i++) {
         melodicSequence.push(Math.max(0, noteRange.length - 1 - i));
+      }
+      break;
+
+    case 'chords':
+      // Common chord progressions as scale degree offsets from root
+      // Each chord is [root offset, notes to stack above]
+      const progressions = [
+        // I - V - vi - IV (most popular pop progression)
+        [[0, 0, 2, 4], [4, 0, 2, 4], [5, 0, 2, 4], [3, 0, 2, 4]],
+        // I - vi - IV - V
+        [[0, 0, 2, 4], [5, 0, 2, 4], [3, 0, 2, 4], [4, 0, 2, 4]],
+        // ii - V - I - I
+        [[1, 0, 2, 4], [4, 0, 2, 4], [0, 0, 2, 4], [0, 0, 2, 4]],
+        // I - IV - V - IV
+        [[0, 0, 2, 4], [3, 0, 2, 4], [4, 0, 2, 4], [3, 0, 2, 4]],
+        // vi - IV - I - V
+        [[5, 0, 2, 4], [3, 0, 2, 4], [0, 0, 2, 4], [4, 0, 2, 4]],
+        // I - V - vi - iii - IV - I - IV - V (extended)
+        [[0, 0, 2, 4], [4, 0, 2, 4], [5, 0, 2, 4], [2, 0, 2, 4]],
+        // I - iii - vi - IV (emotional)
+        [[0, 0, 2, 4, 6], [2, 0, 2, 4], [5, 0, 2, 4], [3, 0, 2, 4]],
+        // IV - V - iii - vi (J-pop style)
+        [[3, 0, 2, 4], [4, 0, 2, 4], [2, 0, 2, 4], [5, 0, 2, 4]],
+      ];
+
+      const chosenProgression = progressions[Math.floor(Math.random() * progressions.length)];
+
+      // Group consecutive rhythm steps into "chord hits"
+      const chordHits: number[][] = [];
+      let currentHit: number[] = [];
+
+      for (let i = 0; i < rhythmPattern.length; i++) {
+        if (currentHit.length === 0 || rhythmPattern[i] - rhythmPattern[i - 1] <= 1) {
+          currentHit.push(rhythmPattern[i]);
+        } else {
+          chordHits.push([...currentHit]);
+          currentHit = [rhythmPattern[i]];
+        }
+      }
+      if (currentHit.length > 0) chordHits.push(currentHit);
+
+      // Assign chord tones to each hit
+      let chordIndex = 0;
+      for (const hit of chordHits) {
+        const chord = chosenProgression[chordIndex % chosenProgression.length];
+        const rootDegree = chord[0];
+        const intervals = chord.slice(1);
+
+        // For each step in this hit, assign a chord tone
+        for (let i = 0; i < hit.length; i++) {
+          const intervalIndex = i % intervals.length;
+          const noteDegree = rootDegree + intervals[intervalIndex];
+          // Clamp to available range
+          const noteIndex = Math.min(Math.max(0, noteDegree), noteRange.length - 1);
+          melodicSequence.push(noteIndex);
+        }
+        chordIndex++;
       }
       break;
   }

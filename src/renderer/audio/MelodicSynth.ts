@@ -62,7 +62,7 @@ export const DEFAULT_SYNTH_PARAMS: SynthParams = {
   pan: 0,
   arpMode: 'off',
   arpRate: 0.5,
-  mono: true,
+  mono: false,
   // Effects defaults
   reverbMix: 0.5,
   reverbDecay: 0.5,
