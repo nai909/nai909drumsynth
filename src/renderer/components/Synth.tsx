@@ -810,7 +810,7 @@ const generateScaleNotes = (root: string, scaleType: string): string[] => {
 };
 
 // Generate chord progression pattern using crafted progressions with articulations
-const generateChordProgression = (scaleNotes: string[], _loopBars: number): SynthStep[] => {
+const generateChordProgression = (scaleNotes: string[], _loopBars: number, octaveShift: number = 0): SynthStep[] => {
   const pattern: SynthStep[] = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
 
   // Pick a random crafted progression
@@ -828,7 +828,9 @@ const generateChordProgression = (scaleNotes: string[], _loopBars: number): Synt
     }
   };
 
-  const baseIndex = getBaseIndex(progression.register);
+  // Apply octave shift (7 scale degrees = 1 octave in diatonic scales)
+  const octaveOffset = octaveShift * 7;
+  const baseIndex = getBaseIndex(progression.register) + octaveOffset;
   const swing = progression.swing || 0;
 
   // Helper to get a note from scale by index (with bounds checking)
@@ -995,6 +997,7 @@ const Synth: React.FC<SynthProps> = ({
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
+  const [chordOctaveShift, setChordOctaveShift] = useState(0); // -2 to +2 octaves
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNotes = useRef<Set<string>>(new Set()); // track which notes are held by mouse
@@ -1315,13 +1318,17 @@ const Synth: React.FC<SynthProps> = ({
     if (!onSynthSequenceChange) return;
     const scaleNotesArray = generateScaleNotes(scaleRoot, scaleType);
     const barsToGenerate = isSynthLoopCapture ? 4 : synthLoopBars; // Default to 4 bars for full progression
-    const newPattern = generateChordProgression(scaleNotesArray, barsToGenerate);
+    const newPattern = generateChordProgression(scaleNotesArray, barsToGenerate, chordOctaveShift);
     onSynthSequenceChange(newPattern);
     // If in capture mode, set loop to 4 bars and exit capture mode
     if (isSynthLoopCapture && onSynthLoopBarsChange) {
       onSynthLoopBarsChange(4);
     }
   };
+
+  // Chord octave controls
+  const chordOctaveUp = () => setChordOctaveShift(o => Math.min(2, o + 1));
+  const chordOctaveDown = () => setChordOctaveShift(o => Math.max(-2, o - 1));
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
   const arpModes: ArpMode[] = ['off', 'up', 'down', 'updown', 'random'];
@@ -1506,7 +1513,26 @@ const Synth: React.FC<SynthProps> = ({
         {/* Action buttons - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="action-btn mutate-btn" onClick={randomizeParams}>MUTATE</button>
-          <button className="action-btn random-melody-btn" onClick={randomizeChords}>CHORDS</button>
+          <div className="chord-controls">
+            <button className="action-btn random-melody-btn" onClick={randomizeChords}>CHORDS</button>
+            <div className="chord-octave-controls">
+              <button
+                className="chord-octave-btn"
+                onClick={chordOctaveDown}
+                disabled={chordOctaveShift <= -2}
+              >
+                -
+              </button>
+              <span className="chord-octave-display">{chordOctaveShift > 0 ? `+${chordOctaveShift}` : chordOctaveShift}</span>
+              <button
+                className="chord-octave-btn"
+                onClick={chordOctaveUp}
+                disabled={chordOctaveShift >= 2}
+              >
+                +
+              </button>
+            </div>
+          </div>
           <button className="action-btn clear-btn" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
@@ -1640,7 +1666,26 @@ const Synth: React.FC<SynthProps> = ({
       {/* Action buttons - mobile only, below keyboard */}
       <div className="synth-mobile-actions">
         <button className="action-btn-mobile mutate-btn" onClick={randomizeParams}>MUTATE</button>
-        <button className="action-btn-mobile random-melody-btn" onClick={randomizeChords}>CHORDS</button>
+        <div className="chord-controls-mobile">
+          <button className="action-btn-mobile random-melody-btn" onClick={randomizeChords}>CHORDS</button>
+          <div className="chord-octave-controls">
+            <button
+              className="chord-octave-btn"
+              onClick={chordOctaveDown}
+              disabled={chordOctaveShift <= -2}
+            >
+              -
+            </button>
+            <span className="chord-octave-display">{chordOctaveShift > 0 ? `+${chordOctaveShift}` : chordOctaveShift}</span>
+            <button
+              className="chord-octave-btn"
+              onClick={chordOctaveUp}
+              disabled={chordOctaveShift >= 2}
+            >
+              +
+            </button>
+          </div>
+        </div>
         <button className="action-btn-mobile clear-btn" onClick={clearSequence}>CLEAR</button>
       </div>
     </div>
