@@ -119,8 +119,8 @@ const validatePattern = (pattern: unknown, defaultPattern: Pattern): Pattern => 
     id: typeof p.id === 'string' ? p.id : defaultPattern.id,
     name: typeof p.name === 'string' ? p.name : defaultPattern.name,
     tracks: validatedTracks,
-    tempo: validTempo ? p.tempo : defaultPattern.tempo,
-    steps: validSteps ? p.steps : defaultPattern.steps,
+    tempo: validTempo ? (p.tempo as number) : defaultPattern.tempo,
+    steps: validSteps ? (p.steps as 16 | 32 | 64 | 128) : defaultPattern.steps,
   };
 };
 

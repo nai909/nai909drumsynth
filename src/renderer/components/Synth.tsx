@@ -87,25 +87,580 @@ const SCALES: { [key: string]: number[] } = {
 const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // Melodic pattern generation types
-type MelodyType = 'arpeggio' | 'stepwise' | 'jumpy' | 'repetitive';
-
-interface MelodicGenre {
+// Hand-crafted chord progressions with intentional voicings
+// Each voicing is an array of scale degree offsets from a base octave
+// These are designed with voice leading in mind - minimal movement between chords
+interface CraftedProgression {
   name: string;
-  rhythmPatterns: number[][];
-  melodyType: MelodyType;
-  noteRangeStart: number;
-  noteRangeEnd: number;
-  variationChance: number;
+  mood: string;
+  // Each chord: array of scale degree indices (0=root, 2=3rd, 4=5th, 6=7th)
+  // Negative numbers = lower octave, +7 = next octave up
+  voicings: number[][];
+  // Timing: which 16th note steps each chord starts on (within 4 bars)
+  timing: number[];
+  // How long each chord rings (in steps)
+  lengths: number[];
 }
 
-const MELODIC_GENRES: MelodicGenre[] = [
-  { name: 'House', rhythmPatterns: [[0, 3, 4, 7, 8, 11, 12, 14], [0, 2, 4, 6, 8, 10, 12, 14]], melodyType: 'arpeggio', noteRangeStart: 8, noteRangeEnd: 20, variationChance: 0.2 },
-  { name: 'Techno', rhythmPatterns: [[0, 2, 4, 6, 8, 10, 12, 14], [0, 4, 8, 12]], melodyType: 'repetitive', noteRangeStart: 6, noteRangeEnd: 14, variationChance: 0.1 },
-  { name: 'Ambient', rhythmPatterns: [[0, 8], [0, 4, 12]], melodyType: 'stepwise', noteRangeStart: 10, noteRangeEnd: 24, variationChance: 0.4 },
-  { name: 'Hip Hop', rhythmPatterns: [[0, 3, 6, 10, 12], [0, 2, 7, 8, 11, 14]], melodyType: 'jumpy', noteRangeStart: 8, noteRangeEnd: 18, variationChance: 0.3 },
-  { name: 'Trance', rhythmPatterns: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]], melodyType: 'arpeggio', noteRangeStart: 10, noteRangeEnd: 22, variationChance: 0.15 },
-  { name: 'Lo-fi', rhythmPatterns: [[0, 4, 7, 10, 14], [0, 3, 8, 11]], melodyType: 'stepwise', noteRangeStart: 8, noteRangeEnd: 18, variationChance: 0.35 },
-  { name: 'DnB', rhythmPatterns: [[0, 3, 6, 8, 11, 14], [0, 2, 5, 8, 10, 13]], melodyType: 'jumpy', noteRangeStart: 6, noteRangeEnd: 18, variationChance: 0.25 },
+const CRAFTED_PROGRESSIONS: CraftedProgression[] = [
+  // === EMOTIONAL / POP ===
+  {
+    name: 'Hopeful',
+    mood: 'uplifting, anthemic',
+    // I - V - vi - IV with smooth voice leading
+    voicings: [
+      [0, 4, 7, 11],      // I: root, 5th, octave, 3rd above (spread voicing)
+      [-1, 4, 7, 11],     // V: 7th below as bass, creates smooth bass line
+      [-2, 4, 7, 9],      // vi: 6th below as bass, 3rd on top
+      [-4, 3, 7, 10],     // IV: 4th below as bass, warm voicing
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Nostalgic',
+    mood: 'bittersweet, reflective',
+    // vi - IV - I - V (the "sad" version)
+    voicings: [
+      [5, 9, 12, 14],     // vi: minor feel, higher voicing
+      [3, 7, 10, 14],     // IV: drops down smoothly
+      [0, 4, 7, 11],      // I: resolution
+      [4, 7, 11, 14],     // V: tension before repeat
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Yearning',
+    mood: 'longing, emotional',
+    // I - iii - IV - iv (major to minor IV - the heartbreak chord)
+    voicings: [
+      [0, 4, 7, 11],      // I: warm major
+      [2, 5, 9, 12],      // iii: subtle shift
+      [3, 7, 10, 14],     // IV: bright
+      [3, 6, 10, 13],     // iv: the tear-jerker minor IV
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Sunrise',
+    mood: 'awakening, gentle',
+    // IV - V - iii - vi (building then falling)
+    voicings: [
+      [3, 7, 10, 14],     // IV: open, bright
+      [4, 7, 11, 14],     // V: lifts up
+      [2, 5, 9, 11],      // iii: gentle descent
+      [5, 8, 12, 15],     // vi: settles into reflection
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === JAZZ / NEO-SOUL ===
+  {
+    name: 'Soulful',
+    mood: 'warm, neo-soul',
+    // ii7 - V7 - Imaj7 - vi7 (jazz turnaround)
+    voicings: [
+      [1, 4, 6, 8],       // ii7: rich minor 7th
+      [4, 6, 8, 11],      // V7: dominant tension
+      [0, 4, 6, 9],       // Imaj7: sweet resolution
+      [5, 8, 11, 13],     // vi7: emotional color
+    ],
+    timing: [0, 12, 24, 40],
+    lengths: [11, 11, 15, 15],
+  },
+  {
+    name: 'Velvet',
+    mood: 'silky, D\'Angelo',
+    // Imaj9 - IVmaj7 - ii9 - V7#9 (neo-soul classic)
+    voicings: [
+      [0, 4, 6, 9, 14],   // Imaj9: lush with 9th on top
+      [3, 6, 10, 13],     // IVmaj7: warm
+      [1, 4, 6, 8, 13],   // ii9: thick voicing
+      [4, 6, 8, 11, 15],  // V7#9: Hendrix chord tension
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Midnight',
+    mood: 'smoky, jazz club',
+    // iii7 - vi7 - ii7 - V7 (circle of fifths descent)
+    voicings: [
+      [2, 5, 8, 11],      // iii7
+      [5, 8, 11, 14],     // vi7
+      [1, 4, 7, 10],      // ii7
+      [4, 7, 10, 13],     // V7
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Erykah',
+    mood: 'floating, hypnotic',
+    // Imaj7 - #IVm7b5 - IV7 - iii7 (chromatic inner voice movement)
+    voicings: [
+      [0, 4, 6, 11],      // Imaj7
+      [3, 6, 9, 12],      // #IVm7b5: surprising color
+      [3, 6, 9, 11],      // IV7: slides down
+      [2, 5, 8, 11],      // iii7: resolution
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'After Hours',
+    mood: 'late night, intimate',
+    // vi9 - ii11 - Imaj7 - Imaj7 (floating resolution)
+    voicings: [
+      [5, 8, 11, 14, 16], // vi9: rich minor
+      [1, 4, 6, 8, 11],   // ii11: suspended feeling
+      [0, 4, 6, 11],      // Imaj7: home
+      [0, 4, 6, 11],      // Imaj7: rest
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === DREAMY / AMBIENT ===
+  {
+    name: 'Dreamy',
+    mood: 'floating, ethereal',
+    // Imaj7 - iii7 - vi7 - IVmaj7
+    voicings: [
+      [0, 4, 6, 11],      // Imaj7
+      [2, 6, 9, 13],      // iii7
+      [5, 9, 11, 14],     // vi7
+      [3, 6, 10, 14],     // IVmaj7
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Clouds',
+    mood: 'weightless, shoegaze',
+    // IVmaj7 - Imaj7 - IVmaj7 - Imaj7 (simple but vast)
+    voicings: [
+      [3, 7, 10, 14],     // IVmaj7: bright and open
+      [0, 4, 7, 11],      // Imaj7: home
+      [3, 7, 10, 14],     // IVmaj7: return to brightness
+      [0, 4, 7, 11],      // Imaj7: resolution
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Stardust',
+    mood: 'cosmic, wonder',
+    // Imaj7 - bVIImaj7 - IVmaj7 - Imaj7 (borrowed chord magic)
+    voicings: [
+      [0, 4, 6, 11],      // Imaj7
+      [-2, 2, 4, 9],      // bVIImaj7: unexpected brightness
+      [3, 6, 10, 14],     // IVmaj7: familiar
+      [0, 4, 6, 11],      // Imaj7: return home
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === MELANCHOLIC / SAD ===
+  {
+    name: 'Melancholic',
+    mood: 'sad, introspective',
+    // i - VI - III - VII (natural minor)
+    voicings: [
+      [0, 3, 7, 10],      // i: minor root
+      [5, 8, 12, 15],     // VI: major lift
+      [2, 5, 9, 12],      // III: relative major
+      [6, 9, 13, 16],     // VII: tension
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Rain',
+    mood: 'grey, contemplative',
+    // i - iv - VII - III (aeolian sadness)
+    voicings: [
+      [0, 3, 7, 12],      // i: minor root
+      [3, 6, 10, 15],     // iv: deeper sadness
+      [6, 10, 13, 17],    // VII: lift
+      [2, 6, 9, 14],      // III: major resolve
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Goodbye',
+    mood: 'farewell, bittersweet',
+    // I - V/7 - vi - vi (lingering on the minor)
+    voicings: [
+      [0, 4, 7, 11],      // I: starts bright
+      [4, 7, 11, 14],     // V/7: building
+      [5, 9, 12, 14],     // vi: the turn
+      [5, 9, 12, 16],     // vi: stays in sadness
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Fading',
+    mood: 'loss, acceptance',
+    // vi - V - IV - I (descending, letting go)
+    voicings: [
+      [5, 9, 12, 16],     // vi: high minor
+      [4, 7, 11, 14],     // V: step down
+      [3, 7, 10, 14],     // IV: warmer
+      [0, 4, 7, 11],      // I: resolved acceptance
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === CINEMATIC / EPIC ===
+  {
+    name: 'Cinematic',
+    mood: 'epic, building',
+    // I - V/7 - vi - IV with octave reach
+    voicings: [
+      [0, 4, 7, 14],      // I: root with high octave
+      [4, 7, 11, 16],     // V: reaches up
+      [5, 9, 12, 17],     // vi: continues climbing
+      [3, 7, 10, 15],     // IV: settles back
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Heroic',
+    mood: 'triumphant, adventure',
+    // I - IV - I - V (simple power)
+    voicings: [
+      [0, 4, 7, 12],      // I: strong root
+      [3, 7, 10, 15],     // IV: builds
+      [0, 4, 7, 14],      // I: returns bigger
+      [4, 7, 11, 16],     // V: cliffhanger
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Vast',
+    mood: 'expansive, Thomas Newman',
+    // I - bVI - bVII - I (borrowed chords, wide)
+    voicings: [
+      [0, 4, 7, 14],      // I: home
+      [-4, 0, 3, 8],      // bVI: unexpected shift
+      [-2, 2, 5, 10],     // bVII: builds tension
+      [0, 4, 7, 14],      // I: return
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Interstellar',
+    mood: 'cosmic, Zimmer',
+    // i - VI - III - VII (minor with epic spacing)
+    voicings: [
+      [0, 7, 12, 15],     // i: open fifths
+      [5, 12, 15, 20],    // VI: massive spread
+      [2, 9, 14, 17],     // III: climbing
+      [6, 13, 17, 22],    // VII: peak
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === CHILL / LO-FI ===
+  {
+    name: 'Chill',
+    mood: 'relaxed, lo-fi',
+    // Imaj7 - vi7 - ii7 - V7
+    voicings: [
+      [0, 4, 6, 11],      // Imaj7
+      [5, 9, 11, 14],     // vi7
+      [1, 4, 8, 11],      // ii7
+      [4, 8, 11, 13],     // V7
+    ],
+    timing: [0, 14, 28, 44],
+    lengths: [13, 13, 15, 15],
+  },
+  {
+    name: 'Lazy Sunday',
+    mood: 'cozy, bedroom pop',
+    // IVmaj7 - iii7 - ii7 - Imaj7 (descending by step)
+    voicings: [
+      [3, 6, 10, 13],     // IVmaj7
+      [2, 5, 9, 12],      // iii7
+      [1, 4, 8, 11],      // ii7
+      [0, 4, 6, 11],      // Imaj7
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Coffee Shop',
+    mood: 'warm, acoustic',
+    // I - Iadd9 - IV - iv (simple with add9 color)
+    voicings: [
+      [0, 4, 7, 11],      // I
+      [0, 4, 7, 9, 14],   // Iadd9: shimmer
+      [3, 7, 10, 14],     // IV: bright
+      [3, 6, 10, 13],     // iv: the turn
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === DARK / TENSION ===
+  {
+    name: 'Dark',
+    mood: 'tension, mystery',
+    // i - v - VI - iv (dramatic minor)
+    voicings: [
+      [0, 3, 7, 12],      // i: minor root
+      [4, 7, 11, 14],     // v: minor v
+      [5, 9, 12, 16],     // VI: major contrast
+      [3, 6, 10, 15],     // iv: back to minor
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Shadows',
+    mood: 'creeping, ominous',
+    // i - bII - i - VII (phrygian darkness)
+    voicings: [
+      [0, 3, 7, 10],      // i
+      [1, 4, 8, 11],      // bII: Neapolitan tension
+      [0, 3, 7, 10],      // i: return
+      [6, 10, 13, 17],    // VII: unresolved
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Descent',
+    mood: 'falling, dramatic',
+    // i - VII - VI - V (chromatic bass descent)
+    voicings: [
+      [0, 3, 7, 12],      // i
+      [6, 10, 13, 18],    // VII
+      [5, 9, 12, 17],     // VI
+      [4, 7, 11, 16],     // V: dominant at bottom
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === GOSPEL / R&B ===
+  {
+    name: 'Gospel',
+    mood: 'uplifting, church',
+    // I - I7 - IV - iv (the gospel turn)
+    voicings: [
+      [0, 4, 7, 12],      // I: strong
+      [0, 4, 7, 10],      // I7: dominant color
+      [3, 7, 10, 15],     // IV: lifts
+      [3, 6, 10, 15],     // iv: the cry
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Praise',
+    mood: 'joyful, celebratory',
+    // I - iii - IV - V (climbing praise)
+    voicings: [
+      [0, 4, 7, 14],      // I: big
+      [2, 5, 9, 14],      // iii: step up
+      [3, 7, 10, 15],     // IV: higher
+      [4, 7, 11, 16],     // V: peak
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Whitney',
+    mood: 'power ballad, soaring',
+    // I - V - vi - iii - IV - I - IV - V (the classic)
+    voicings: [
+      [0, 4, 7, 11],      // I
+      [4, 7, 11, 14],     // V
+      [5, 9, 12, 14],     // vi
+      [3, 7, 10, 14],     // IV to V
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === ANIME / J-POP ===
+  {
+    name: 'Anime Sad',
+    mood: 'emotional, Japanese',
+    // vi - V - IV - III (royal road to emotions)
+    voicings: [
+      [5, 9, 12, 16],     // vi: starts emotional
+      [4, 8, 11, 15],     // V: builds
+      [3, 7, 10, 14],     // IV: descends
+      [2, 6, 9, 13],      // III: major resolution
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Anime Hope',
+    mood: 'determined, shonen',
+    // IV - V - iii - vi (the dramatic push)
+    voicings: [
+      [3, 7, 10, 14],     // IV: foundation
+      [4, 7, 11, 14],     // V: energy
+      [2, 5, 9, 12],      // iii: tender
+      [5, 9, 12, 16],     // vi: emotional payoff
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Ghibli',
+    mood: 'magical, innocent',
+    // I - iii - IV - V (pure, childlike)
+    voicings: [
+      [0, 4, 7, 11],      // I: simple
+      [2, 5, 9, 11],      // iii: wonder
+      [3, 7, 10, 12],     // IV: lifting
+      [4, 7, 11, 14],     // V: magic
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === ELECTRONIC / HOUSE ===
+  {
+    name: 'Deep House',
+    mood: 'groovy, underground',
+    // i7 - iv7 - VII7 - III7 (minor with 7ths)
+    voicings: [
+      [0, 3, 6, 10],      // i7
+      [3, 6, 9, 13],      // iv7
+      [6, 9, 13, 16],     // VII7
+      [2, 5, 9, 12],      // III7
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Progressive',
+    mood: 'building, trance',
+    // i - VII - VI - VII (rising tension)
+    voicings: [
+      [0, 3, 7, 12],      // i
+      [6, 10, 13, 18],    // VII
+      [5, 9, 12, 17],     // VI
+      [6, 10, 13, 18],    // VII: returns for tension
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === BLUES / ROCK ===
+  {
+    name: 'Blues',
+    mood: 'soulful, classic',
+    // I7 - I7 - IV7 - I7 (12-bar essence in 4)
+    voicings: [
+      [0, 4, 7, 10],      // I7
+      [0, 4, 7, 10],      // I7
+      [3, 6, 10, 13],     // IV7
+      [0, 4, 7, 10],      // I7 back home
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Rock Anthem',
+    mood: 'powerful, arena',
+    // I - bVII - IV - I (the power sound)
+    voicings: [
+      [0, 4, 7, 12],      // I: strong
+      [-2, 2, 5, 10],     // bVII: borrowed power
+      [3, 7, 10, 15],     // IV: bright
+      [0, 4, 7, 12],      // I: resolve
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+
+  // === CLASSICAL INSPIRED ===
+  {
+    name: 'Baroque',
+    mood: 'elegant, Bach',
+    // I - V - vi - iii - IV - I - IV - V
+    voicings: [
+      [0, 4, 7, 11],      // I
+      [4, 7, 11, 14],     // V
+      [5, 9, 12, 14],     // vi
+      [4, 7, 11, 14],     // V resolution
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+  },
+  {
+    name: 'Romantic',
+    mood: 'sweeping, Chopin',
+    // I - vi - ii - V7 (classical with feeling)
+    voicings: [
+      [0, 4, 7, 11],      // I: warm
+      [5, 9, 12, 16],     // vi: yearning
+      [1, 4, 8, 11],      // ii: tension
+      [4, 7, 10, 14],     // V7: resolution ahead
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Moonlight',
+    mood: 'Beethoven, nocturnal',
+    // i - VI - ii° - V (minor key drama)
+    voicings: [
+      [0, 3, 7, 12],      // i
+      [5, 9, 12, 17],     // VI
+      [1, 4, 7, 10],      // ii°: diminished feel
+      [4, 7, 11, 14],     // V: waiting
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+
+  // === MINIMAL / SPARSE ===
+  {
+    name: 'Minimal',
+    mood: 'sparse, glass',
+    // I - V - I - IV (simple movements)
+    voicings: [
+      [0, 7, 14],         // I: open fifth + octave
+      [4, 11, 14],        // V: open
+      [0, 7, 14],         // I: return
+      [3, 10, 14],        // IV: color
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
+  {
+    name: 'Breath',
+    mood: 'meditative, still',
+    // Imaj7 - Imaj7 - IVmaj7 - Imaj7 (barely moving)
+    voicings: [
+      [0, 4, 6, 11],      // Imaj7
+      [0, 4, 6, 11],      // Imaj7: stay
+      [3, 6, 10, 14],     // IVmaj7: gentle shift
+      [0, 4, 6, 11],      // Imaj7: return
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+  },
 ];
 
 // Generate scale notes across octaves
@@ -126,64 +681,42 @@ const generateScaleNotes = (root: string, scaleType: string): string[] => {
   return notes;
 };
 
-// Generate melodic pattern
-const generateMelodicPattern = (scaleNotes: string[], loopBars: number): SynthStep[] => {
-  const totalSteps = loopBars * 16;
-  const genre = MELODIC_GENRES[Math.floor(Math.random() * MELODIC_GENRES.length)];
+// Generate chord progression pattern using crafted progressions
+const generateChordProgression = (scaleNotes: string[], _loopBars: number): SynthStep[] => {
   const pattern: SynthStep[] = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
 
-  const rhythmPattern = genre.rhythmPatterns[Math.floor(Math.random() * genre.rhythmPatterns.length)];
-  const rangeStart = Math.min(genre.noteRangeStart, scaleNotes.length - 1);
-  const rangeEnd = Math.min(genre.noteRangeEnd, scaleNotes.length - 1);
-  const noteRange = scaleNotes.slice(rangeStart, rangeEnd + 1);
+  // Pick a random crafted progression
+  const progression = CRAFTED_PROGRESSIONS[Math.floor(Math.random() * CRAFTED_PROGRESSIONS.length)];
 
-  if (noteRange.length === 0) return pattern;
+  // Base index in scaleNotes for middle register (around C4)
+  const baseIndex = Math.floor(scaleNotes.length / 3);
 
-  let melodicSequence: number[] = [];
-  const seqLength = rhythmPattern.length;
+  // Helper to get a note from scale by index (with bounds checking)
+  const getNote = (scaleIndex: number): string => {
+    // Handle negative indices (lower octaves) and high indices (upper octaves)
+    const clampedIndex = Math.max(0, Math.min(scaleIndex, scaleNotes.length - 1));
+    return scaleNotes[clampedIndex] || 'C4';
+  };
 
-  switch (genre.melodyType) {
-    case 'arpeggio':
-      const dir = Math.random();
-      if (dir < 0.33) {
-        for (let i = 0; i < seqLength; i++) melodicSequence.push(i % noteRange.length);
-      } else if (dir < 0.66) {
-        for (let i = 0; i < seqLength; i++) melodicSequence.push((noteRange.length - 1) - (i % noteRange.length));
-      } else {
-        const upDown = [...Array(noteRange.length).keys()];
-        for (let i = noteRange.length - 2; i > 0; i--) upDown.push(i);
-        for (let i = 0; i < seqLength; i++) melodicSequence.push(upDown[i % upDown.length]);
-      }
-      break;
-    case 'stepwise':
-      let curr = Math.floor(noteRange.length / 2);
-      for (let i = 0; i < seqLength; i++) {
-        melodicSequence.push(curr);
-        const step = Math.random() < 0.7 ? (Math.random() < 0.5 ? 1 : -1) : (Math.random() < 0.5 ? 2 : -2);
-        curr = Math.max(0, Math.min(noteRange.length - 1, curr + step));
-      }
-      break;
-    case 'jumpy':
-      for (let i = 0; i < seqLength; i++) melodicSequence.push(Math.floor(Math.random() * noteRange.length));
-      break;
-    case 'repetitive':
-      const motifLen = 2 + Math.floor(Math.random() * 3);
-      const motif = Array.from({ length: motifLen }, () => Math.floor(Math.random() * Math.min(noteRange.length, 6)));
-      for (let i = 0; i < seqLength; i++) melodicSequence.push(motif[i % motifLen]);
-      break;
-  }
+  // Place each chord from the progression
+  progression.voicings.forEach((voicing, chordIdx) => {
+    const startStep = progression.timing[chordIdx];
+    const length = progression.lengths[chordIdx];
 
-  for (let bar = 0; bar < loopBars; bar++) {
-    rhythmPattern.forEach((step, i) => {
-      const globalStep = bar * 16 + step;
-      if (globalStep < totalSteps) {
-        const noteIdx = bar > 0 && Math.random() < genre.variationChance
-          ? Math.max(0, Math.min(noteRange.length - 1, melodicSequence[i % melodicSequence.length] + (Math.random() < 0.5 ? 1 : -1)))
-          : melodicSequence[i % melodicSequence.length];
-        pattern[globalStep] = { active: true, note: noteRange[noteIdx], length: 1 };
-      }
+    if (startStep >= 256) return;
+
+    // Place each note in the voicing with slight strum (2 steps apart for musicality)
+    voicing.forEach((scaleOffset, noteIdx) => {
+      const noteStep = startStep + noteIdx * 2; // Strum effect: 2 steps between notes
+      if (noteStep >= 256) return;
+
+      const noteIndex = baseIndex + scaleOffset;
+      const note = getNote(noteIndex);
+      const noteLength = Math.max(1, length - noteIdx * 2); // Earlier notes ring longer
+
+      pattern[noteStep] = { active: true, note, length: noteLength };
     });
-  }
+  });
 
   return pattern;
 };
@@ -563,16 +1096,16 @@ const Synth: React.FC<SynthProps> = ({
     }
   };
 
-  // Generate random melody
-  const randomizeMelody = () => {
+  // Generate random chord progression
+  const randomizeChords = () => {
     if (!onSynthSequenceChange) return;
     const scaleNotesArray = generateScaleNotes(scaleRoot, scaleType);
-    const barsToGenerate = isSynthLoopCapture ? 2 : synthLoopBars; // Default to 2 bars in capture mode
-    const newPattern = generateMelodicPattern(scaleNotesArray, barsToGenerate);
+    const barsToGenerate = isSynthLoopCapture ? 4 : synthLoopBars; // Default to 4 bars for full progression
+    const newPattern = generateChordProgression(scaleNotesArray, barsToGenerate);
     onSynthSequenceChange(newPattern);
-    // If in capture mode, set loop to 2 bars and exit capture mode
+    // If in capture mode, set loop to 4 bars and exit capture mode
     if (isSynthLoopCapture && onSynthLoopBarsChange) {
-      onSynthLoopBarsChange(2);
+      onSynthLoopBarsChange(4);
     }
   };
 
@@ -759,7 +1292,7 @@ const Synth: React.FC<SynthProps> = ({
         {/* Action buttons - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="action-btn mutate-btn" onClick={randomizeParams}>MUTATE</button>
-          <button className="action-btn random-melody-btn" onClick={randomizeMelody}>RANDOM</button>
+          <button className="action-btn random-melody-btn" onClick={randomizeChords}>CHORDS</button>
           <button className="action-btn clear-btn" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
@@ -893,7 +1426,7 @@ const Synth: React.FC<SynthProps> = ({
       {/* Action buttons - mobile only, below keyboard */}
       <div className="synth-mobile-actions">
         <button className="action-btn-mobile mutate-btn" onClick={randomizeParams}>MUTATE</button>
-        <button className="action-btn-mobile random-melody-btn" onClick={randomizeMelody}>RANDOM</button>
+        <button className="action-btn-mobile random-melody-btn" onClick={randomizeChords}>CHORDS</button>
         <button className="action-btn-mobile clear-btn" onClick={clearSequence}>CLEAR</button>
       </div>
     </div>
