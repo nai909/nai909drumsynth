@@ -789,6 +789,417 @@ const CRAFTED_PROGRESSIONS: CraftedProgression[] = [
     articulation: 'pulse',
     register: 'mid',
   },
+
+  // === TRAP / MODERN HIP HOP ===
+  {
+    name: 'Mask Off',
+    mood: 'iconic trap, Future',
+    // i - VI - v - i
+    voicings: [
+      [0, 3, 7, 10],
+      [5, 9, 12, 15],
+      [4, 7, 11, 14],
+      [0, 3, 7, 10],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'pad',
+    register: 'low',
+  },
+  {
+    name: 'Melodic Trap',
+    mood: 'dark, Young Thug',
+    // i - III - VI - VII
+    voicings: [
+      [0, 3, 7, 10],
+      [2, 5, 9, 12],
+      [5, 8, 12, 15],
+      [6, 10, 13, 17],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'pad',
+    register: 'low',
+  },
+  {
+    name: 'Drake Type',
+    mood: 'minimal, emotional',
+    // III - i (two chord minimal)
+    voicings: [
+      [2, 5, 9, 12],
+      [2, 5, 9, 12],
+      [0, 3, 7, 10],
+      [0, 3, 7, 10],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'pad',
+    register: 'mid',
+  },
+  {
+    name: 'Poppy Trap',
+    mood: 'G-Eazy, crossover',
+    // i - VI - VII - iv
+    voicings: [
+      [0, 3, 7, 10],
+      [5, 8, 12, 15],
+      [6, 10, 13, 17],
+      [3, 6, 10, 13],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+  },
+  {
+    name: 'Tyler Type',
+    mood: 'jazzy hip hop',
+    // ii7 - V7 - Imaj7 (jazz in hip hop)
+    voicings: [
+      [1, 4, 6, 8, 11],
+      [1, 4, 6, 8, 11],
+      [4, 6, 8, 11, 14],
+      [0, 4, 6, 9, 13],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'rolled',
+    register: 'mid',
+    swing: 2,
+  },
+
+  // === R&B CLASSICS ===
+  {
+    name: 'Smooth Operator',
+    mood: 'silky R&B',
+    // i - v - iv - v
+    voicings: [
+      [0, 3, 6, 10],
+      [4, 7, 10, 14],
+      [3, 6, 10, 13],
+      [4, 7, 10, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 1,
+  },
+  {
+    name: 'Between Sheets',
+    mood: 'classic slow jam',
+    // VI - V - i - vii - III
+    voicings: [
+      [5, 9, 12, 16],
+      [4, 8, 11, 14],
+      [0, 3, 7, 10],
+      [6, 9, 13, 16],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'rolled',
+    register: 'mid',
+    swing: 2,
+  },
+  {
+    name: 'Rock With You',
+    mood: 'MJ, funky R&B',
+    // I - iii - IV - ii - V
+    voicings: [
+      [0, 4, 6, 11],
+      [2, 5, 9, 12],
+      [3, 6, 10, 14],
+      [1, 4, 8, 11],
+    ],
+    timing: [0, 12, 24, 40],
+    lengths: [11, 11, 15, 14],
+    articulation: 'strum',
+    register: 'mid',
+    swing: 1,
+  },
+  {
+    name: 'Always Love You',
+    mood: 'Whitney, power ballad',
+    // I - vi - V - I
+    voicings: [
+      [0, 4, 7, 11],
+      [5, 9, 12, 16],
+      [4, 7, 11, 14],
+      [0, 4, 7, 11],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+  },
+
+  // === POP HITS ===
+  {
+    name: 'Hey Soul Sister',
+    mood: 'feel-good pop',
+    // I - V - vi - IV (most popular)
+    voicings: [
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+      [5, 9, 12, 14],
+      [3, 7, 10, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
+  },
+  {
+    name: 'Stand By Me',
+    mood: '50s doo-wop',
+    // I - vi - IV - V
+    voicings: [
+      [0, 4, 7, 11],
+      [5, 9, 12, 14],
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+  },
+  {
+    name: 'Firework',
+    mood: 'anthemic, Pachelbel',
+    // I - V - vi - iii
+    voicings: [
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+      [5, 9, 12, 14],
+      [2, 5, 9, 12],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'pad',
+    register: 'wide',
+  },
+  {
+    name: 'Somebody Used To',
+    mood: 'Gotye, emotional',
+    // vi - V - IV - V
+    voicings: [
+      [5, 9, 12, 16],
+      [4, 7, 11, 14],
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'mid',
+  },
+  {
+    name: 'What Makes You',
+    mood: 'bright pop',
+    // I - IV - vi - V
+    voicings: [
+      [0, 4, 7, 11],
+      [3, 7, 10, 14],
+      [5, 9, 12, 14],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'high',
+  },
+
+  // === MORE JAZZ ===
+  {
+    name: 'Autumn Leaves',
+    mood: 'jazz standard',
+    // ii - V - I - IV - vii - III - vi
+    voicings: [
+      [1, 4, 6, 8],
+      [4, 6, 8, 11],
+      [0, 4, 6, 9],
+      [3, 6, 9, 13],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 2,
+  },
+  {
+    name: 'Blue Bossa',
+    mood: 'latin jazz',
+    // i - iv - ii - V
+    voicings: [
+      [0, 3, 6, 10],
+      [3, 6, 9, 13],
+      [1, 4, 6, 9],
+      [4, 6, 9, 11],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 1,
+  },
+  {
+    name: 'Giant Steps',
+    mood: 'Coltrane, complex',
+    // I - III - VI - II
+    voicings: [
+      [0, 4, 6, 11],
+      [2, 6, 8, 13],
+      [5, 9, 11, 16],
+      [1, 5, 7, 12],
+    ],
+    timing: [0, 8, 24, 40],
+    lengths: [7, 15, 15, 12],
+    articulation: 'strum',
+    register: 'mid',
+  },
+
+  // === EDM / DANCE ===
+  {
+    name: 'Festival',
+    mood: 'EDM anthem',
+    // vi - IV - I - V
+    voicings: [
+      [5, 9, 12, 16],
+      [3, 7, 10, 14],
+      [0, 4, 7, 12],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'pad',
+    register: 'wide',
+  },
+  {
+    name: 'Euphoric',
+    mood: 'trance, uplifting',
+    // I - V - vi - IV (supersaw)
+    voicings: [
+      [0, 4, 7, 11, 14],
+      [4, 7, 11, 14, 18],
+      [5, 9, 12, 16, 19],
+      [3, 7, 10, 14, 17],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
+  },
+  {
+    name: 'Hypnotic',
+    mood: 'techno, dark',
+    // i - VI - III - VII
+    voicings: [
+      [0, 3, 7, 10],
+      [5, 8, 12, 15],
+      [2, 5, 9, 12],
+      [6, 10, 13, 17],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'low',
+  },
+
+  // === LATIN / WORLD ===
+  {
+    name: 'Bossa Nova',
+    mood: 'Brazilian, smooth',
+    // Imaj7 - ii7 - iii7 - VI7
+    voicings: [
+      [0, 4, 6, 11],
+      [1, 4, 6, 9],
+      [2, 5, 8, 11],
+      [5, 8, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
+    swing: 1,
+  },
+  {
+    name: 'Reggaeton',
+    mood: 'Latin urban',
+    // i - VI - III - VII
+    voicings: [
+      [0, 3, 7, 10],
+      [5, 8, 12, 15],
+      [2, 5, 9, 12],
+      [6, 10, 13, 16],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [8, 8, 8, 8],
+    articulation: 'stab',
+    register: 'mid',
+  },
+  {
+    name: 'Flamenco',
+    mood: 'Spanish, dramatic',
+    // i - VII - VI - V (Andalusian cadence)
+    voicings: [
+      [0, 3, 7, 12],
+      [6, 10, 13, 18],
+      [5, 9, 12, 17],
+      [4, 7, 11, 16],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
+  },
+
+  // === INDIE / ALTERNATIVE ===
+  {
+    name: 'Indie Folk',
+    mood: 'Bon Iver, intimate',
+    // I - iii - vi - IV
+    voicings: [
+      [0, 4, 7, 11],
+      [2, 5, 9, 12],
+      [5, 9, 12, 14],
+      [3, 7, 10, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'mid',
+  },
+  {
+    name: 'Shoegaze Wall',
+    mood: 'MBV, dreamy',
+    // I - bVII - IV - I
+    voicings: [
+      [0, 4, 7, 11, 14],
+      [-2, 2, 5, 9, 12],
+      [3, 7, 10, 14, 17],
+      [0, 4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
+  },
+  {
+    name: 'Emo Revival',
+    mood: 'twinkly, math rock',
+    // vi - IV - I - V
+    voicings: [
+      [5, 9, 12, 16],
+      [3, 7, 10, 14],
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'high',
+  },
 ];
 
 // Generate scale notes across octaves
@@ -810,7 +1221,7 @@ const generateScaleNotes = (root: string, scaleType: string): string[] => {
 };
 
 // Generate chord progression pattern using crafted progressions with articulations
-const generateChordProgression = (scaleNotes: string[], _loopBars: number, octaveShift: number = 0): SynthStep[] => {
+const generateChordProgression = (scaleNotes: string[], _loopBars: number, octaveShift: number = -2): SynthStep[] => {
   const pattern: SynthStep[] = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
 
   // Pick a random crafted progression
@@ -847,6 +1258,9 @@ const generateChordProgression = (scaleNotes: string[], _loopBars: number, octav
     }
   };
 
+  // Randomly decide direction for this progression (ascending vs descending)
+  const invertDirection = Math.random() > 0.5;
+
   // Process each chord based on articulation style
   progression.voicings.forEach((voicing, chordIdx) => {
     const startStep = progression.timing[chordIdx % progression.timing.length];
@@ -855,74 +1269,77 @@ const generateChordProgression = (scaleNotes: string[], _loopBars: number, octav
     if (startStep >= 256) return;
 
     const notes = voicing.map(offset => getNote(baseIndex + offset));
+    // Apply inversion for sequential articulations
+    const orderedNotes = invertDirection ? [...notes].reverse() : notes;
 
     switch (progression.articulation) {
       case 'block':
-        // All notes hit simultaneously
-        notes.forEach(note => {
-          placeNote(startStep, note, length);
+        // Quick stagger so all notes get recorded (sequencer stores 1 note per step)
+        orderedNotes.forEach((note, i) => {
+          placeNote(startStep + i, note, Math.max(1, length - i));
         });
         break;
 
       case 'strum':
-        // Quick cascade low to high (1 step apart)
-        notes.forEach((note, i) => {
+        // Quick cascade (1 step apart) - direction varies
+        orderedNotes.forEach((note, i) => {
           placeNote(startStep + i, note, Math.max(1, length - i));
         });
         break;
 
       case 'arpeggio':
-        // Notes spread evenly across the chord duration
-        const arpSpacing = Math.floor(length / notes.length);
-        notes.forEach((note, i) => {
-          placeNote(startStep + i * arpSpacing, note, Math.max(1, length - i * arpSpacing));
+        // Notes spread evenly across the chord duration - direction varies
+        const arpSpacing = Math.max(2, Math.floor(length / orderedNotes.length));
+        orderedNotes.forEach((note, i) => {
+          placeNote(startStep + i * arpSpacing, note, Math.max(4, length - i * 2));
         });
         break;
 
       case 'broken':
-        // Bass first, then upper voices together
+        // Bass first, then upper voices staggered
         if (notes.length > 0) {
           placeNote(startStep, notes[0], length); // Bass note
-          notes.slice(1).forEach(note => {
-            placeNote(startStep + 2, note, Math.max(1, length - 2)); // Upper voices
+          const upperNotes = invertDirection ? [...notes.slice(1)].reverse() : notes.slice(1);
+          upperNotes.forEach((note, i) => {
+            placeNote(startStep + 2 + i, note, Math.max(1, length - 2 - i));
           });
         }
         break;
 
       case 'pulse':
-        // Chord repeated rhythmically throughout the section
-        const pulseInterval = 4; // Hit every 4 steps (16th notes)
+        // Chord repeated rhythmically - stagger notes within each pulse
+        const pulseInterval = 4;
         const nextChordStart = progression.timing[(chordIdx + 1) % progression.timing.length];
         const sectionLength = chordIdx < progression.timing.length - 1
           ? nextChordStart - startStep
-          : 16; // Default to one bar for last chord
+          : 16;
 
         for (let pulseStep = 0; pulseStep < sectionLength; pulseStep += pulseInterval) {
-          notes.forEach(note => {
-            placeNote(startStep + pulseStep, note, Math.min(length, pulseInterval - 1));
+          orderedNotes.forEach((note, i) => {
+            placeNote(startStep + pulseStep + i, note, Math.max(1, pulseInterval - 1 - i));
           });
         }
         break;
 
       case 'rolled':
-        // Very slow strum - dreamy, harp-like (3 steps apart)
-        notes.forEach((note, i) => {
-          placeNote(startStep + i * 3, note, Math.max(1, length - i * 2));
+        // Very slow strum - dreamy, harp-like (3 steps apart) - direction varies
+        orderedNotes.forEach((note, i) => {
+          placeNote(startStep + i * 3, note, Math.max(4, length - i * 2));
         });
         break;
 
       case 'stab':
-        // Short, punchy hits
-        const stabLength = Math.min(length, 4); // Max 4 steps for stabs
-        notes.forEach(note => {
-          placeNote(startStep, note, stabLength);
+        // Short, punchy hits - staggered
+        const stabLength = Math.min(length, 6);
+        orderedNotes.forEach((note, i) => {
+          placeNote(startStep + i, note, Math.max(1, stabLength - i));
         });
         break;
 
       case 'pad':
-        // Long sustained notes - all at once, full length
-        notes.forEach(note => {
-          placeNote(startStep, note, length);
+        // Long sustained - slight stagger so all notes recorded
+        orderedNotes.forEach((note, i) => {
+          placeNote(startStep + i, note, Math.max(1, length - i));
         });
         break;
 
@@ -997,7 +1414,6 @@ const Synth: React.FC<SynthProps> = ({
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [octave, setOctave] = useState(DEFAULT_OCTAVE);
-  const [chordOctaveShift, setChordOctaveShift] = useState(0); // -2 to +2 octaves
   const keysToNotes = useRef<Map<string, string>>(new Map()); // physical key -> note being played
   const activeTouches = useRef<Map<number, string>>(new Map()); // touchId -> note
   const mouseDownNotes = useRef<Set<string>>(new Set()); // track which notes are held by mouse
@@ -1318,17 +1734,13 @@ const Synth: React.FC<SynthProps> = ({
     if (!onSynthSequenceChange) return;
     const scaleNotesArray = generateScaleNotes(scaleRoot, scaleType);
     const barsToGenerate = isSynthLoopCapture ? 4 : synthLoopBars; // Default to 4 bars for full progression
-    const newPattern = generateChordProgression(scaleNotesArray, barsToGenerate, chordOctaveShift);
+    const newPattern = generateChordProgression(scaleNotesArray, barsToGenerate);
     onSynthSequenceChange(newPattern);
     // If in capture mode, set loop to 4 bars and exit capture mode
     if (isSynthLoopCapture && onSynthLoopBarsChange) {
       onSynthLoopBarsChange(4);
     }
   };
-
-  // Chord octave controls
-  const chordOctaveUp = () => setChordOctaveShift(o => Math.min(2, o + 1));
-  const chordOctaveDown = () => setChordOctaveShift(o => Math.max(-2, o - 1));
 
   const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
   const arpModes: ArpMode[] = ['off', 'up', 'down', 'updown', 'random'];
@@ -1513,26 +1925,7 @@ const Synth: React.FC<SynthProps> = ({
         {/* Action buttons - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button className="action-btn mutate-btn" onClick={randomizeParams}>MUTATE</button>
-          <div className="chord-controls">
-            <button className="action-btn random-melody-btn" onClick={randomizeChords}>CHORDS</button>
-            <div className="chord-octave-controls">
-              <button
-                className="chord-octave-btn"
-                onClick={chordOctaveDown}
-                disabled={chordOctaveShift <= -2}
-              >
-                -
-              </button>
-              <span className="chord-octave-display">{chordOctaveShift > 0 ? `+${chordOctaveShift}` : chordOctaveShift}</span>
-              <button
-                className="chord-octave-btn"
-                onClick={chordOctaveUp}
-                disabled={chordOctaveShift >= 2}
-              >
-                +
-              </button>
-            </div>
-          </div>
+          <button className="action-btn random-melody-btn" onClick={randomizeChords}>CHORDS</button>
           <button className="action-btn clear-btn" onClick={clearSequence}>CLEAR</button>
         </div>
       </div>
@@ -1666,26 +2059,7 @@ const Synth: React.FC<SynthProps> = ({
       {/* Action buttons - mobile only, below keyboard */}
       <div className="synth-mobile-actions">
         <button className="action-btn-mobile mutate-btn" onClick={randomizeParams}>MUTATE</button>
-        <div className="chord-controls-mobile">
-          <button className="action-btn-mobile random-melody-btn" onClick={randomizeChords}>CHORDS</button>
-          <div className="chord-octave-controls">
-            <button
-              className="chord-octave-btn"
-              onClick={chordOctaveDown}
-              disabled={chordOctaveShift <= -2}
-            >
-              -
-            </button>
-            <span className="chord-octave-display">{chordOctaveShift > 0 ? `+${chordOctaveShift}` : chordOctaveShift}</span>
-            <button
-              className="chord-octave-btn"
-              onClick={chordOctaveUp}
-              disabled={chordOctaveShift >= 2}
-            >
-              +
-            </button>
-          </div>
-        </div>
+        <button className="action-btn-mobile random-melody-btn" onClick={randomizeChords}>CHORDS</button>
         <button className="action-btn-mobile clear-btn" onClick={clearSequence}>CLEAR</button>
       </div>
     </div>

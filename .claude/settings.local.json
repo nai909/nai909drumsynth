@@ -14,7 +14,8 @@
       "Bash(git push:*)",
       "Bash(find:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run build:ios:*)"
+      "Bash(npm run build:ios:*)",
+      "WebFetch(domain:www.hooktheory.com)"
     ]
   }
 }
