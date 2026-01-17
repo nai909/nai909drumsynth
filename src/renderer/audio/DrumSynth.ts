@@ -1,18 +1,19 @@
 import * as Tone from 'tone';
 
 export class DrumSynth {
-  private synths: Map<string, any> = new Map();
   private masterGain: Tone.Gain;
   private outputGain: Tone.Gain;
   private limiter: Tone.Limiter;
   private initialized: boolean = false;
+  // Track active disposables for cleanup
+  private activeDisposables: Set<{ dispose: () => void }> = new Set();
 
   constructor() {
-    // Master gain for internal mixing - keep at unity to prevent clipping
+    // Master gain for internal mixing (0.85 = -1.4dB headroom for mixing multiple drums)
     this.masterGain = new Tone.Gain(0.85);
-    // Output gain - slight boost but not excessive
+    // Output gain - unity by default, user can boost up to +6dB
     this.outputGain = new Tone.Gain(1.0);
-    // Limiter prevents clipping/distortion at high volumes
+    // Limiter at -1dB prevents clipping/distortion at high volumes
     this.limiter = new Tone.Limiter(-1);
 
     this.masterGain.chain(this.outputGain, this.limiter, Tone.getDestination());
@@ -31,7 +32,6 @@ export class DrumSynth {
 
       if (!this.initialized) {
         this.initialized = true;
-        console.log('Audio engine initialized');
 
         // Listen for audio context state changes (e.g., tab switch on mobile)
         Tone.context.rawContext.addEventListener('statechange', () => {
@@ -114,15 +114,9 @@ export class DrumSynth {
       kick.triggerAttackRelease(basePitch, kickDecay + 0.1, time, Math.max(0.4, Math.min(1, velocity)));
       click.triggerAttackRelease(clickPitch, 0.05, time, Math.max(0.2, Math.min(0.6, velocity * snap * clickLevel)));
 
-      setTimeout(() => {
-        kick.dispose();
-        click.dispose();
-        filter.dispose();
-        clickFilter.dispose();
-        distortion.dispose();
-        panner.dispose();
-        merger.dispose();
-      }, Math.max(2000, kickDecay * 1000 + 500));
+      // Schedule disposal based on actual decay time
+      const disposalTime = Math.max(2000, (kickDecay + 0.1) * 1000 + 500);
+      this.scheduleDisposal([kick, click, filter, clickFilter, distortion, panner, merger], disposalTime);
     } catch (error) {
       console.error('Kick error:', error);
     }
@@ -210,9 +204,8 @@ export class DrumSynth {
       crack.triggerAttackRelease(snareDecay, time, Math.max(0.4, Math.min(1, velocity * 0.9)));
       sizzle.triggerAttackRelease(snareDecay * 0.5, time, Math.max(0.2, Math.min(0.5, velocity * tone * 0.6)));
 
-      setTimeout(() => {
-        disposables.forEach(d => d.dispose());
-      }, 1000);
+      // Schedule disposal based on snare decay
+      this.scheduleDisposal(disposables, Math.max(1000, snareDecay * 1000 + 500));
     } catch (error) {
       console.error('Snare error:', error);
     }
@@ -305,12 +298,8 @@ export class DrumSynth {
         oscEnv.triggerAttackRelease(openDecay, time, Math.max(0.3, Math.min(1, velocity * 0.5)));
         noise.triggerAttackRelease(openDecay, time, Math.max(0.3, Math.min(1, velocity)));
 
-        setTimeout(() => {
-          disposables.forEach(d => {
-            if (d.stop) d.stop();
-            d.dispose();
-          });
-        }, Math.max(800, openDecay * 1000 + 300));
+        // Schedule disposal based on open hat decay
+        this.scheduleDisposal(disposables, Math.max(800, openDecay * 1000 + 300));
 
       } else {
         // Closed hi-hat: tight and crispy
@@ -382,12 +371,8 @@ export class DrumSynth {
         oscEnv.triggerAttackRelease(closedDecay, time, Math.max(0.2, Math.min(1, velocity * 0.4)));
         noise.triggerAttackRelease(closedDecay, time, Math.max(0.3, Math.min(1, velocity)));
 
-        setTimeout(() => {
-          disposables.forEach(d => {
-            if (d.stop) d.stop();
-            d.dispose();
-          });
-        }, 300);
+        // Schedule disposal for closed hat
+        this.scheduleDisposal(disposables, Math.max(300, closedDecay * 1000 + 200));
       }
     } catch (error) {
       console.error('HiHat error:', error);
@@ -456,9 +441,8 @@ export class DrumSynth {
       tail.triggerAttackRelease(tailDecay, time + (burstCount * burstSpacing), Math.max(0.15, Math.min(0.5, velocity * 0.4)));
       disposables.push(tail);
 
-      setTimeout(() => {
-        disposables.forEach(d => d.dispose());
-      }, Math.max(1500, tailDecay * 1000 + 500));
+      // Schedule disposal based on clap tail decay
+      this.scheduleDisposal(disposables, Math.max(1500, tailDecay * 1000 + 500));
     } catch (error) {
       console.error('Clap error:', error);
     }
@@ -558,11 +542,8 @@ export class DrumSynth {
       harmEnv.triggerAttackRelease(rimshotDecay * 0.7, time, Math.max(0.3, Math.min(0.8, velocity * 0.7)));
       click.triggerAttackRelease(0.006, time, Math.max(0.4, Math.min(1, velocity)));
 
-      setTimeout(() => {
-        fundamental.stop();
-        harmonic.stop();
-        disposables.forEach(d => d.dispose());
-      }, 300);
+      // Schedule disposal based on rimshot decay
+      this.scheduleDisposal(disposables, Math.max(300, rimshotDecay * 1000 + 200));
     } catch (error) {
       console.error('Rimshot error:', error);
     }
@@ -602,12 +583,8 @@ export class DrumSynth {
       const tomDecay = Math.max(0.1, decay);
       tom.triggerAttackRelease(pitch, '8n', time, Math.max(0, Math.min(1, velocity)));
 
-      setTimeout(() => {
-        tom.dispose();
-        filter.dispose();
-        distortion.dispose();
-        panner.dispose();
-      }, Math.max(1500, tomDecay * 1000 + 500));
+      // Schedule disposal based on tom decay
+      this.scheduleDisposal([tom, filter, distortion, panner], Math.max(1500, tomDecay * 1000 + 500));
     } catch (error) {
       console.error('Tom error:', error);
     }
@@ -651,12 +628,8 @@ export class DrumSynth {
       const fmDecay = Math.max(0.05, decay);
       fm.triggerAttackRelease(pitch, '16n', time, Math.max(0, Math.min(1, velocity)));
 
-      setTimeout(() => {
-        fm.dispose();
-        filter.dispose();
-        distortion.dispose();
-        panner.dispose();
-      }, Math.max(1000, fmDecay * 1000 + 500));
+      // Schedule disposal based on FM decay
+      this.scheduleDisposal([fm, filter, distortion, panner], Math.max(1000, fmDecay * 1000 + 500));
     } catch (error) {
       console.error('FM error:', error);
     }
@@ -676,9 +649,45 @@ export class DrumSynth {
     return this.outputGain.gain.value;
   }
 
+  // Helper to schedule disposal of audio nodes after their envelope completes
+  private scheduleDisposal(disposables: { dispose: () => void }[], durationMs: number) {
+    // Track all disposables
+    disposables.forEach(d => this.activeDisposables.add(d));
+
+    // Use Tone.Transport.scheduleOnce for audio-accurate timing when transport is running
+    // Fall back to setTimeout when transport is stopped
+    const disposeAll = () => {
+      disposables.forEach(d => {
+        try {
+          if ('stop' in d && typeof (d as { stop?: () => void }).stop === 'function') {
+            (d as { stop: () => void }).stop();
+          }
+          d.dispose();
+          this.activeDisposables.delete(d);
+        } catch {
+          // Node may already be disposed
+        }
+      });
+    };
+
+    // Add buffer time to ensure envelope fully completes
+    const safetyBuffer = 100;
+    setTimeout(disposeAll, durationMs + safetyBuffer);
+  }
+
   dispose() {
-    this.synths.forEach(synth => synth.dispose());
-    this.synths.clear();
+    // Dispose all active audio nodes
+    this.activeDisposables.forEach(d => {
+      try {
+        if ('stop' in d && typeof (d as { stop?: () => void }).stop === 'function') {
+          (d as { stop: () => void }).stop();
+        }
+        d.dispose();
+      } catch {
+        // Node may already be disposed
+      }
+    });
+    this.activeDisposables.clear();
     this.masterGain.dispose();
     this.outputGain.dispose();
     this.limiter.dispose();

@@ -703,6 +703,7 @@ const App: React.FC = () => {
   // Count-in timer and synth for clicks
   const countInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countInSynthRef = useRef<Tone.MembraneSynth | null>(null);
+  const countInVolumeRef = useRef<Tone.Volume | null>(null);
   // Track if we're in the middle of a count-in to prevent race conditions
   const isCountingInRef = useRef(false);
   // Track visual feedback timeouts for cleanup
@@ -724,7 +725,8 @@ const App: React.FC = () => {
     sequencerRef.current = new Sequencer(drumSynthRef.current);
     melodicSynthRef.current = new MelodicSynth();
     // Initialize count-in click synth (distinct from metronome)
-    const countInVolume = new Tone.Volume(-3).toDestination();
+    // Store volume in ref for proper cleanup
+    countInVolumeRef.current = new Tone.Volume(-3).toDestination();
     countInSynthRef.current = new Tone.MembraneSynth({
       pitchDecay: 0.005,
       octaves: 4,
@@ -734,7 +736,7 @@ const App: React.FC = () => {
         sustain: 0,
         release: 0.02,
       },
-    }).connect(countInVolume);
+    }).connect(countInVolumeRef.current);
     setAudioReady(true);
 
     let lastStep = -1;
@@ -775,6 +777,7 @@ const App: React.FC = () => {
       drumSynthRef.current?.dispose();
       melodicSynthRef.current?.dispose();
       countInSynthRef.current?.dispose();
+      countInVolumeRef.current?.dispose();
       if (countInTimerRef.current) {
         clearTimeout(countInTimerRef.current);
       }

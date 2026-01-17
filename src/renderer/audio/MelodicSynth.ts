@@ -113,10 +113,11 @@ export class MelodicSynth {
 
   // Arpeggiator state
   private heldNotes: string[] = [];
-  private arpInterval: number | null = null;
+  private arpLoop: Tone.Loop | null = null; // Use Tone.Loop for audio-accurate timing
   private arpIndex: number = 0;
   private arpDirection: 1 | -1 = 1;
   private currentArpNote: string | null = null;
+  private arpSortedNotes: string[] = []; // Cache sorted notes for arp callback
 
   // Recording state - simplified
   private _isRecording: boolean = false;
@@ -127,6 +128,7 @@ export class MelodicSynth {
   private _tempo: number = 120;
   private _noteStartTimes: Map<string, number> = new Map();
   private _playbackTimeouts: number[] = [];
+  private _playbackPart: Tone.Part | null = null; // Tone.js Part for audio-accurate playback
   private _recordTimeout: number | null = null;
   private _onRecordDone: (() => void) | null = null;
 
@@ -312,7 +314,6 @@ export class MelodicSynth {
         this.synth.set({ detune: this.params.detune * 100 });
         this.synth.connect(this.gain);
         this.initialized = true;
-        console.log('Melodic synth initialized');
       }
     } catch (error) {
       console.error('Failed to initialize melodic synth:', error);
@@ -474,73 +475,87 @@ export class MelodicSynth {
     return noteMap[noteName] + (parseInt(octave) + 1) * 12;
   }
 
-  private getArpRateMs(): number {
-    // Map 0-1 to 400ms - 50ms (slow to fast)
-    return 400 - (this.params.arpRate * 350);
+  private getArpRateSeconds(): number {
+    // Map 0-1 to 0.4s - 0.05s (slow to fast)
+    // These intervals work well musically at various tempos
+    return 0.4 - (this.params.arpRate * 0.35);
   }
 
   private startArpeggiator() {
     this.stopArpeggiator();
     if (this.heldNotes.length === 0 || this.params.arpMode === 'off') return;
 
-    // Sort notes by pitch
-    const sortedNotes = [...this.heldNotes].sort((a, b) => this.noteToMidi(a) - this.noteToMidi(b));
+    // Sort notes by pitch and cache for the callback
+    this.arpSortedNotes = [...this.heldNotes].sort((a, b) => this.noteToMidi(a) - this.noteToMidi(b));
     this.arpIndex = 0;
     this.arpDirection = 1;
 
-    const playNextNote = () => {
-      if (sortedNotes.length === 0 || !this.synth) return;
-
-      // Release previous arp note
-      if (this.currentArpNote) {
-        this.synth.triggerRelease(this.currentArpNote, Tone.now());
-      }
-
-      let noteIndex: number;
-      switch (this.params.arpMode) {
-        case 'up':
-          noteIndex = this.arpIndex % sortedNotes.length;
-          this.arpIndex++;
-          break;
-        case 'down':
-          noteIndex = (sortedNotes.length - 1) - (this.arpIndex % sortedNotes.length);
-          this.arpIndex++;
-          break;
-        case 'updown':
-          noteIndex = this.arpIndex;
-          this.arpIndex += this.arpDirection;
-          if (this.arpIndex >= sortedNotes.length - 1) {
-            this.arpDirection = -1;
-            this.arpIndex = sortedNotes.length - 1;
-          } else if (this.arpIndex <= 0) {
-            this.arpDirection = 1;
-            this.arpIndex = 0;
-          }
-          break;
-        case 'random':
-          noteIndex = Math.floor(Math.random() * sortedNotes.length);
-          break;
-        default:
-          return;
-      }
-
-      const note = sortedNotes[noteIndex];
-      this.currentArpNote = note;
-      this.synth.triggerAttack(note, Tone.now(), 0.8);
-      this.filterEnv.triggerAttack(Tone.now());
-    };
-
     // Play first note immediately
-    playNextNote();
+    this.playArpNote(Tone.now());
 
-    // Continue arpeggiating
-    this.arpInterval = window.setInterval(playNextNote, this.getArpRateMs());
+    // Create Tone.Loop for audio-accurate arpeggiator timing
+    const intervalSeconds = this.getArpRateSeconds();
+    this.arpLoop = new Tone.Loop((time) => {
+      this.playArpNote(time);
+    }, intervalSeconds);
+
+    // Start the loop
+    this.arpLoop.start(Tone.now() + intervalSeconds);
+
+    // Ensure Transport is running for the loop
+    if (Tone.Transport.state !== 'started') {
+      Tone.Transport.start();
+    }
+  }
+
+  // Separated arp note playing for cleaner code
+  private playArpNote(time: number) {
+    if (this.arpSortedNotes.length === 0 || !this.synth) return;
+
+    // Release previous arp note
+    if (this.currentArpNote) {
+      this.synth.triggerRelease(this.currentArpNote, time);
+    }
+
+    let noteIndex: number;
+    switch (this.params.arpMode) {
+      case 'up':
+        noteIndex = this.arpIndex % this.arpSortedNotes.length;
+        this.arpIndex++;
+        break;
+      case 'down':
+        noteIndex = (this.arpSortedNotes.length - 1) - (this.arpIndex % this.arpSortedNotes.length);
+        this.arpIndex++;
+        break;
+      case 'updown':
+        noteIndex = this.arpIndex;
+        this.arpIndex += this.arpDirection;
+        if (this.arpIndex >= this.arpSortedNotes.length - 1) {
+          this.arpDirection = -1;
+          this.arpIndex = this.arpSortedNotes.length - 1;
+        } else if (this.arpIndex <= 0) {
+          this.arpDirection = 1;
+          this.arpIndex = 0;
+        }
+        break;
+      case 'random':
+        noteIndex = Math.floor(Math.random() * this.arpSortedNotes.length);
+        break;
+      default:
+        return;
+    }
+
+    const note = this.arpSortedNotes[noteIndex];
+    this.currentArpNote = note;
+    this.synth.triggerAttack(note, time, 0.8);
+    this.filterEnv.triggerAttack(time);
   }
 
   private stopArpeggiator() {
-    if (this.arpInterval !== null) {
-      clearInterval(this.arpInterval);
-      this.arpInterval = null;
+    if (this.arpLoop) {
+      this.arpLoop.stop();
+      this.arpLoop.dispose();
+      this.arpLoop = null;
     }
     if (this.currentArpNote && this.synth) {
       this.synth.triggerRelease(this.currentArpNote, Tone.now());
@@ -548,6 +563,7 @@ export class MelodicSynth {
     }
     this.arpIndex = 0;
     this.arpDirection = 1;
+    this.arpSortedNotes = [];
   }
 
   private restartArpIfNeeded() {
@@ -645,8 +661,6 @@ export class MelodicSynth {
   }
 
   startRecording(tempo: number) {
-    console.log('=== START RECORDING ===', { tempo, bars: this._loopBars });
-
     // Stop playback and clear old recording
     this.stopPlayback();
     this._recordedNotes = [];
@@ -658,14 +672,12 @@ export class MelodicSynth {
     // Clear existing timer
     if (this._recordTimeout) clearTimeout(this._recordTimeout);
 
-    // Calculate loop duration in ms
+    // Calculate loop duration in ms (4 beats per bar)
     const msPerBar = (60000 / tempo) * 4;
     const loopMs = this._loopBars * msPerBar;
-    console.log('Loop duration:', loopMs, 'ms');
 
     // Auto-stop after loop duration
     this._recordTimeout = window.setTimeout(() => {
-      console.log('Recording auto-stop');
       this._isRecording = false;
       if (this._onRecordDone) this._onRecordDone();
     }, loopMs);
@@ -676,7 +688,6 @@ export class MelodicSynth {
   }
 
   stopRecording() {
-    console.log('stopRecording called');
     this._isRecording = false;
     if (this._recordTimeout) {
       clearTimeout(this._recordTimeout);
@@ -689,7 +700,6 @@ export class MelodicSynth {
       this._recordedNotes.push({ note, velocity: 0.8, startTime, duration: Math.max(0.05, duration) });
     });
     this._noteStartTimes.clear();
-    console.log('Recording stopped. Notes:', this._recordedNotes.length, this._recordedNotes);
   }
 
   isCurrentlyRecording(): boolean {
@@ -724,20 +734,18 @@ export class MelodicSynth {
 
   // Called when a note is pressed during recording
   private recordNoteStart(note: string, _velocity: number) {
-    console.log('recordNoteStart', { note, isRecording: this._isRecording });
     if (!this._isRecording) return;
     this._noteStartTimes.set(note, Date.now());
   }
 
   // Called when a note is released during recording
   private recordNoteEnd(note: string) {
-    console.log('recordNoteEnd', { note, isRecording: this._isRecording });
     if (!this._isRecording) return;
 
     const startMs = this._noteStartTimes.get(note);
     if (startMs !== undefined) {
       const startTime = (startMs - this._recordStartTime) / 1000; // seconds from loop start
-      const duration = Math.max(0.05, (Date.now() - startMs) / 1000); // duration in seconds
+      const duration = Math.max(0.05, (Date.now() - startMs) / 1000); // duration in seconds, min 50ms
 
       this._recordedNotes.push({
         note,
@@ -746,67 +754,74 @@ export class MelodicSynth {
         duration
       });
       this._noteStartTimes.delete(note);
-      console.log('Note recorded:', { note, startTime, duration });
     }
   }
 
   async startPlayback(tempo: number) {
-    console.log('startPlayback', { tempo, notes: this._recordedNotes.length });
-
     if (this._recordedNotes.length === 0) {
-      console.log('No notes to play');
       return;
     }
 
     await this.init();
     this.stopPlayback();
     this._isPlayingLoop = true;
+    this._tempo = tempo;
 
-    const msPerBar = (60000 / tempo) * 4;
-    const loopMs = this._loopBars * msPerBar;
+    // Calculate loop length in seconds for Tone.js scheduling
+    const secondsPerBeat = 60 / tempo;
+    const secondsPerBar = secondsPerBeat * 4;
+    const loopLengthSeconds = this._loopBars * secondsPerBar;
 
-    const playLoop = () => {
-      if (!this._isPlayingLoop) return;
-      console.log('Playing loop iteration');
+    // Create a Tone.js Part for audio-accurate timing
+    const events = this._recordedNotes.map(note => ({
+      time: note.startTime, // Already in seconds
+      note: note.note,
+      duration: note.duration,
+      velocity: note.velocity,
+    }));
 
-      this._recordedNotes.forEach(note => {
-        const delayMs = note.startTime * 1000;
+    // Use Tone.Part for sample-accurate scheduling
+    this._playbackPart = new Tone.Part((time, event) => {
+      if (!this._isPlayingLoop || !this.synth) return;
 
-        const id = window.setTimeout(() => {
-          if (!this._isPlayingLoop || !this.synth) return;
-          console.log('Triggering:', note.note, 'duration:', note.duration);
+      // Schedule note on
+      this.synth.triggerAttack(event.note, time, event.velocity);
+      this.filterEnv.triggerAttack(time);
 
-          // Trigger synth and filter envelope
-          const now = Tone.now();
-          this.synth.triggerAttack(note.note, now, note.velocity);
-          this.filterEnv.triggerAttack(now);
+      // Schedule note off using Tone.Transport for accuracy
+      Tone.Transport.scheduleOnce((releaseTime) => {
+        if (this.synth && this._isPlayingLoop) {
+          this.synth.triggerRelease(event.note, releaseTime);
+          this.filterEnv.triggerRelease(releaseTime);
+        }
+      }, time + event.duration);
+    }, events);
 
-          // Schedule release
-          const releaseId = window.setTimeout(() => {
-            if (this.synth) {
-              this.synth.triggerRelease(note.note, Tone.now());
-              this.filterEnv.triggerRelease(Tone.now());
-            }
-          }, note.duration * 1000);
-          this._playbackTimeouts.push(releaseId);
-        }, delayMs);
+    // Set up looping
+    this._playbackPart.loop = true;
+    this._playbackPart.loopStart = 0;
+    this._playbackPart.loopEnd = loopLengthSeconds;
 
-        this._playbackTimeouts.push(id);
-      });
+    // Start the part
+    this._playbackPart.start(0);
 
-      // Schedule next loop
-      const loopId = window.setTimeout(() => {
-        if (this._isPlayingLoop) playLoop();
-      }, loopMs);
-      this._playbackTimeouts.push(loopId);
-    };
-
-    playLoop();
+    // Ensure Transport is running
+    if (Tone.Transport.state !== 'started') {
+      Tone.Transport.start();
+    }
   }
 
   stopPlayback() {
-    console.log('stopPlayback');
     this._isPlayingLoop = false;
+
+    // Stop and dispose the Tone.Part if it exists
+    if (this._playbackPart) {
+      this._playbackPart.stop();
+      this._playbackPart.dispose();
+      this._playbackPart = null;
+    }
+
+    // Also clear any legacy timeouts (for backwards compatibility)
     this._playbackTimeouts.forEach(id => clearTimeout(id));
     this._playbackTimeouts = [];
     this.synth?.releaseAll();
@@ -816,9 +831,22 @@ export class MelodicSynth {
     if (this._disposed) return;
     this._disposed = true;
 
-    // Stop arpeggiator and LFO before disposing nodes
+    // Stop arpeggiator, playback, and LFO before disposing nodes
     this.stopArpeggiator();
     this.stopPlayback();
+
+    // Dispose arp loop if it exists (safety - stopArpeggiator should handle this)
+    if (this.arpLoop) {
+      this.arpLoop.dispose();
+      this.arpLoop = null;
+    }
+
+    // Dispose playback part if it exists
+    if (this._playbackPart) {
+      this._playbackPart.dispose();
+      this._playbackPart = null;
+    }
+
     this.flangerLfo.stop();
     this.lfo.stop();
 

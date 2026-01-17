@@ -135,7 +135,8 @@ const Synth: React.FC<SynthProps> = ({
   isSynthLoopCapture = false,
   synthCurrentStep = -1,
   onClearSequence,
-  onSynthLoopBarsChange: _onSynthLoopBarsChange,
+  // onSynthLoopBarsChange is intentionally not destructured - loop bars are auto-set in capture mode
+  // and manually adjusted via App.tsx controls, not from within the Synth keyboard UI
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -154,8 +155,11 @@ const Synth: React.FC<SynthProps> = ({
   // Ref to track latest synthSequence to avoid stale closures in handleNoteOff
   const synthSequenceRef = useRef(synthSequence);
 
-  // Scale notes derived from props
-  const scaleNotes = scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>();
+  // Scale notes derived from props - memoized to avoid recreation on every render
+  const scaleNotes = useMemo(
+    () => scaleEnabled ? getScaleNotes(scaleRoot, scaleType) : new Set<string>(),
+    [scaleEnabled, scaleRoot, scaleType]
+  );
 
   // Extract recorded notes from synthSequence for the capture ribbon
   const recordedNotes: RecordedNote[] = useMemo(() => {
@@ -282,11 +286,11 @@ const Synth: React.FC<SynthProps> = ({
     });
 
     // Calculate note length if we were recording this note
+    // Note: We check noteStart existence, NOT isRecording/isPlaying states
+    // This avoids stale closure issues - if noteStart exists, we were recording when note started
     const noteStart = recordingNoteStarts.current.get(note);
     // Use ref to get latest sequence (avoids stale closure when note released quickly)
     const currentSequence = synthSequenceRef.current;
-    // Note: Don't check isPlaying here - if noteStart exists, we were recording when note started
-    // The isPlaying state may not have updated yet due to async React state
     if (noteStart && onSynthSequenceChange && currentSequence) {
       const msPerStep = 60000 / tempo / 4; // Duration of one 16th note step in ms
       // In capture mode, use full 16 bars
@@ -316,7 +320,7 @@ const Synth: React.FC<SynthProps> = ({
     // Always clean up the tracking, regardless of recording state
     // This prevents stale entries if recording stops while a note is held
     recordingNoteStarts.current.delete(note);
-  }, [synth, isRecording, isPlaying, tempo, onSynthSequenceChange, synthLoopBars, isSynthLoopCapture]);
+  }, [synth, tempo, onSynthSequenceChange, synthLoopBars, isSynthLoopCapture]);
 
   // Global event handlers - catches any missed releases
   useEffect(() => {
@@ -649,7 +653,7 @@ const Synth: React.FC<SynthProps> = ({
       </div>
 
       {/* Keyboard */}
-      <div className="keyboard-container">
+      <div className={`keyboard-container ${isRecording && isPlaying ? 'recording-active' : ''}`}>
         <div className="keyboard">
           {keyboardNotes.filter((n) => !n.isBlack).map((noteObj) => {
             const playable = canPlayNote(noteObj.note);
