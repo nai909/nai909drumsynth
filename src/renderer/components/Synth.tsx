@@ -87,9 +87,23 @@ const SCALES: { [key: string]: number[] } = {
 const ROOT_NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // Melodic pattern generation types
-// Hand-crafted chord progressions with intentional voicings
+// Hand-crafted chord progressions with intentional voicings and articulations
 // Each voicing is an array of scale degree offsets from a base octave
-// These are designed with voice leading in mind - minimal movement between chords
+
+// Articulation styles determine HOW chords are played
+type ArticulationStyle =
+  | 'block'      // All notes hit simultaneously - powerful, definitive
+  | 'strum'      // Quick cascade low to high - guitar-like
+  | 'arpeggio'   // Notes spread across the bar - flowing, harp-like
+  | 'broken'     // Bass first, then upper voices - classic piano
+  | 'pulse'      // Chord repeated rhythmically - driving, energetic
+  | 'rolled'     // Very slow strum - dreamy, ethereal
+  | 'stab'       // Short, punchy hits - funk, house
+  | 'pad';       // Long sustained notes - ambient, cinematic
+
+// Register affects octave placement
+type RegisterPosition = 'low' | 'mid' | 'high' | 'wide';
+
 interface CraftedProgression {
   name: string;
   mood: string;
@@ -100,6 +114,12 @@ interface CraftedProgression {
   timing: number[];
   // How long each chord rings (in steps)
   lengths: number[];
+  // How the chord is articulated
+  articulation: ArticulationStyle;
+  // Where in the register to place chords
+  register: RegisterPosition;
+  // Optional: swing/laid-back feel (0 = on grid, positive = late, negative = early)
+  swing?: number;
 }
 
 const CRAFTED_PROGRESSIONS: CraftedProgression[] = [
@@ -107,559 +127,667 @@ const CRAFTED_PROGRESSIONS: CraftedProgression[] = [
   {
     name: 'Hopeful',
     mood: 'uplifting, anthemic',
-    // I - V - vi - IV with smooth voice leading
     voicings: [
-      [0, 4, 7, 11],      // I: root, 5th, octave, 3rd above (spread voicing)
-      [-1, 4, 7, 11],     // V: 7th below as bass, creates smooth bass line
-      [-2, 4, 7, 9],      // vi: 6th below as bass, 3rd on top
-      [-4, 3, 7, 10],     // IV: 4th below as bass, warm voicing
+      [0, 4, 7, 11],
+      [-1, 4, 7, 11],
+      [-2, 4, 7, 9],
+      [-4, 3, 7, 10],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
   },
   {
     name: 'Nostalgic',
     mood: 'bittersweet, reflective',
-    // vi - IV - I - V (the "sad" version)
     voicings: [
-      [5, 9, 12, 14],     // vi: minor feel, higher voicing
-      [3, 7, 10, 14],     // IV: drops down smoothly
-      [0, 4, 7, 11],      // I: resolution
-      [4, 7, 11, 14],     // V: tension before repeat
+      [5, 9, 12, 14],
+      [3, 7, 10, 14],
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 1,
   },
   {
     name: 'Yearning',
     mood: 'longing, emotional',
-    // I - iii - IV - iv (major to minor IV - the heartbreak chord)
     voicings: [
-      [0, 4, 7, 11],      // I: warm major
-      [2, 5, 9, 12],      // iii: subtle shift
-      [3, 7, 10, 14],     // IV: bright
-      [3, 6, 10, 13],     // iv: the tear-jerker minor IV
+      [0, 4, 7, 11],
+      [2, 5, 9, 12],
+      [3, 7, 10, 14],
+      [3, 6, 10, 13],
     ],
     timing: [0, 16, 32, 48],
-    lengths: [14, 14, 14, 14],
+    lengths: [15, 15, 15, 15],
+    articulation: 'rolled',
+    register: 'mid',
   },
   {
     name: 'Sunrise',
     mood: 'awakening, gentle',
-    // IV - V - iii - vi (building then falling)
     voicings: [
-      [3, 7, 10, 14],     // IV: open, bright
-      [4, 7, 11, 14],     // V: lifts up
-      [2, 5, 9, 11],      // iii: gentle descent
-      [5, 8, 12, 15],     // vi: settles into reflection
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+      [2, 5, 9, 11],
+      [5, 8, 12, 15],
     ],
     timing: [0, 16, 32, 48],
-    lengths: [14, 14, 14, 14],
+    lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'high',
   },
 
   // === JAZZ / NEO-SOUL ===
   {
     name: 'Soulful',
     mood: 'warm, neo-soul',
-    // ii7 - V7 - Imaj7 - vi7 (jazz turnaround)
     voicings: [
-      [1, 4, 6, 8],       // ii7: rich minor 7th
-      [4, 6, 8, 11],      // V7: dominant tension
-      [0, 4, 6, 9],       // Imaj7: sweet resolution
-      [5, 8, 11, 13],     // vi7: emotional color
+      [1, 4, 6, 8],
+      [4, 6, 8, 11],
+      [0, 4, 6, 9],
+      [5, 8, 11, 13],
     ],
     timing: [0, 12, 24, 40],
     lengths: [11, 11, 15, 15],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 2,
   },
   {
     name: 'Velvet',
     mood: 'silky, D\'Angelo',
-    // Imaj9 - IVmaj7 - ii9 - V7#9 (neo-soul classic)
     voicings: [
-      [0, 4, 6, 9, 14],   // Imaj9: lush with 9th on top
-      [3, 6, 10, 13],     // IVmaj7: warm
-      [1, 4, 6, 8, 13],   // ii9: thick voicing
-      [4, 6, 8, 11, 15],  // V7#9: Hendrix chord tension
+      [0, 4, 6, 9, 14],
+      [3, 6, 10, 13],
+      [1, 4, 6, 8, 13],
+      [4, 6, 8, 11, 15],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'rolled',
+    register: 'low',
+    swing: 2,
   },
   {
     name: 'Midnight',
     mood: 'smoky, jazz club',
-    // iii7 - vi7 - ii7 - V7 (circle of fifths descent)
     voicings: [
-      [2, 5, 8, 11],      // iii7
-      [5, 8, 11, 14],     // vi7
-      [1, 4, 7, 10],      // ii7
-      [4, 7, 10, 13],     // V7
+      [2, 5, 8, 11],
+      [5, 8, 11, 14],
+      [1, 4, 7, 10],
+      [4, 7, 10, 13],
     ],
-    timing: [0, 16, 32, 48],
-    lengths: [14, 14, 14, 14],
+    timing: [0, 14, 28, 44],
+    lengths: [12, 12, 14, 14],
+    articulation: 'broken',
+    register: 'low',
+    swing: 1,
   },
   {
     name: 'Erykah',
     mood: 'floating, hypnotic',
-    // Imaj7 - #IVm7b5 - IV7 - iii7 (chromatic inner voice movement)
     voicings: [
-      [0, 4, 6, 11],      // Imaj7
-      [3, 6, 9, 12],      // #IVm7b5: surprising color
-      [3, 6, 9, 11],      // IV7: slides down
-      [2, 5, 8, 11],      // iii7: resolution
+      [0, 4, 6, 11],
+      [3, 6, 9, 12],
+      [3, 6, 9, 11],
+      [2, 5, 8, 11],
     ],
-    timing: [0, 16, 32, 48],
-    lengths: [15, 15, 15, 15],
+    timing: [0, 18, 34, 50],
+    lengths: [16, 14, 14, 12],
+    articulation: 'pad',
+    register: 'mid',
+    swing: 3,
   },
   {
     name: 'After Hours',
     mood: 'late night, intimate',
-    // vi9 - ii11 - Imaj7 - Imaj7 (floating resolution)
     voicings: [
-      [5, 8, 11, 14, 16], // vi9: rich minor
-      [1, 4, 6, 8, 11],   // ii11: suspended feeling
-      [0, 4, 6, 11],      // Imaj7: home
-      [0, 4, 6, 11],      // Imaj7: rest
+      [5, 8, 11, 14, 16],
+      [1, 4, 6, 8, 11],
+      [0, 4, 6, 11],
+      [0, 4, 6, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'rolled',
+    register: 'mid',
+    swing: 2,
   },
 
   // === DREAMY / AMBIENT ===
   {
     name: 'Dreamy',
     mood: 'floating, ethereal',
-    // Imaj7 - iii7 - vi7 - IVmaj7
     voicings: [
-      [0, 4, 6, 11],      // Imaj7
-      [2, 6, 9, 13],      // iii7
-      [5, 9, 11, 14],     // vi7
-      [3, 6, 10, 14],     // IVmaj7
+      [0, 4, 6, 11],
+      [2, 6, 9, 13],
+      [5, 9, 11, 14],
+      [3, 6, 10, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'high',
   },
   {
     name: 'Clouds',
     mood: 'weightless, shoegaze',
-    // IVmaj7 - Imaj7 - IVmaj7 - Imaj7 (simple but vast)
     voicings: [
-      [3, 7, 10, 14],     // IVmaj7: bright and open
-      [0, 4, 7, 11],      // Imaj7: home
-      [3, 7, 10, 14],     // IVmaj7: return to brightness
-      [0, 4, 7, 11],      // Imaj7: resolution
+      [3, 7, 10, 14],
+      [0, 4, 7, 11],
+      [3, 7, 10, 14],
+      [0, 4, 7, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
   },
   {
     name: 'Stardust',
     mood: 'cosmic, wonder',
-    // Imaj7 - bVIImaj7 - IVmaj7 - Imaj7 (borrowed chord magic)
     voicings: [
-      [0, 4, 6, 11],      // Imaj7
-      [-2, 2, 4, 9],      // bVIImaj7: unexpected brightness
-      [3, 6, 10, 14],     // IVmaj7: familiar
-      [0, 4, 6, 11],      // Imaj7: return home
+      [0, 4, 6, 11],
+      [-2, 2, 4, 9],
+      [3, 6, 10, 14],
+      [0, 4, 6, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'wide',
   },
 
   // === MELANCHOLIC / SAD ===
   {
     name: 'Melancholic',
     mood: 'sad, introspective',
-    // i - VI - III - VII (natural minor)
     voicings: [
-      [0, 3, 7, 10],      // i: minor root
-      [5, 8, 12, 15],     // VI: major lift
-      [2, 5, 9, 12],      // III: relative major
-      [6, 9, 13, 16],     // VII: tension
+      [0, 3, 7, 10],
+      [5, 8, 12, 15],
+      [2, 5, 9, 12],
+      [6, 9, 13, 16],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
   },
   {
     name: 'Rain',
     mood: 'grey, contemplative',
-    // i - iv - VII - III (aeolian sadness)
     voicings: [
-      [0, 3, 7, 12],      // i: minor root
-      [3, 6, 10, 15],     // iv: deeper sadness
-      [6, 10, 13, 17],    // VII: lift
-      [2, 6, 9, 14],      // III: major resolve
+      [0, 3, 7, 12],
+      [3, 6, 10, 15],
+      [6, 10, 13, 17],
+      [2, 6, 9, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'mid',
   },
   {
     name: 'Goodbye',
     mood: 'farewell, bittersweet',
-    // I - V/7 - vi - vi (lingering on the minor)
     voicings: [
-      [0, 4, 7, 11],      // I: starts bright
-      [4, 7, 11, 14],     // V/7: building
-      [5, 9, 12, 14],     // vi: the turn
-      [5, 9, 12, 16],     // vi: stays in sadness
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+      [5, 9, 12, 14],
+      [5, 9, 12, 16],
     ],
     timing: [0, 16, 32, 48],
-    lengths: [14, 14, 14, 14],
+    lengths: [15, 15, 15, 15],
+    articulation: 'rolled',
+    register: 'mid',
   },
   {
     name: 'Fading',
     mood: 'loss, acceptance',
-    // vi - V - IV - I (descending, letting go)
     voicings: [
-      [5, 9, 12, 16],     // vi: high minor
-      [4, 7, 11, 14],     // V: step down
-      [3, 7, 10, 14],     // IV: warmer
-      [0, 4, 7, 11],      // I: resolved acceptance
+      [5, 9, 12, 16],
+      [4, 7, 11, 14],
+      [3, 7, 10, 14],
+      [0, 4, 7, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'high',
   },
 
   // === CINEMATIC / EPIC ===
   {
     name: 'Cinematic',
     mood: 'epic, building',
-    // I - V/7 - vi - IV with octave reach
     voicings: [
-      [0, 4, 7, 14],      // I: root with high octave
-      [4, 7, 11, 16],     // V: reaches up
-      [5, 9, 12, 17],     // vi: continues climbing
-      [3, 7, 10, 15],     // IV: settles back
+      [0, 4, 7, 14],
+      [4, 7, 11, 16],
+      [5, 9, 12, 17],
+      [3, 7, 10, 15],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
   },
   {
     name: 'Heroic',
     mood: 'triumphant, adventure',
-    // I - IV - I - V (simple power)
     voicings: [
-      [0, 4, 7, 12],      // I: strong root
-      [3, 7, 10, 15],     // IV: builds
-      [0, 4, 7, 14],      // I: returns bigger
-      [4, 7, 11, 16],     // V: cliffhanger
+      [0, 4, 7, 12],
+      [3, 7, 10, 15],
+      [0, 4, 7, 14],
+      [4, 7, 11, 16],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'block',
+    register: 'wide',
   },
   {
     name: 'Vast',
     mood: 'expansive, Thomas Newman',
-    // I - bVI - bVII - I (borrowed chords, wide)
     voicings: [
-      [0, 4, 7, 14],      // I: home
-      [-4, 0, 3, 8],      // bVI: unexpected shift
-      [-2, 2, 5, 10],     // bVII: builds tension
-      [0, 4, 7, 14],      // I: return
+      [0, 4, 7, 14],
+      [-4, 0, 3, 8],
+      [-2, 2, 5, 10],
+      [0, 4, 7, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'wide',
   },
   {
     name: 'Interstellar',
     mood: 'cosmic, Zimmer',
-    // i - VI - III - VII (minor with epic spacing)
     voicings: [
-      [0, 7, 12, 15],     // i: open fifths
-      [5, 12, 15, 20],    // VI: massive spread
-      [2, 9, 14, 17],     // III: climbing
-      [6, 13, 17, 22],    // VII: peak
+      [0, 7, 12, 15],
+      [5, 12, 15, 20],
+      [2, 9, 14, 17],
+      [6, 13, 17, 22],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
   },
 
   // === CHILL / LO-FI ===
   {
     name: 'Chill',
     mood: 'relaxed, lo-fi',
-    // Imaj7 - vi7 - ii7 - V7
     voicings: [
-      [0, 4, 6, 11],      // Imaj7
-      [5, 9, 11, 14],     // vi7
-      [1, 4, 8, 11],      // ii7
-      [4, 8, 11, 13],     // V7
+      [0, 4, 6, 11],
+      [5, 9, 11, 14],
+      [1, 4, 8, 11],
+      [4, 8, 11, 13],
     ],
     timing: [0, 14, 28, 44],
     lengths: [13, 13, 15, 15],
+    articulation: 'broken',
+    register: 'mid',
+    swing: 2,
   },
   {
     name: 'Lazy Sunday',
     mood: 'cozy, bedroom pop',
-    // IVmaj7 - iii7 - ii7 - Imaj7 (descending by step)
     voicings: [
-      [3, 6, 10, 13],     // IVmaj7
-      [2, 5, 9, 12],      // iii7
-      [1, 4, 8, 11],      // ii7
-      [0, 4, 6, 11],      // Imaj7
+      [3, 6, 10, 13],
+      [2, 5, 9, 12],
+      [1, 4, 8, 11],
+      [0, 4, 6, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
+    swing: 1,
   },
   {
     name: 'Coffee Shop',
     mood: 'warm, acoustic',
-    // I - Iadd9 - IV - iv (simple with add9 color)
     voicings: [
-      [0, 4, 7, 11],      // I
-      [0, 4, 7, 9, 14],   // Iadd9: shimmer
-      [3, 7, 10, 14],     // IV: bright
-      [3, 6, 10, 13],     // iv: the turn
+      [0, 4, 7, 11],
+      [0, 4, 7, 9, 14],
+      [3, 7, 10, 14],
+      [3, 6, 10, 13],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
   },
 
   // === DARK / TENSION ===
   {
     name: 'Dark',
     mood: 'tension, mystery',
-    // i - v - VI - iv (dramatic minor)
     voicings: [
-      [0, 3, 7, 12],      // i: minor root
-      [4, 7, 11, 14],     // v: minor v
-      [5, 9, 12, 16],     // VI: major contrast
-      [3, 6, 10, 15],     // iv: back to minor
+      [0, 3, 7, 12],
+      [4, 7, 11, 14],
+      [5, 9, 12, 16],
+      [3, 6, 10, 15],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'block',
+    register: 'low',
   },
   {
     name: 'Shadows',
     mood: 'creeping, ominous',
-    // i - bII - i - VII (phrygian darkness)
     voicings: [
-      [0, 3, 7, 10],      // i
-      [1, 4, 8, 11],      // bII: Neapolitan tension
-      [0, 3, 7, 10],      // i: return
-      [6, 10, 13, 17],    // VII: unresolved
+      [0, 3, 7, 10],
+      [1, 4, 8, 11],
+      [0, 3, 7, 10],
+      [6, 10, 13, 17],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'low',
   },
   {
     name: 'Descent',
     mood: 'falling, dramatic',
-    // i - VII - VI - V (chromatic bass descent)
     voicings: [
-      [0, 3, 7, 12],      // i
-      [6, 10, 13, 18],    // VII
-      [5, 9, 12, 17],     // VI
-      [4, 7, 11, 16],     // V: dominant at bottom
+      [0, 3, 7, 12],
+      [6, 10, 13, 18],
+      [5, 9, 12, 17],
+      [4, 7, 11, 16],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'low',
   },
 
   // === GOSPEL / R&B ===
   {
     name: 'Gospel',
     mood: 'uplifting, church',
-    // I - I7 - IV - iv (the gospel turn)
     voicings: [
-      [0, 4, 7, 12],      // I: strong
-      [0, 4, 7, 10],      // I7: dominant color
-      [3, 7, 10, 15],     // IV: lifts
-      [3, 6, 10, 15],     // iv: the cry
+      [0, 4, 7, 12],
+      [0, 4, 7, 10],
+      [3, 7, 10, 15],
+      [3, 6, 10, 15],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'block',
+    register: 'mid',
   },
   {
     name: 'Praise',
     mood: 'joyful, celebratory',
-    // I - iii - IV - V (climbing praise)
     voicings: [
-      [0, 4, 7, 14],      // I: big
-      [2, 5, 9, 14],      // iii: step up
-      [3, 7, 10, 15],     // IV: higher
-      [4, 7, 11, 16],     // V: peak
+      [0, 4, 7, 14],
+      [2, 5, 9, 14],
+      [3, 7, 10, 15],
+      [4, 7, 11, 16],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'wide',
   },
   {
     name: 'Whitney',
     mood: 'power ballad, soaring',
-    // I - V - vi - iii - IV - I - IV - V (the classic)
     voicings: [
-      [0, 4, 7, 11],      // I
-      [4, 7, 11, 14],     // V
-      [5, 9, 12, 14],     // vi
-      [3, 7, 10, 14],     // IV to V
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+      [5, 9, 12, 14],
+      [3, 7, 10, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'mid',
   },
 
   // === ANIME / J-POP ===
   {
     name: 'Anime Sad',
     mood: 'emotional, Japanese',
-    // vi - V - IV - III (royal road to emotions)
     voicings: [
-      [5, 9, 12, 16],     // vi: starts emotional
-      [4, 8, 11, 15],     // V: builds
-      [3, 7, 10, 14],     // IV: descends
-      [2, 6, 9, 13],      // III: major resolution
+      [5, 9, 12, 16],
+      [4, 8, 11, 15],
+      [3, 7, 10, 14],
+      [2, 6, 9, 13],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'high',
   },
   {
     name: 'Anime Hope',
     mood: 'determined, shonen',
-    // IV - V - iii - vi (the dramatic push)
     voicings: [
-      [3, 7, 10, 14],     // IV: foundation
-      [4, 7, 11, 14],     // V: energy
-      [2, 5, 9, 12],      // iii: tender
-      [5, 9, 12, 16],     // vi: emotional payoff
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+      [2, 5, 9, 12],
+      [5, 9, 12, 16],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'block',
+    register: 'mid',
   },
   {
     name: 'Ghibli',
     mood: 'magical, innocent',
-    // I - iii - IV - V (pure, childlike)
     voicings: [
-      [0, 4, 7, 11],      // I: simple
-      [2, 5, 9, 11],      // iii: wonder
-      [3, 7, 10, 12],     // IV: lifting
-      [4, 7, 11, 14],     // V: magic
+      [0, 4, 7, 11],
+      [2, 5, 9, 11],
+      [3, 7, 10, 12],
+      [4, 7, 11, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'high',
   },
 
   // === ELECTRONIC / HOUSE ===
   {
     name: 'Deep House',
     mood: 'groovy, underground',
-    // i7 - iv7 - VII7 - III7 (minor with 7ths)
     voicings: [
-      [0, 3, 6, 10],      // i7
-      [3, 6, 9, 13],      // iv7
-      [6, 9, 13, 16],     // VII7
-      [2, 5, 9, 12],      // III7
+      [0, 3, 6, 10],
+      [3, 6, 9, 13],
+      [6, 9, 13, 16],
+      [2, 5, 9, 12],
     ],
     timing: [0, 16, 32, 48],
-    lengths: [14, 14, 14, 14],
+    lengths: [8, 8, 8, 8],
+    articulation: 'stab',
+    register: 'mid',
   },
   {
     name: 'Progressive',
     mood: 'building, trance',
-    // i - VII - VI - VII (rising tension)
     voicings: [
-      [0, 3, 7, 12],      // i
-      [6, 10, 13, 18],    // VII
-      [5, 9, 12, 17],     // VI
-      [6, 10, 13, 18],    // VII: returns for tension
+      [0, 3, 7, 12],
+      [6, 10, 13, 18],
+      [5, 9, 12, 17],
+      [6, 10, 13, 18],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'wide',
+  },
+  {
+    name: 'Tech House',
+    mood: 'driving, hypnotic',
+    voicings: [
+      [0, 3, 7],
+      [0, 3, 7],
+      [5, 8, 12],
+      [5, 8, 12],
+    ],
+    timing: [0, 8, 32, 40],
+    lengths: [6, 6, 6, 6],
+    articulation: 'pulse',
+    register: 'low',
   },
 
   // === BLUES / ROCK ===
   {
     name: 'Blues',
     mood: 'soulful, classic',
-    // I7 - I7 - IV7 - I7 (12-bar essence in 4)
     voicings: [
-      [0, 4, 7, 10],      // I7
-      [0, 4, 7, 10],      // I7
-      [3, 6, 10, 13],     // IV7
-      [0, 4, 7, 10],      // I7 back home
+      [0, 4, 7, 10],
+      [0, 4, 7, 10],
+      [3, 6, 10, 13],
+      [0, 4, 7, 10],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'broken',
+    register: 'low',
+    swing: 2,
   },
   {
     name: 'Rock Anthem',
     mood: 'powerful, arena',
-    // I - bVII - IV - I (the power sound)
     voicings: [
-      [0, 4, 7, 12],      // I: strong
-      [-2, 2, 5, 10],     // bVII: borrowed power
-      [3, 7, 10, 15],     // IV: bright
-      [0, 4, 7, 12],      // I: resolve
+      [0, 4, 7, 12],
+      [-2, 2, 5, 10],
+      [3, 7, 10, 15],
+      [0, 4, 7, 12],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'block',
+    register: 'wide',
+  },
+  {
+    name: 'Power Ballad',
+    mood: 'emotional, 80s',
+    voicings: [
+      [0, 4, 7, 11],
+      [5, 9, 12, 16],
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 16, 32, 48],
+    lengths: [14, 14, 14, 14],
+    articulation: 'strum',
+    register: 'mid',
   },
 
   // === CLASSICAL INSPIRED ===
   {
     name: 'Baroque',
     mood: 'elegant, Bach',
-    // I - V - vi - iii - IV - I - IV - V
     voicings: [
-      [0, 4, 7, 11],      // I
-      [4, 7, 11, 14],     // V
-      [5, 9, 12, 14],     // vi
-      [4, 7, 11, 14],     // V resolution
+      [0, 4, 7, 11],
+      [4, 7, 11, 14],
+      [5, 9, 12, 14],
+      [4, 7, 11, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [14, 14, 14, 14],
+    articulation: 'arpeggio',
+    register: 'mid',
   },
   {
     name: 'Romantic',
     mood: 'sweeping, Chopin',
-    // I - vi - ii - V7 (classical with feeling)
     voicings: [
-      [0, 4, 7, 11],      // I: warm
-      [5, 9, 12, 16],     // vi: yearning
-      [1, 4, 8, 11],      // ii: tension
-      [4, 7, 10, 14],     // V7: resolution ahead
+      [0, 4, 7, 11],
+      [5, 9, 12, 16],
+      [1, 4, 8, 11],
+      [4, 7, 10, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'rolled',
+    register: 'mid',
   },
   {
     name: 'Moonlight',
     mood: 'Beethoven, nocturnal',
-    // i - VI - ii° - V (minor key drama)
     voicings: [
-      [0, 3, 7, 12],      // i
-      [5, 9, 12, 17],     // VI
-      [1, 4, 7, 10],      // ii°: diminished feel
-      [4, 7, 11, 14],     // V: waiting
+      [0, 3, 7, 12],
+      [5, 9, 12, 17],
+      [1, 4, 7, 10],
+      [4, 7, 11, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'low',
   },
 
   // === MINIMAL / SPARSE ===
   {
     name: 'Minimal',
     mood: 'sparse, glass',
-    // I - V - I - IV (simple movements)
     voicings: [
-      [0, 7, 14],         // I: open fifth + octave
-      [4, 11, 14],        // V: open
-      [0, 7, 14],         // I: return
-      [3, 10, 14],        // IV: color
+      [0, 7, 14],
+      [4, 11, 14],
+      [0, 7, 14],
+      [3, 10, 14],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'arpeggio',
+    register: 'wide',
   },
   {
     name: 'Breath',
     mood: 'meditative, still',
-    // Imaj7 - Imaj7 - IVmaj7 - Imaj7 (barely moving)
     voicings: [
-      [0, 4, 6, 11],      // Imaj7
-      [0, 4, 6, 11],      // Imaj7: stay
-      [3, 6, 10, 14],     // IVmaj7: gentle shift
-      [0, 4, 6, 11],      // Imaj7: return
+      [0, 4, 6, 11],
+      [0, 4, 6, 11],
+      [3, 6, 10, 14],
+      [0, 4, 6, 11],
     ],
     timing: [0, 16, 32, 48],
     lengths: [15, 15, 15, 15],
+    articulation: 'pad',
+    register: 'mid',
+  },
+
+  // === FUNK / GROOVE ===
+  {
+    name: 'Funk',
+    mood: 'groovy, tight',
+    voicings: [
+      [0, 4, 7, 10],
+      [0, 4, 7, 10],
+      [3, 6, 10, 13],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 6, 16, 22, 32, 38, 48, 54],
+    lengths: [4, 4, 4, 4, 4, 4, 4, 4],
+    articulation: 'stab',
+    register: 'mid',
+  },
+  {
+    name: 'Disco',
+    mood: 'pumping, Saturday night',
+    voicings: [
+      [0, 4, 7, 11],
+      [5, 9, 12, 16],
+      [3, 7, 10, 14],
+      [4, 7, 11, 14],
+    ],
+    timing: [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60],
+    lengths: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    articulation: 'pulse',
+    register: 'mid',
   },
 ];
 
@@ -681,41 +809,127 @@ const generateScaleNotes = (root: string, scaleType: string): string[] => {
   return notes;
 };
 
-// Generate chord progression pattern using crafted progressions
+// Generate chord progression pattern using crafted progressions with articulations
 const generateChordProgression = (scaleNotes: string[], _loopBars: number): SynthStep[] => {
   const pattern: SynthStep[] = Array.from({ length: 256 }, () => ({ active: false, note: 'C4' }));
 
   // Pick a random crafted progression
   const progression = CRAFTED_PROGRESSIONS[Math.floor(Math.random() * CRAFTED_PROGRESSIONS.length)];
 
-  // Base index in scaleNotes for middle register (around C4)
-  const baseIndex = Math.floor(scaleNotes.length / 3);
+  // Calculate base index based on register
+  const getBaseIndex = (register: RegisterPosition): number => {
+    const scaleLen = scaleNotes.length;
+    switch (register) {
+      case 'low': return Math.floor(scaleLen / 5);      // Lower third
+      case 'high': return Math.floor(scaleLen / 2);     // Upper half
+      case 'wide': return Math.floor(scaleLen / 4);     // Start low for spread
+      case 'mid':
+      default: return Math.floor(scaleLen / 3);         // Middle
+    }
+  };
+
+  const baseIndex = getBaseIndex(progression.register);
+  const swing = progression.swing || 0;
 
   // Helper to get a note from scale by index (with bounds checking)
   const getNote = (scaleIndex: number): string => {
-    // Handle negative indices (lower octaves) and high indices (upper octaves)
     const clampedIndex = Math.max(0, Math.min(scaleIndex, scaleNotes.length - 1));
     return scaleNotes[clampedIndex] || 'C4';
   };
 
-  // Place each chord from the progression
+  // Helper to place a note in the pattern
+  const placeNote = (step: number, note: string, length: number) => {
+    const adjustedStep = Math.min(255, Math.max(0, step + swing));
+    if (adjustedStep < 256) {
+      pattern[adjustedStep] = { active: true, note, length: Math.max(1, length) };
+    }
+  };
+
+  // Process each chord based on articulation style
   progression.voicings.forEach((voicing, chordIdx) => {
-    const startStep = progression.timing[chordIdx];
-    const length = progression.lengths[chordIdx];
+    const startStep = progression.timing[chordIdx % progression.timing.length];
+    const length = progression.lengths[chordIdx % progression.lengths.length];
 
     if (startStep >= 256) return;
 
-    // Place each note in the voicing with slight strum (2 steps apart for musicality)
-    voicing.forEach((scaleOffset, noteIdx) => {
-      const noteStep = startStep + noteIdx * 2; // Strum effect: 2 steps between notes
-      if (noteStep >= 256) return;
+    const notes = voicing.map(offset => getNote(baseIndex + offset));
 
-      const noteIndex = baseIndex + scaleOffset;
-      const note = getNote(noteIndex);
-      const noteLength = Math.max(1, length - noteIdx * 2); // Earlier notes ring longer
+    switch (progression.articulation) {
+      case 'block':
+        // All notes hit simultaneously
+        notes.forEach(note => {
+          placeNote(startStep, note, length);
+        });
+        break;
 
-      pattern[noteStep] = { active: true, note, length: noteLength };
-    });
+      case 'strum':
+        // Quick cascade low to high (1 step apart)
+        notes.forEach((note, i) => {
+          placeNote(startStep + i, note, Math.max(1, length - i));
+        });
+        break;
+
+      case 'arpeggio':
+        // Notes spread evenly across the chord duration
+        const arpSpacing = Math.floor(length / notes.length);
+        notes.forEach((note, i) => {
+          placeNote(startStep + i * arpSpacing, note, Math.max(1, length - i * arpSpacing));
+        });
+        break;
+
+      case 'broken':
+        // Bass first, then upper voices together
+        if (notes.length > 0) {
+          placeNote(startStep, notes[0], length); // Bass note
+          notes.slice(1).forEach(note => {
+            placeNote(startStep + 2, note, Math.max(1, length - 2)); // Upper voices
+          });
+        }
+        break;
+
+      case 'pulse':
+        // Chord repeated rhythmically throughout the section
+        const pulseInterval = 4; // Hit every 4 steps (16th notes)
+        const nextChordStart = progression.timing[(chordIdx + 1) % progression.timing.length];
+        const sectionLength = chordIdx < progression.timing.length - 1
+          ? nextChordStart - startStep
+          : 16; // Default to one bar for last chord
+
+        for (let pulseStep = 0; pulseStep < sectionLength; pulseStep += pulseInterval) {
+          notes.forEach(note => {
+            placeNote(startStep + pulseStep, note, Math.min(length, pulseInterval - 1));
+          });
+        }
+        break;
+
+      case 'rolled':
+        // Very slow strum - dreamy, harp-like (3 steps apart)
+        notes.forEach((note, i) => {
+          placeNote(startStep + i * 3, note, Math.max(1, length - i * 2));
+        });
+        break;
+
+      case 'stab':
+        // Short, punchy hits
+        const stabLength = Math.min(length, 4); // Max 4 steps for stabs
+        notes.forEach(note => {
+          placeNote(startStep, note, stabLength);
+        });
+        break;
+
+      case 'pad':
+        // Long sustained notes - all at once, full length
+        notes.forEach(note => {
+          placeNote(startStep, note, length);
+        });
+        break;
+
+      default:
+        // Fallback to block
+        notes.forEach(note => {
+          placeNote(startStep, note, length);
+        });
+    }
   });
 
   return pattern;
