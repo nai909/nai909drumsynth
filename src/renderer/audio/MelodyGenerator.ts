@@ -131,59 +131,36 @@ const RHYTHM_TEMPLATES = {
 };
 
 /**
- * Chord progressions - the harmonic foundation
- * Curated from professional orchestral MIDI packs and hit songs
+ * Chord progressions - from professional orchestral MIDI libraries
  * Each progression is an array of scale degrees (1-indexed)
- *
- * These are PROVEN to sound beautiful - from real production libraries
+ * Source: /Documents/Sample Packs/Orchestral Midi/90-115bpm
  */
 const CHORD_PROGRESSIONS = {
-  // EMOTIONAL & CINEMATIC - From orchestral MIDI libraries
+  // EMOTIONAL - Minor key, cinematic feel
   emotional: [
-    [6, 4, 1, 5],     // vi-IV-I-V (Am-F-C-G) - THE emotional progression
-    [6, 1, 6, 5],     // vi-I-vi-V (Am-C-Am-G) - haunting, cyclical
-    [6, 1, 4, 1],     // vi-I-IV-I (Am-C-F-C) - gentle resolution
-    [6, 1, 5, 6],     // vi-I-V-vi (Am-C-G-Am) - dramatic return
-    [6, 5, 4, 5],     // vi-V-IV-V (Am-G-F-G) - building tension
-    [6, 5, 1, 4],     // vi-V-I-IV (Am-G-C-F) - hopeful
-    [6, 5, 3, 4],     // vi-V-iii-IV (Am-G-Em-F) - deeply emotional
-    [6, 5, 4, 2],     // vi-V-IV-ii (Am-G-F-Dm) - melancholic
-    [6, 5, 4, 3],     // vi-V-IV-iii (Am-G-F-Em) - cascading sadness
-    [6, 3, 4, 1],     // vi-iii-IV-I (Am-Em-F-C) - bittersweet resolve
+    [6, 4, 1, 5],     // Am-F-C-G - THE emotional progression
+    [6, 1, 6, 5],     // Am-C-Am-G - haunting, cyclical
+    [6, 1, 4, 1],     // Am-C-F-C - gentle resolution
+    [6, 1, 5, 6],     // Am-C-G-Am - dramatic return
+    [6, 5, 4, 5],     // Am-G-F-G - building tension
+    [6, 5, 1, 4],     // Am-G-C-F - hopeful
+    [6, 5, 3, 4],     // Am-G-Em-F - deeply emotional
+    [6, 5, 4, 2],     // Am-G-F-Dm - melancholic
+    [6, 5, 4, 3],     // Am-G-F-Em - cascading sadness
+    [6, 3, 4, 1],     // Am-Em-F-C - bittersweet
+    [6, 2, 6, 3],     // Am-Dm-Am-Em - circular
+    [6, 2, 3],        // Am-Dm-E - flamenco
+    [6, 3, 4],        // Am-Em-F - suspended
   ],
-  // UPLIFTING & BRIGHT - Major key focus
+  // UPLIFTING - Major key, bright
   uplifting: [
-    [1, 5, 6, 4],     // I-V-vi-IV (C-G-Am-F) - the BIGGEST pop progression
-    [1, 6, 4, 5],     // I-vi-IV-V (C-Am-F-G) - classic 50s/doo-wop
-    [1, 4, 5, 1],     // I-IV-V-I (C-F-G-C) - pure resolution
-    [1, 2, 4, 1],     // I-ii-IV-I (C-Dm-F-C) - gentle movement
-    [1, 6, 3, 4],     // I-vi-III-IV (C-Am-E-F) - surprising beauty
-    [1, 4, 1, 5],     // I-IV-I-V (C-F-C-G) - hymnal, powerful
-    [1, 5, 7, 1],     // I-V-VII-I (C-G-B-C) - modal magic
-  ],
-  // DARK & MYSTERIOUS - Minor key explorations
-  dark: [
-    [6, 2, 6, 3],     // vi-ii-vi-iii (Am-Dm-Am-Em) - circular darkness
-    [6, 2, 3, 1],     // vi-ii-III (Am-Dm-E) - Spanish/flamenco
-    [6, 3, 4, 1],     // vi-III-IV-V (Am-E-F-G) - dramatic rise
-    [6, 3, 4, 5],     // vi-iii-IV (Am-Em-F) - suspended tension
-    [6, 2, 4, 2],     // vi-II-IV-II (Am-D-F-D) - chromatic twist
-  ],
-  // DREAMY & ATMOSPHERIC
-  dreamy: [
-    [1, 5, 6, 4],     // I-V-vi-IV - soft when played slowly
-    [4, 1, 5, 6],     // IV-I-V-vi - floating resolution
-    [1, 3, 4, 5],     // I-iii-IV-V (C-Em-F-G) - gentle climb
-    [6, 4, 6, 5],     // vi-IV-vi-V - hypnotic minor
-    [1, 6, 2, 5],     // I-vi-ii-V - jazz-influenced dream
-  ],
-  // NEO-SOUL & R&B
-  soul: [
-    [2, 5, 1, 6],     // ii-V-I-vi - neo-soul foundation
-    [1, 4, 3, 6],     // I-IV-iii-vi - D'Angelo/Erykah feel
-    [6, 2, 5, 1],     // vi-ii-V-I - full jazz resolution
-    [4, 3, 2, 1],     // IV-iii-ii-I - chromatic descent
-    [1, 7, 6, 5],     // I-vii-vi-V - walking down
+    [1, 5, 6, 4],     // C-G-Am-F - biggest pop progression
+    [1, 6, 4, 5],     // C-Am-F-G - classic
+    [1, 4, 5, 1],     // C-F-G-C - pure resolution
+    [1, 2, 4],        // C-Dm-F - gentle
+    [1, 2, 4, 6],     // C-Dm-F-A - extended
+    [1, 6, 3, 4],     // C-Am-E-F - surprising
+    [1, 5, 2, 6],     // C-G-D-A - open fifths
   ],
 };
 
@@ -305,16 +282,8 @@ export class MelodyGenerator {
     const stepToChordRoot = new Map<number, number>();
 
     // Select progression style based on tension
-    const styles = Object.keys(CHORD_PROGRESSIONS) as (keyof typeof CHORD_PROGRESSIONS)[];
-    let style: keyof typeof CHORD_PROGRESSIONS;
-
-    if (params.tension < 0.25) {
-      style = 'uplifting';
-    } else if (params.tension < 0.5) {
-      style = params.energy < 0.5 ? 'dreamy' : 'soul';
-    } else {
-      style = params.energy < 0.5 ? 'emotional' : 'dark';
-    }
+    // Higher tension = emotional (minor feel), lower tension = uplifting (major feel)
+    const style: keyof typeof CHORD_PROGRESSIONS = params.tension > 0.5 ? 'emotional' : 'uplifting';
 
     const progressions = CHORD_PROGRESSIONS[style];
     const progression = progressions[Math.floor(Math.random() * progressions.length)];
