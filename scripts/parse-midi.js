@@ -177,55 +177,102 @@ function midiToSteps(midiData, barsToCapture = 4) {
 }
 
 /**
- * Scan directory for MIDI files and parse them all
+ * Extract key/category from filename
+ * e.g., "Cymatics - Essential MIDI 1 - C Min.mid" -> "C Min"
  */
-function scanMidiDirectory(baseDir) {
+function extractKeyFromFilename(filename) {
+  // Match patterns like "C Min", "D# Min", "F Maj", etc.
+  const match = filename.match(/([A-G]#?\s*(?:Min|Maj|min|maj))/i);
+  if (match) return match[1];
+
+  // Fallback to parent folder name or "Unknown"
+  return "Unknown";
+}
+
+/**
+ * Recursively find all MIDI files in a directory
+ */
+function findMidiFiles(dir, results = []) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      findMidiFiles(fullPath, results);
+    } else if (entry.name.endsWith('.mid')) {
+      results.push({
+        path: fullPath,
+        filename: entry.name,
+        parentDir: path.basename(dir)
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Scan multiple directories for MIDI files
+ */
+function scanMidiDirectories(baseDirs) {
   const patterns = [];
+  let totalFiles = 0;
+  let successCount = 0;
 
-  // Get all subdirectories (chord progression folders)
-  const progressionDirs = fs.readdirSync(baseDir, { withFileTypes: true })
-    .filter(d => d.isDirectory() && !d.name.startsWith('.'));
+  for (const baseDir of baseDirs) {
+    console.log(`\nScanning: ${baseDir}`);
+    const collectionName = path.basename(baseDir);
 
-  for (const dir of progressionDirs) {
-    const progressionPath = path.join(baseDir, dir.name);
+    const midiFiles = findMidiFiles(baseDir);
+    totalFiles += midiFiles.length;
+    console.log(`  Found ${midiFiles.length} MIDI files`);
 
-    // Get all MIDI files in this progression folder
-    const midiFiles = fs.readdirSync(progressionPath)
-      .filter(f => f.endsWith('.mid'));
-
-    for (const midiFile of midiFiles) {
-      const filePath = path.join(progressionPath, midiFile);
-
+    for (const file of midiFiles) {
       try {
-        const midiData = parseMidiFile(filePath);
+        const midiData = parseMidiFile(file.path);
         const steps = midiToSteps(midiData);
 
         if (steps && steps.some(s => s.active)) {
+          // Extract key from filename, or use parent folder for genre-based collections
+          let category = extractKeyFromFilename(file.filename);
+          if (category === "Unknown" && file.parentDir !== path.basename(baseDir)) {
+            category = file.parentDir; // Use genre folder (Trap, RnB, etc.)
+          }
+
           patterns.push({
-            name: path.basename(midiFile, '.mid'),
-            progression: dir.name,
+            name: path.basename(file.filename, '.mid'),
+            progression: category,
             steps: steps
           });
+          successCount++;
         }
       } catch (err) {
-        console.error(`Error parsing ${filePath}: ${err.message}`);
+        console.error(`  Error parsing ${file.filename}: ${err.message}`);
       }
     }
   }
 
+  console.log(`\nTotal: ${totalFiles} files, ${successCount} patterns extracted`);
   return patterns;
 }
 
-// Main execution
-const midiDir = '/Users/ianzwing/Documents/Sample Packs /Orchestral Midi/90-115bpm';
+// Main execution - Cymatics MIDI Collections
+const midiDirs = [
+  '/Users/ianzwing/Downloads/ORGANIZED/Music_Production/Cymatics - Essential MIDI Collection Vol. 1-7',
+  '/Users/ianzwing/Downloads/ORGANIZED/Music_Production/Cymatics - GOLD MIDI Collection',
+  '/Users/ianzwing/Downloads/ORGANIZED/Music_Production/Cymatics - Waves MIDI Collection'
+];
 
-console.log('Parsing MIDI files from:', midiDir);
-const patterns = scanMidiDirectory(midiDir);
-console.log(`Found ${patterns.length} patterns`);
+console.log('Parsing MIDI files from Cymatics collections...');
+const patterns = scanMidiDirectories(midiDirs);
+console.log(`\nExtracted ${patterns.length} total patterns`);
 
 // Output as TypeScript data
 const output = `/**
- * Pre-parsed MIDI melodies from Orchestral MIDI library
+ * Pre-parsed MIDI melodies from Cymatics MIDI Collections
  * Auto-generated - do not edit
  */
 
