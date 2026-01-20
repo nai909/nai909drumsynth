@@ -322,14 +322,36 @@ const Synth: React.FC<SynthProps> = ({
     recordingNoteStarts.current.delete(note);
   }, [synth, tempo, onSynthSequenceChange, synthLoopBars, isSynthLoopCapture]);
 
+  // Refs for stable event handler references (avoid stale closures)
+  const handleNoteOffRef = useRef(handleNoteOff);
+  const releaseAllNotesRef = useRef(releaseAllNotes);
+
+  // Keep refs updated
+  useEffect(() => {
+    handleNoteOffRef.current = handleNoteOff;
+    releaseAllNotesRef.current = releaseAllNotes;
+  }, [handleNoteOff, releaseAllNotes]);
+
   // Global event handlers - catches any missed releases
+  // Using refs to avoid effect re-running on callback changes (which can miss events)
   useEffect(() => {
     const handleGlobalTouchEnd = (e: TouchEvent) => {
-      // Check if any tracked touches are no longer active
+      // Use changedTouches to get the touches that ended
+      const endedTouchIds = new Set(Array.from(e.changedTouches).map(t => t.identifier));
+
+      // Release any notes associated with ended touches
+      endedTouchIds.forEach(touchId => {
+        const note = activeTouches.current.get(touchId);
+        if (note) {
+          handleNoteOffRef.current(note, touchId);
+        }
+      });
+
+      // Safety: also check for orphaned touches (belt and suspenders)
       const currentTouchIds = new Set(Array.from(e.touches).map(t => t.identifier));
       activeTouches.current.forEach((note, touchId) => {
         if (!currentTouchIds.has(touchId)) {
-          handleNoteOff(note, touchId);
+          handleNoteOffRef.current(note, touchId);
         }
       });
     };
@@ -337,19 +359,24 @@ const Synth: React.FC<SynthProps> = ({
     const handleGlobalMouseUp = () => {
       // Release all notes held by mouse when mouse is released anywhere
       mouseDownNotes.current.forEach((note) => {
-        handleNoteOff(note);
+        handleNoteOffRef.current(note);
       });
       mouseDownNotes.current.clear();
     };
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        releaseAllNotes();
+        releaseAllNotesRef.current();
       }
     };
 
     const handleWindowBlur = () => {
-      releaseAllNotes();
+      releaseAllNotesRef.current();
+    };
+
+    // Additional safety: release all on context menu (long press on mobile)
+    const handleContextMenu = () => {
+      releaseAllNotesRef.current();
     };
 
     window.addEventListener('touchend', handleGlobalTouchEnd);
@@ -357,6 +384,7 @@ const Synth: React.FC<SynthProps> = ({
     window.addEventListener('mouseup', handleGlobalMouseUp);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('contextmenu', handleContextMenu);
 
     return () => {
       window.removeEventListener('touchend', handleGlobalTouchEnd);
@@ -364,10 +392,9 @@ const Synth: React.FC<SynthProps> = ({
       window.removeEventListener('mouseup', handleGlobalMouseUp);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
-      // Don't call releaseAllNotes here - it clears mouseDownNotes which breaks
-      // recording when state changes cause effect to re-run mid-click
+      window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [handleNoteOff, releaseAllNotes]);
+  }, []); // Empty deps - handlers use refs for stable references
 
   // Computer keyboard support
   useEffect(() => {
@@ -410,6 +437,12 @@ const Synth: React.FC<SynthProps> = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      // Release all keyboard-held notes when effect re-runs (e.g., octave change)
+      // This prevents notes from getting orphaned when handlers change
+      keysToNotes.current.forEach((note) => {
+        handleNoteOffRef.current(note);
+      });
+      keysToNotes.current.clear();
     };
   }, [handleNoteOn, handleNoteOff, keyMap, octaveUp, octaveDown, canPlayNote]);
 
@@ -801,60 +834,90 @@ const SynthKnob: React.FC<SynthKnobProps> = ({ label, value, onChange, min = 0, 
   const isDragging = useRef(false);
   const startY = useRef(0);
   const startValue = useRef(0);
+  // Store refs to onChange and value to avoid stale closures
+  const onChangeRef = useRef(onChange);
+  const minRef = useRef(min);
+  const maxRef = useRef(max);
+
+  // Keep refs updated
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    minRef.current = min;
+    maxRef.current = max;
+  }, [onChange, min, max]);
 
   const normalizedValue = (value - min) / (max - min);
   const rotation = normalizedValue * 270 - 135;
 
-  const handleStart = (clientY: number) => {
-    isDragging.current = true;
-    startY.current = clientY;
-    startValue.current = value;
-  };
+  // Stable handler refs to avoid listener leak
+  const handleMouseMoveRef = useRef<(e: MouseEvent) => void>();
+  const handleMouseUpRef = useRef<() => void>();
+  const handleTouchMoveRef = useRef<(e: TouchEvent) => void>();
+  const handleTouchEndRef = useRef<() => void>();
 
-  const handleMove = (clientY: number) => {
-    if (!isDragging.current) return;
-    const deltaY = startY.current - clientY;
-    const deltaValue = (deltaY / 100) * (max - min);
-    const newValue = Math.max(min, Math.min(max, startValue.current + deltaValue));
-    onChange(newValue);
-  };
+  // Initialize stable handlers once
+  useEffect(() => {
+    handleMouseMoveRef.current = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const deltaY = startY.current - e.clientY;
+      const deltaValue = (deltaY / 100) * (maxRef.current - minRef.current);
+      const newValue = Math.max(minRef.current, Math.min(maxRef.current, startValue.current + deltaValue));
+      onChangeRef.current(newValue);
+    };
 
-  const handleEnd = () => {
-    isDragging.current = false;
-  };
+    handleMouseUpRef.current = () => {
+      isDragging.current = false;
+      document.removeEventListener('mousemove', handleMouseMoveRef.current!);
+      document.removeEventListener('mouseup', handleMouseUpRef.current!);
+    };
+
+    handleTouchMoveRef.current = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!isDragging.current) return;
+      const deltaY = startY.current - e.touches[0].clientY;
+      const deltaValue = (deltaY / 100) * (maxRef.current - minRef.current);
+      const newValue = Math.max(minRef.current, Math.min(maxRef.current, startValue.current + deltaValue));
+      onChangeRef.current(newValue);
+    };
+
+    handleTouchEndRef.current = () => {
+      isDragging.current = false;
+      document.removeEventListener('touchmove', handleTouchMoveRef.current!);
+      document.removeEventListener('touchend', handleTouchEndRef.current!);
+    };
+
+    // Cleanup on unmount - remove any lingering listeners
+    return () => {
+      if (handleMouseMoveRef.current) {
+        document.removeEventListener('mousemove', handleMouseMoveRef.current);
+      }
+      if (handleMouseUpRef.current) {
+        document.removeEventListener('mouseup', handleMouseUpRef.current);
+      }
+      if (handleTouchMoveRef.current) {
+        document.removeEventListener('touchmove', handleTouchMoveRef.current);
+      }
+      if (handleTouchEndRef.current) {
+        document.removeEventListener('touchend', handleTouchEndRef.current);
+      }
+    };
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    handleStart(e.clientY);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
-    handleMove(e.clientY);
-  };
-
-  const handleMouseUp = () => {
-    handleEnd();
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    isDragging.current = true;
+    startY.current = e.clientY;
+    startValue.current = value;
+    document.addEventListener('mousemove', handleMouseMoveRef.current!);
+    document.addEventListener('mouseup', handleMouseUpRef.current!);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
-    handleStart(e.touches[0].clientY);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-  };
-
-  const handleTouchMove = (e: TouchEvent) => {
-    e.preventDefault();
-    handleMove(e.touches[0].clientY);
-  };
-
-  const handleTouchEnd = () => {
-    handleEnd();
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
+    isDragging.current = true;
+    startY.current = e.touches[0].clientY;
+    startValue.current = value;
+    document.addEventListener('touchmove', handleTouchMoveRef.current!, { passive: false });
+    document.addEventListener('touchend', handleTouchEndRef.current!);
   };
 
   return (

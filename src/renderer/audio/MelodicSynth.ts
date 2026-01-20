@@ -380,7 +380,27 @@ export class MelodicSynth {
     if (params.arpMode !== undefined) {
       if (params.arpMode === 'off') {
         this.stopArpeggiator();
+        // When switching FROM arp mode, start playing held notes directly
+        // (mono mode: only play the last held note)
+        if (this.heldNotes.length > 0 && this.synth) {
+          const notesToPlay = this.params.mono
+            ? [this.heldNotes[this.heldNotes.length - 1]]
+            : this.heldNotes;
+          notesToPlay.forEach(note => {
+            this.activeNotes.add(note);
+            this.synth!.triggerAttack(note, Tone.now(), 0.8);
+          });
+          this.filterEnv.triggerAttack(Tone.now());
+        }
       } else if (this.heldNotes.length > 0) {
+        // IMPORTANT: When switching TO arp mode, release any directly-played notes
+        // Otherwise they'll play continuously while arp also plays them
+        if (this.activeNotes.size > 0 && this.synth) {
+          this.activeNotes.forEach(note => {
+            this.synth!.triggerRelease(note, Tone.now());
+          });
+          this.activeNotes.clear();
+        }
         this.startArpeggiator();
       }
     }
