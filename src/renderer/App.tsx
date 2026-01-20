@@ -27,6 +27,29 @@ interface SavedProject {
 }
 
 const STORAGE_KEY = 'drumsynth-saved-projects';
+const MAX_PROJECTS = 20; // Limit to prevent localStorage quota exceeded
+
+// Safe localStorage helper - handles quota exceeded and other errors
+const safeLocalStorage = {
+  setItem: (key: string, value: string): boolean => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.error('localStorage error:', e);
+      // Could be QuotaExceededError or SecurityError
+      return false;
+    }
+  },
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.error('localStorage error:', e);
+      return null;
+    }
+  }
+};
 
 // Validation helpers for save/load
 const validateSynthStep = (step: unknown): SynthStep => {
@@ -649,8 +672,12 @@ const App: React.FC = () => {
   const [synthScaleRoot, setSynthScaleRoot] = useState('C');
   const [synthScaleType, setSynthScaleType] = useState('major');
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('drumsynth-theme');
-    return (saved as Theme) || 'purple';
+    const saved = safeLocalStorage.getItem('drumsynth-theme');
+    // Validate theme is a known value
+    if (saved && THEMES.includes(saved as Theme)) {
+      return saved as Theme;
+    }
+    return 'purple';
   });
   const [isRecording, setIsRecording] = useState(false);
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
@@ -666,7 +693,7 @@ const App: React.FC = () => {
   // Synth loop capture mode - first recording pass defines the loop length
   const [isSynthLoopCapture, setIsSynthLoopCapture] = useState(true); // True when sequence is empty
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = safeLocalStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -716,7 +743,7 @@ const App: React.FC = () => {
     } else {
       document.documentElement.setAttribute('data-theme', theme);
     }
-    localStorage.setItem('drumsynth-theme', theme);
+    safeLocalStorage.setItem('drumsynth-theme', theme);
   }, [theme]);
 
 
@@ -1289,6 +1316,12 @@ const App: React.FC = () => {
   const handleSaveProject = () => {
     if (!projectName.trim()) return;
 
+    // Check project limit
+    if (savedProjects.length >= MAX_PROJECTS) {
+      alert(`Maximum ${MAX_PROJECTS} projects allowed. Please delete some projects first.`);
+      return;
+    }
+
     const newProject: SavedProject = {
       name: projectName.trim(),
       timestamp: Date.now(),
@@ -1298,10 +1331,15 @@ const App: React.FC = () => {
     };
 
     const updatedProjects = [...savedProjects, newProject];
-    setSavedProjects(updatedProjects);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
-    setProjectName('');
-    setShowSaveModal(false);
+    const saved = safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+
+    if (saved) {
+      setSavedProjects(updatedProjects);
+      setProjectName('');
+      setShowSaveModal(false);
+    } else {
+      alert('Failed to save project. Storage may be full.');
+    }
   };
 
   // Load project handler with validation
@@ -1336,7 +1374,7 @@ const App: React.FC = () => {
     e.stopPropagation();
     const updatedProjects = savedProjects.filter((_, i) => i !== index);
     setSavedProjects(updatedProjects);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
+    safeLocalStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProjects));
   };
 
   return (

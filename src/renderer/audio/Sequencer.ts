@@ -7,6 +7,8 @@ export class Sequencer {
   private sequence: Tone.Sequence | null = null;
   private currentStep: number = 0;
   private isPlaying: boolean = false;
+  private isStarting: boolean = false;  // Lock to prevent race condition in play()
+  private disposed: boolean = false;
   private tempo: number = 120;
   private pattern: Pattern | null = null;
   private stepCallbacks: ((step: number) => void)[] = [];
@@ -53,6 +55,8 @@ export class Sequencer {
   }
 
   setPattern(pattern: Pattern) {
+    if (this.disposed) return;
+
     const needsRebuild = !this.pattern || this.pattern.steps !== pattern.steps;
 
     this.pattern = pattern;
@@ -80,6 +84,8 @@ export class Sequencer {
   }
 
   private rebuild() {
+    if (this.disposed) return;
+
     const wasPlaying = this.isPlaying;
 
     // Stop transport before rebuilding to prevent timing issues
@@ -100,6 +106,7 @@ export class Sequencer {
 
     this.sequence = new Tone.Sequence(
       (time, step) => {
+        if (this.disposed) return;
         this.currentStep = step;
         this.notifyStepCallbacks(step);
         this.playStep(step, time);
@@ -121,7 +128,7 @@ export class Sequencer {
   }
 
   private playStep(step: number, time: number) {
-    if (!this.pattern) return;
+    if (!this.pattern || this.disposed) return;
 
     // Play metronome click on beats (every 4 steps = quarter notes)
     if (this.metronomeEnabled && this.metronomeClick) {
@@ -129,7 +136,11 @@ export class Sequencer {
         // Downbeat (first beat of bar) gets higher pitch
         const isDownbeat = step % 16 === 0;
         const pitch = isDownbeat ? 'G4' : 'C4';
-        this.metronomeClick.triggerAttackRelease(pitch, '32n', time);
+        try {
+          this.metronomeClick.triggerAttackRelease(pitch, '32n', time);
+        } catch {
+          // Metronome may be disposed
+        }
       }
     }
 
@@ -149,66 +160,86 @@ export class Sequencer {
       const velocity = track.velocity[step] || 1;
       const adjustedVelocity = velocity * track.volume;
 
-      switch (track.soundEngine) {
-        case 'kick':
-          this.drumSynth.triggerKick(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'snare':
-          this.drumSynth.triggerSnare(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'hihat-closed':
-          this.drumSynth.triggerHiHat(time, adjustedVelocity, false, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'hihat-open':
-          this.drumSynth.triggerHiHat(time, adjustedVelocity, true, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'clap':
-          this.drumSynth.triggerClap(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'tom-low':
-          this.drumSynth.triggerTom(time, adjustedVelocity, 'G2', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'tom-mid':
-          this.drumSynth.triggerTom(time, adjustedVelocity, 'C3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'tom-high':
-          this.drumSynth.triggerTom(time, adjustedVelocity, 'F3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'rimshot':
-          this.drumSynth.triggerRimshot(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
-        case 'fm':
-          this.drumSynth.triggerFM(time, adjustedVelocity, 'C3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
-          break;
+      try {
+        switch (track.soundEngine) {
+          case 'kick':
+            this.drumSynth.triggerKick(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'snare':
+            this.drumSynth.triggerSnare(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'hihat-closed':
+            this.drumSynth.triggerHiHat(time, adjustedVelocity, false, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'hihat-open':
+            this.drumSynth.triggerHiHat(time, adjustedVelocity, true, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'clap':
+            this.drumSynth.triggerClap(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'tom-low':
+            this.drumSynth.triggerTom(time, adjustedVelocity, 'G2', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'tom-mid':
+            this.drumSynth.triggerTom(time, adjustedVelocity, 'C3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'tom-high':
+            this.drumSynth.triggerTom(time, adjustedVelocity, 'F3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'rimshot':
+            this.drumSynth.triggerRimshot(time, adjustedVelocity, track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+          case 'fm':
+            this.drumSynth.triggerFM(time, adjustedVelocity, 'C3', track.tune, track.decay, track.filterCutoff, track.pan, track.attack, track.tone, track.snap, track.filterResonance, track.drive);
+            break;
+        }
+      } catch (error) {
+        console.error(`Error triggering ${track.soundEngine}:`, error);
       }
     });
   }
 
   async play() {
-    if (this.isPlaying) return;
+    // Prevent race condition - if already playing or starting, return
+    if (this.isPlaying || this.isStarting || this.disposed) return;
 
-    await this.drumSynth.init();
+    // Set lock before async operation
+    this.isStarting = true;
 
-    // Check if we're resuming from pause or starting fresh
-    const transportState = Tone.Transport.state;
+    try {
+      await this.drumSynth.init();
 
-    if (transportState === 'stopped') {
-      // Fresh start - reset position
-      Tone.Transport.position = 0;
-
-      if (this.sequence) {
-        this.sequence.stop();
-        this.sequence.start(0);
+      // Check again after async - might have been stopped/disposed
+      if (this.disposed) {
+        this.isStarting = false;
+        return;
       }
 
-      // Small delay to ensure sequence is scheduled before Transport starts
-      Tone.Transport.start('+0.01');
-    } else if (transportState === 'paused') {
-      // Resume from pause
-      Tone.Transport.start();
-    }
+      // Check if we're resuming from pause or starting fresh
+      const transportState = Tone.Transport.state;
 
-    this.isPlaying = true;
+      if (transportState === 'stopped') {
+        // Fresh start - reset position
+        Tone.Transport.position = 0;
+
+        if (this.sequence) {
+          this.sequence.stop();
+          this.sequence.start(0);
+        }
+
+        // Small delay to ensure sequence is scheduled before Transport starts
+        Tone.Transport.start('+0.01');
+      } else if (transportState === 'paused') {
+        // Resume from pause
+        Tone.Transport.start();
+      }
+
+      this.isPlaying = true;
+    } catch (error) {
+      console.error('Failed to start playback:', error);
+    } finally {
+      this.isStarting = false;
+    }
   }
 
   pause() {
@@ -224,6 +255,7 @@ export class Sequencer {
     Tone.Transport.position = 0;
     this.currentStep = 0;
     this.isPlaying = false;
+    this.isStarting = false;
     this.notifyStepCallbacks(0);
   }
 
@@ -239,20 +271,69 @@ export class Sequencer {
     this.stepCallbacks.push(callback);
   }
 
+  // Remove a step callback
+  offStep(callback: (step: number) => void) {
+    const index = this.stepCallbacks.indexOf(callback);
+    if (index !== -1) {
+      this.stepCallbacks.splice(index, 1);
+    }
+  }
+
+  // Clear all step callbacks
+  clearStepCallbacks() {
+    this.stepCallbacks = [];
+  }
+
   private notifyStepCallbacks(step: number) {
-    this.stepCallbacks.forEach(cb => cb(step));
+    this.stepCallbacks.forEach(cb => {
+      try {
+        cb(step);
+      } catch (error) {
+        console.error('Error in step callback:', error);
+      }
+    });
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    // Stop playback first
+    this.stop();
+
+    // Clear callbacks
+    this.stepCallbacks = [];
+    this.shouldSkipHitCallback = null;
+
+    // Dispose audio nodes
     if (this.sequence) {
-      this.sequence.dispose();
+      try {
+        this.sequence.stop();
+        this.sequence.dispose();
+      } catch {
+        // May already be disposed
+      }
+      this.sequence = null;
     }
+
     if (this.metronomeClick) {
-      this.metronomeClick.dispose();
+      try {
+        this.metronomeClick.dispose();
+      } catch {
+        // May already be disposed
+      }
+      this.metronomeClick = null;
     }
+
     if (this.metronomeVolume) {
-      this.metronomeVolume.dispose();
+      try {
+        this.metronomeVolume.dispose();
+      } catch {
+        // May already be disposed
+      }
+      this.metronomeVolume = null;
     }
-    Tone.Transport.stop();
+
+    this.pattern = null;
   }
 }

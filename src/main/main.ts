@@ -1,7 +1,13 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session, shell } from 'electron';
 import path from 'path';
 
 let mainWindow: BrowserWindow | null = null;
+
+// Security: Disable navigation to external URLs
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:5173',  // Dev server
+  'file://'                 // Production build
+]);
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -14,10 +20,39 @@ const createWindow = () => {
       contextIsolation: true,
       sandbox: true,
       webSecurity: true,
+      webviewTag: false,                    // Security: Disable webview
+      allowRunningInsecureContent: false,   // Security: Block mixed content
       preload: path.join(__dirname, 'preload.js'),
     },
     backgroundColor: '#1a1a1a',
     titleBarStyle: 'hiddenInset',
+  });
+
+  // Security: Prevent navigation to external URLs
+  mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+    const parsedUrl = new URL(navigationUrl);
+    const origin = `${parsedUrl.protocol}//${parsedUrl.host}`;
+
+    if (!ALLOWED_ORIGINS.has(origin) && !navigationUrl.startsWith('file://')) {
+      event.preventDefault();
+      console.warn(`Blocked navigation to: ${navigationUrl}`);
+    }
+  });
+
+  // Security: Prevent new window creation, open external links in browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Allow no new windows - open external links in default browser if needed
+    if (url.startsWith('https://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+
+  // Security: Block permission requests (camera, mic, etc.)
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    // Only allow media (audio) for the synth
+    const allowedPermissions = ['media'];
+    callback(allowedPermissions.includes(permission));
   });
 
   if (process.env.NODE_ENV === 'development') {
@@ -25,6 +60,10 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // Security: Ensure devTools are closed in production
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow?.webContents.closeDevTools();
+    });
   }
 
   mainWindow.on('closed', () => {
@@ -33,13 +72,25 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
-  // Set Content Security Policy
+  // Security: Set strict Content Security Policy
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; worker-src 'self' blob:;"
+          [
+            "default-src 'self'",
+            "script-src 'self'",                    // Removed blob: for stricter security
+            "style-src 'self' 'unsafe-inline'",     // Required for inline styles
+            "media-src 'self' blob:",               // Audio blobs needed
+            "worker-src 'self' blob:",              // Web workers for audio
+            "img-src 'self' data:",                 // Allow data URIs for images
+            "connect-src 'self'",                   // No external connections
+            "frame-src 'none'",                     // No iframes
+            "object-src 'none'",                    // No plugins
+            "base-uri 'self'",                      // Restrict base tag
+            "form-action 'self'",                   // Restrict form submissions
+          ].join('; ')
         ]
       }
     });
@@ -58,4 +109,22 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Security: Prevent creating additional renderers
+app.on('web-contents-created', (event, contents) => {
+  // Block navigation in any webcontents
+  contents.on('will-navigate', (event, navigationUrl) => {
+    const parsedUrl = new URL(navigationUrl);
+    const origin = `${parsedUrl.protocol}//${parsedUrl.host}`;
+
+    if (!ALLOWED_ORIGINS.has(origin) && !navigationUrl.startsWith('file://')) {
+      event.preventDefault();
+    }
+  });
+
+  // Block new window creation
+  contents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
 });

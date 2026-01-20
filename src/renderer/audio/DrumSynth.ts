@@ -5,8 +5,13 @@ export class DrumSynth {
   private outputGain: Tone.Gain;
   private limiter: Tone.Limiter;
   private initialized: boolean = false;
+  private disposed: boolean = false;
   // Track active disposables for cleanup
   private activeDisposables: Set<{ dispose: () => void }> = new Set();
+  // Track pending disposal timeouts for cleanup
+  private pendingTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
+  // Store event listener reference for cleanup
+  private stateChangeHandler: (() => void) | null = null;
 
   constructor() {
     // Master gain for internal mixing (0.85 = -1.4dB headroom for mixing multiple drums)
@@ -19,7 +24,9 @@ export class DrumSynth {
     this.masterGain.chain(this.outputGain, this.limiter, Tone.getDestination());
   }
 
-  async init() {
+  async init(): Promise<boolean> {
+    if (this.disposed) return false;
+
     // Always try to start/resume audio context on mobile
     // Mobile browsers can suspend audio context even after initial start
     try {
@@ -34,18 +41,30 @@ export class DrumSynth {
         this.initialized = true;
 
         // Listen for audio context state changes (e.g., tab switch on mobile)
-        Tone.context.rawContext.addEventListener('statechange', () => {
+        // Store reference for cleanup in dispose()
+        this.stateChangeHandler = () => {
           if (Tone.context.state === 'suspended') {
             // Attempt to resume when context gets suspended
             Tone.context.resume().catch(err => {
               console.warn('Could not auto-resume audio context:', err);
             });
           }
-        });
+        };
+
+        if (Tone.context.rawContext) {
+          Tone.context.rawContext.addEventListener('statechange', this.stateChangeHandler);
+        }
       }
+      return true;
     } catch (error) {
       console.error('Failed to initialize audio:', error);
+      return false;
     }
+  }
+
+  // Check if audio is ready to play
+  isReady(): boolean {
+    return this.initialized && !this.disposed && Tone.context.state === 'running';
   }
 
   triggerKick(time: number, velocity: number = 1, tune: number = 0, decay: number = 0.4, filterCutoff: number = 1, pan: number = 0, attack: number = 0.001, tone: number = 0.5, snap: number = 0.3, filterResonance: number = 0.2, drive: number = 0) {
@@ -651,12 +670,21 @@ export class DrumSynth {
 
   // Helper to schedule disposal of audio nodes after their envelope completes
   private scheduleDisposal(disposables: { dispose: () => void }[], durationMs: number) {
+    if (this.disposed) return;
+
     // Track all disposables
     disposables.forEach(d => this.activeDisposables.add(d));
 
-    // Use Tone.Transport.scheduleOnce for audio-accurate timing when transport is running
-    // Fall back to setTimeout when transport is stopped
-    const disposeAll = () => {
+    // Add buffer time to ensure envelope fully completes
+    const safetyBuffer = 100;
+
+    const timeoutId = setTimeout(() => {
+      // Remove this timeout from tracking
+      this.pendingTimeouts.delete(timeoutId);
+
+      // Don't dispose if synth has been disposed
+      if (this.disposed) return;
+
       disposables.forEach(d => {
         try {
           if ('stop' in d && typeof (d as { stop?: () => void }).stop === 'function') {
@@ -668,14 +696,30 @@ export class DrumSynth {
           // Node may already be disposed
         }
       });
-    };
+    }, durationMs + safetyBuffer);
 
-    // Add buffer time to ensure envelope fully completes
-    const safetyBuffer = 100;
-    setTimeout(disposeAll, durationMs + safetyBuffer);
+    // Track this timeout for cleanup
+    this.pendingTimeouts.add(timeoutId);
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    // Clear all pending disposal timeouts
+    this.pendingTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+    this.pendingTimeouts.clear();
+
+    // Remove the statechange event listener
+    if (this.stateChangeHandler && Tone.context.rawContext) {
+      try {
+        Tone.context.rawContext.removeEventListener('statechange', this.stateChangeHandler);
+      } catch {
+        // Context may already be closed
+      }
+      this.stateChangeHandler = null;
+    }
+
     // Dispose all active audio nodes
     this.activeDisposables.forEach(d => {
       try {
@@ -688,8 +732,13 @@ export class DrumSynth {
       }
     });
     this.activeDisposables.clear();
-    this.masterGain.dispose();
-    this.outputGain.dispose();
-    this.limiter.dispose();
+
+    try {
+      this.masterGain.dispose();
+      this.outputGain.dispose();
+      this.limiter.dispose();
+    } catch {
+      // May already be disposed
+    }
   }
 }
