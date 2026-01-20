@@ -730,7 +730,7 @@ const Synth: React.FC<SynthProps> = ({
         {/* Action buttons - desktop only, mobile version is below keyboard */}
         <div className="synth-section random-section-desktop">
           <button
-            className="action-btn ai-btn"
+            className="action-btn generate-btn"
             onClick={generateProgression}
           >
             GENERATE
@@ -869,7 +869,7 @@ const Synth: React.FC<SynthProps> = ({
       {/* Action buttons - mobile only, below keyboard */}
       <div className="synth-mobile-actions">
         <button
-          className="action-btn-mobile ai-btn"
+          className="action-btn-mobile generate-btn"
           onClick={generateProgression}
         >
           GENERATE

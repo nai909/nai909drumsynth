@@ -817,7 +817,7 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
         {/* DICE, GENERATE, MUTATE, CLEAR - always visible */}
         <div className="seq-actions-simple">
           <button className="seq-btn" onClick={randomizeSequence}>DICE</button>
-          <button className="seq-btn ai" onClick={generateProgression}>GENERATE</button>
+          <button className="seq-btn generate" onClick={generateProgression}>GENERATE</button>
           <button className="seq-btn mutate" onClick={randomizeParams}>MUTATE</button>
           <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
