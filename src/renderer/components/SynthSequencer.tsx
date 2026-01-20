@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MelodicSynth, SynthParams, WaveformType, ArpMode } from '../audio/MelodicSynth';
-import { MelodyGenerator, MelodyParams, DEFAULT_MELODY_PARAMS } from '../audio/MelodyGenerator';
+import { MelodyGenerator } from '../audio/MelodyGenerator';
 import './SynthSequencer.css';
 
 export interface Step {
@@ -587,8 +587,6 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
   isSynthLoopCapture = false,
 }) => {
   const [viewMode, setViewMode] = useState<'bars' | 'pianoroll'>('pianoroll');
-  const [showAIPanel, setShowAIPanel] = useState(false);
-  const [aiParams, setAiParams] = useState<MelodyParams>(DEFAULT_MELODY_PARAMS);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const melodyGeneratorRef = useRef<MelodyGenerator>(new MelodyGenerator());
@@ -664,19 +662,14 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
     onStepsChange(newSteps);
   };
 
-  // AI Melody Generation - music theory-based
-  const generateAIMelody = () => {
-    const generatedPattern = melodyGeneratorRef.current.generate(scaleNotes, loopBars, aiParams);
+  // Generate melody from MIDI patterns
+  const generateProgression = () => {
+    const generatedPattern = melodyGeneratorRef.current.generate(scaleNotes, loopBars);
     const newSteps = [...steps];
     for (let i = 0; i < generatedPattern.length; i++) {
       newSteps[i] = generatedPattern[i];
     }
     onStepsChange(newSteps);
-  };
-
-  // Update AI param
-  const updateAIParam = <K extends keyof MelodyParams>(key: K, value: MelodyParams[K]) => {
-    setAiParams(prev => ({ ...prev, [key]: value }));
   };
 
   // Randomize synth params (except output and effect settings)
@@ -821,15 +814,10 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           </select>
         </div>
 
-        {/* DICE, AI, MUTATE, CLEAR - always visible */}
+        {/* DICE, GENERATE, MUTATE, CLEAR - always visible */}
         <div className="seq-actions-simple">
           <button className="seq-btn" onClick={randomizeSequence}>DICE</button>
-          <button
-            className={`seq-btn ai ${showAIPanel ? 'active' : ''}`}
-            onClick={() => setShowAIPanel(!showAIPanel)}
-          >
-            AI
-          </button>
+          <button className="seq-btn ai" onClick={generateProgression}>GENERATE</button>
           <button className="seq-btn mutate" onClick={randomizeParams}>MUTATE</button>
           <button className="seq-btn clear" onClick={clearSequence}>CLEAR</button>
         </div>
@@ -881,109 +869,6 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
           </div>
         )}
       </div>
-
-      {/* AI Melody Generator Panel */}
-      {showAIPanel && (
-        <div className="ai-panel">
-          <div className="ai-panel-header">
-            <span className="ai-panel-title">AI MELODY GENERATOR</span>
-            <button className="ai-generate-btn" onClick={generateAIMelody}>
-              GENERATE
-            </button>
-          </div>
-
-          <div className="ai-params">
-            {/* Energy Slider */}
-            <div className="ai-param">
-              <label className="ai-param-label">
-                <span className="ai-param-name">ENERGY</span>
-                <span className="ai-param-value">{Math.round(aiParams.energy * 100)}%</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={aiParams.energy * 100}
-                onChange={(e) => updateAIParam('energy', Number(e.target.value) / 100)}
-                className="ai-slider"
-              />
-              <div className="ai-param-hint">sparse → dense</div>
-            </div>
-
-            {/* Complexity Slider */}
-            <div className="ai-param">
-              <label className="ai-param-label">
-                <span className="ai-param-name">COMPLEXITY</span>
-                <span className="ai-param-value">{Math.round(aiParams.complexity * 100)}%</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={aiParams.complexity * 100}
-                onChange={(e) => updateAIParam('complexity', Number(e.target.value) / 100)}
-                className="ai-slider"
-              />
-              <div className="ai-param-hint">repetitive → varied</div>
-            </div>
-
-            {/* Tension Slider */}
-            <div className="ai-param">
-              <label className="ai-param-label">
-                <span className="ai-param-name">TENSION</span>
-                <span className="ai-param-value">{Math.round(aiParams.tension * 100)}%</span>
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={aiParams.tension * 100}
-                onChange={(e) => updateAIParam('tension', Number(e.target.value) / 100)}
-                className="ai-slider"
-              />
-              <div className="ai-param-hint">consonant → dissonant</div>
-            </div>
-
-            {/* Contour Select */}
-            <div className="ai-param">
-              <label className="ai-param-label">
-                <span className="ai-param-name">CONTOUR</span>
-              </label>
-              <div className="ai-contour-buttons">
-                {(['arch', 'ascending', 'descending', 'wave', 'flat', 'random'] as const).map((c) => (
-                  <button
-                    key={c}
-                    className={`ai-contour-btn ${aiParams.contour === c ? 'active' : ''}`}
-                    onClick={() => updateAIParam('contour', c)}
-                    title={c}
-                  >
-                    <ContourIcon type={c} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Phrase Length */}
-            <div className="ai-param">
-              <label className="ai-param-label">
-                <span className="ai-param-name">PHRASE</span>
-              </label>
-              <div className="ai-phrase-buttons">
-                {([2, 4, 8] as const).map((len) => (
-                  <button
-                    key={len}
-                    className={`ai-phrase-btn ${aiParams.phraseLength === len ? 'active' : ''}`}
-                    onClick={() => updateAIParam('phraseLength', len)}
-                  >
-                    {len}
-                  </button>
-                ))}
-              </div>
-              <span className="ai-param-unit">bars</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Piano Roll View */}
       {viewMode === 'pianoroll' ? (
@@ -1158,24 +1043,6 @@ const WaveformIcon: React.FC<{ type: WaveformType }> = ({ type }) => {
   return (
     <svg viewBox="0 0 28 24" className="waveform-icon-small">
       <path d={paths[type]} fill="none" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-};
-
-// Contour shape icons for AI generator
-const ContourIcon: React.FC<{ type: string }> = ({ type }) => {
-  const paths: { [key: string]: string } = {
-    arch: 'M2 18 Q14 2, 26 18',                    // Rise then fall
-    ascending: 'M2 18 L26 4',                      // Steady rise
-    descending: 'M2 4 L26 18',                     // Steady fall
-    wave: 'M2 12 Q8 4, 14 12 Q20 20, 26 12',       // Undulating
-    flat: 'M2 12 L26 12',                          // Straight
-    random: 'M2 14 L8 6 L14 16 L20 8 L26 12',     // Unpredictable
-  };
-
-  return (
-    <svg viewBox="0 0 28 22" className="contour-icon">
-      <path d={paths[type]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 };
