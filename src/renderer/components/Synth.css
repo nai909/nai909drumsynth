@@ -679,6 +679,38 @@
   height: 100%;
 }
 
+/* Mode Buttons - melody/chords/both */
+.ai-mode-buttons {
+  display: flex;
+  gap: 3px;
+}
+
+.ai-mode-btn {
+  padding: 4px 10px;
+  background: rgba(75, 0, 130, 0.25);
+  border: 2px solid rgba(138, 43, 226, 0.35);
+  border-radius: 4px;
+  color: rgba(218, 112, 214, 0.6);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 0.5px;
+}
+
+.ai-mode-btn:hover {
+  border-color: rgba(138, 43, 226, 0.6);
+  color: rgba(218, 112, 214, 0.9);
+}
+
+.ai-mode-btn.active {
+  background: rgba(138, 43, 226, 0.4);
+  border-color: #9932cc;
+  color: #e0b0ff;
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.4);
+}
+
 /* Phrase Length Buttons */
 .ai-phrase-buttons {
   display: flex;

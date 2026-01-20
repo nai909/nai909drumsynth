@@ -136,8 +136,7 @@ const Synth: React.FC<SynthProps> = ({
   isSynthLoopCapture = false,
   synthCurrentStep = -1,
   onClearSequence,
-  // onSynthLoopBarsChange is intentionally not destructured - loop bars are auto-set in capture mode
-  // and manually adjusted via App.tsx controls, not from within the Synth keyboard UI
+  onSynthLoopBarsChange,
   scaleEnabled = false,
   onScaleEnabledChange,
   scaleRoot = 'C',
@@ -534,7 +533,13 @@ const Synth: React.FC<SynthProps> = ({
     if (!onSynthSequenceChange || !synthSequence) return;
 
     const scaleNotesArray = getScaleNotesArray();
-    const bars = isSynthLoopCapture ? 4 : synthLoopBars; // Default to 4 bars in capture mode
+    // Use the phrase length from AI params, clamped to valid loop bar values
+    const validBars = [1, 2, 4, 8, 16] as const;
+    const targetBars = aiParams.phraseLength;
+    const bars = validBars.includes(targetBars as typeof validBars[number])
+      ? targetBars as 1 | 2 | 4 | 8 | 16
+      : 4;
+
     const generatedPattern = melodyGeneratorRef.current.generate(scaleNotesArray, bars, aiParams);
 
     const newSteps = [...synthSequence];
@@ -542,8 +547,14 @@ const Synth: React.FC<SynthProps> = ({
       newSteps[i] = generatedPattern[i];
     }
     onSynthSequenceChange(newSteps);
+
+    // Set the loop length to match the generated melody
+    if (onSynthLoopBarsChange) {
+      onSynthLoopBarsChange(bars);
+    }
+
     setShowAIPanel(false); // Close panel after generating
-  }, [onSynthSequenceChange, synthSequence, getScaleNotesArray, aiParams, isSynthLoopCapture, synthLoopBars]);
+  }, [onSynthSequenceChange, synthSequence, getScaleNotesArray, aiParams, onSynthLoopBarsChange]);
 
   // Update AI param
   const updateAIParam = <K extends keyof MelodyParams>(key: K, value: MelodyParams[K]) => {
@@ -754,6 +765,24 @@ const Synth: React.FC<SynthProps> = ({
           </div>
 
           <div className="ai-params">
+            {/* Mode selector - the most important choice */}
+            <div className="ai-param">
+              <label className="ai-param-label">
+                <span className="ai-param-name">MODE</span>
+              </label>
+              <div className="ai-mode-buttons">
+                {(['melody', 'chords', 'both'] as const).map((m) => (
+                  <button
+                    key={m}
+                    className={`ai-mode-btn ${aiParams.mode === m ? 'active' : ''}`}
+                    onClick={() => updateAIParam('mode', m)}
+                  >
+                    {m === 'both' ? 'BOTH' : m.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="ai-param">
               <label className="ai-param-label">
                 <span className="ai-param-name">ENERGY</span>
