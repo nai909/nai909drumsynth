@@ -674,6 +674,10 @@ const SynthSequencer: React.FC<SynthSequencerProps> = ({
 
   // Randomize synth params (except output and effect settings)
   const randomizeParams = () => {
+    // Release all currently playing notes to prevent long release tails
+    // when the release parameter changes to a higher value
+    synth?.releaseAll();
+
     const waveforms: WaveformType[] = ['sine', 'triangle', 'sawtooth', 'square'];
     const newParams: SynthParams = {
       waveform: waveforms[Math.floor(Math.random() * waveforms.length)],
