@@ -132,61 +132,58 @@ const RHYTHM_TEMPLATES = {
 
 /**
  * Chord progressions - the harmonic foundation
+ * Curated from professional orchestral MIDI packs and hit songs
  * Each progression is an array of scale degrees (1-indexed)
- * These tell the emotional story of the music
  *
- * Modern progressions that sound beautiful and contemporary
+ * These are PROVEN to sound beautiful - from real production libraries
  */
 const CHORD_PROGRESSIONS = {
-  // Modern Pop & R&B - sophisticated and emotional
-  modern: [
-    [1, 5, 6, 4],     // I-V-vi-IV (timeless, works everywhere)
-    [6, 4, 1, 5],     // vi-IV-I-V (emotional modern pop - Adele, Ed Sheeran)
-    [1, 5, 6, 3, 4],  // I-V-vi-iii-IV (extended emotional arc)
-    [4, 5, 3, 6],     // IV-V-iii-vi (J-pop, K-pop influence)
-    [1, 3, 6, 4],     // I-iii-vi-IV (dreamy, nostalgic)
-    [2, 5, 1, 4],     // ii-V-I-IV (neo-soul meets pop)
+  // EMOTIONAL & CINEMATIC - From orchestral MIDI libraries
+  emotional: [
+    [6, 4, 1, 5],     // vi-IV-I-V (Am-F-C-G) - THE emotional progression
+    [6, 1, 6, 5],     // vi-I-vi-V (Am-C-Am-G) - haunting, cyclical
+    [6, 1, 4, 1],     // vi-I-IV-I (Am-C-F-C) - gentle resolution
+    [6, 1, 5, 6],     // vi-I-V-vi (Am-C-G-Am) - dramatic return
+    [6, 5, 4, 5],     // vi-V-IV-V (Am-G-F-G) - building tension
+    [6, 5, 1, 4],     // vi-V-I-IV (Am-G-C-F) - hopeful
+    [6, 5, 3, 4],     // vi-V-iii-IV (Am-G-Em-F) - deeply emotional
+    [6, 5, 4, 2],     // vi-V-IV-ii (Am-G-F-Dm) - melancholic
+    [6, 5, 4, 3],     // vi-V-IV-iii (Am-G-F-Em) - cascading sadness
+    [6, 3, 4, 1],     // vi-iii-IV-I (Am-Em-F-C) - bittersweet resolve
   ],
-  // Neo-Soul & Contemporary R&B
-  neosoul: [
-    [2, 5, 1, 6],     // ii-V-I-vi (classic soul with twist)
-    [1, 4, 3, 6],     // Imaj7-IVmaj7-iii7-vi7 (D'Angelo, Erykah)
-    [4, 3, 6, 2],     // IV-iii-vi-ii (gospel soul)
-    [1, 7, 6, 4],     // I-vii°-vi-IV (chromatic descent)
-    [6, 5, 4, 3],     // vi-V-IV-iii (falling progression)
-    [2, 3, 4, 5],     // ii-iii-IV-V (rising tension)
+  // UPLIFTING & BRIGHT - Major key focus
+  uplifting: [
+    [1, 5, 6, 4],     // I-V-vi-IV (C-G-Am-F) - the BIGGEST pop progression
+    [1, 6, 4, 5],     // I-vi-IV-V (C-Am-F-G) - classic 50s/doo-wop
+    [1, 4, 5, 1],     // I-IV-V-I (C-F-G-C) - pure resolution
+    [1, 2, 4, 1],     // I-ii-IV-I (C-Dm-F-C) - gentle movement
+    [1, 6, 3, 4],     // I-vi-III-IV (C-Am-E-F) - surprising beauty
+    [1, 4, 1, 5],     // I-IV-I-V (C-F-C-G) - hymnal, powerful
+    [1, 5, 7, 1],     // I-V-VII-I (C-G-B-C) - modal magic
   ],
-  // Lo-fi Hip Hop & Chill
-  lofi: [
-    [2, 5, 1, 1],     // ii-V-I-I (jazzy resolution, looped)
-    [1, 6, 2, 5],     // Imaj7-vi7-ii7-V7 (jazz standard feel)
-    [4, 3, 2, 1],     // IV-iii-ii-I (gentle descent)
-    [6, 4, 2, 5],     // vi-IV-ii-V (melancholic groove)
-    [1, 4, 6, 5],     // I-IV-vi-V (hopeful chill)
+  // DARK & MYSTERIOUS - Minor key explorations
+  dark: [
+    [6, 2, 6, 3],     // vi-ii-vi-iii (Am-Dm-Am-Em) - circular darkness
+    [6, 2, 3, 1],     // vi-ii-III (Am-Dm-E) - Spanish/flamenco
+    [6, 3, 4, 1],     // vi-III-IV-V (Am-E-F-G) - dramatic rise
+    [6, 3, 4, 5],     // vi-iii-IV (Am-Em-F) - suspended tension
+    [6, 2, 4, 2],     // vi-II-IV-II (Am-D-F-D) - chromatic twist
   ],
-  // Emotional & Cinematic
-  cinematic: [
-    [1, 3, 4, 4],     // I-iii-IV-IV (wistful, John Williams)
-    [6, 6, 4, 5],     // vi-vi-IV-V (building emotion)
-    [1, 5, 6, 6, 4, 5, 1, 1], // Extended emotional journey
-    [4, 1, 5, 6],     // IV-I-V-vi (bittersweet resolution)
-    [6, 3, 4, 1],     // vi-iii-IV-I (epic resolve)
+  // DREAMY & ATMOSPHERIC
+  dreamy: [
+    [1, 5, 6, 4],     // I-V-vi-IV - soft when played slowly
+    [4, 1, 5, 6],     // IV-I-V-vi - floating resolution
+    [1, 3, 4, 5],     // I-iii-IV-V (C-Em-F-G) - gentle climb
+    [6, 4, 6, 5],     // vi-IV-vi-V - hypnotic minor
+    [1, 6, 2, 5],     // I-vi-ii-V - jazz-influenced dream
   ],
-  // Electronic & Ambient
-  electronic: [
-    [1, 4, 1, 5],     // I-IV-I-V (driving, hypnotic)
-    [6, 4, 6, 5],     // vi-IV-vi-V (trance-like)
-    [1, 6, 4, 4],     // I-vi-IV-IV (atmospheric)
-    [1, 1, 4, 5],     // I-I-IV-V (minimal, powerful)
-    [4, 4, 1, 5],     // IV-IV-I-V (floating, ethereal)
-  ],
-  // Gospel & Inspirational
-  gospel: [
-    [1, 4, 1, 5],     // I-IV-I-V (foundation)
-    [1, 1, 4, 4, 5, 5, 1, 1], // Extended praise
-    [4, 5, 3, 6],     // IV-V-iii-vi (uplifting)
-    [2, 5, 1, 4],     // ii-V-I-IV (sophisticated gospel)
-    [6, 2, 5, 1],     // vi-ii-V-I (full resolution)
+  // NEO-SOUL & R&B
+  soul: [
+    [2, 5, 1, 6],     // ii-V-I-vi - neo-soul foundation
+    [1, 4, 3, 6],     // I-IV-iii-vi - D'Angelo/Erykah feel
+    [6, 2, 5, 1],     // vi-ii-V-I - full jazz resolution
+    [4, 3, 2, 1],     // IV-iii-ii-I - chromatic descent
+    [1, 7, 6, 5],     // I-vii-vi-V - walking down
   ],
 };
 
@@ -298,7 +295,7 @@ export class MelodyGenerator {
 
   /**
    * Generate chord progression - the harmonic foundation
-   * Returns info about which chords are where for melody coordination
+   * Uses the same proven approach as the DICE generator's chord mode
    */
   private generateChords(
     steps: Step[],
@@ -307,83 +304,92 @@ export class MelodyGenerator {
   ): { stepToChordRoot: Map<number, number> } {
     const stepToChordRoot = new Map<number, number>();
 
-    // Select progression style based on tension and energy
+    // Select progression style based on tension
     const styles = Object.keys(CHORD_PROGRESSIONS) as (keyof typeof CHORD_PROGRESSIONS)[];
     let style: keyof typeof CHORD_PROGRESSIONS;
 
-    if (params.tension < 0.3) {
-      style = params.energy < 0.5 ? 'lofi' : 'modern';
-    } else if (params.tension < 0.6) {
-      style = params.energy < 0.5 ? 'neosoul' : 'electronic';
+    if (params.tension < 0.25) {
+      style = 'uplifting';
+    } else if (params.tension < 0.5) {
+      style = params.energy < 0.5 ? 'dreamy' : 'soul';
     } else {
-      style = params.energy < 0.5 ? 'cinematic' : 'gospel';
+      style = params.energy < 0.5 ? 'emotional' : 'dark';
     }
 
     const progressions = CHORD_PROGRESSIONS[style];
     const progression = progressions[Math.floor(Math.random() * progressions.length)];
 
-    // Select rhythm density based on energy
-    let rhythmCategory: keyof typeof CHORD_RHYTHMS;
-    if (params.energy < 0.35) rhythmCategory = 'sparse';
-    else if (params.energy < 0.7) rhythmCategory = 'medium';
-    else rhythmCategory = 'dense';
+    // Use the full scale range (like DICE does)
+    const noteRange = this.scaleNotes;
+    if (noteRange.length === 0) return { stepToChordRoot };
 
-    const rhythms = CHORD_RHYTHMS[rhythmCategory];
-    const chordRhythm = rhythms[Math.floor(Math.random() * rhythms.length)];
+    // Find a good starting range (middle-low for chords)
+    const rangeStart = Math.max(0, Math.floor(noteRange.length * 0.2));
+    const rangeEnd = Math.min(noteRange.length - 1, Math.floor(noteRange.length * 0.5));
+    const chordRange = noteRange.slice(rangeStart, rangeEnd + 1);
 
-    // Find notes in lower register for chords (octaves 2-3)
-    const chordNotes = this.scaleNotes.filter(n => {
-      const octave = parseInt(n.slice(-1));
-      return octave >= 2 && octave <= 3;
-    });
+    if (chordRange.length < 5) return { stepToChordRoot };
 
-    if (chordNotes.length === 0) return { stepToChordRoot };
+    // Chord rhythm patterns - how many chord hits per bar
+    // Based on energy: low = 1-2 hits, high = 3-4 hits
+    const hitsPerBar = params.energy < 0.3 ? 1 : params.energy < 0.6 ? 2 : params.energy < 0.8 ? 3 : 4;
+
+    // Step positions for chord hits (grouped consecutive steps for polyphony)
+    const hitPatterns: { [key: number]: number[][] } = {
+      1: [[0, 1, 2, 3]],  // One sustained chord
+      2: [[0, 1, 2], [8, 9, 10]],  // Two chords per bar
+      3: [[0, 1, 2], [5, 6, 7], [10, 11, 12]],  // Three
+      4: [[0, 1, 2], [4, 5, 6], [8, 9, 10], [12, 13, 14]],  // Four (quarter notes)
+    };
+
+    const hitPattern = hitPatterns[hitsPerBar];
 
     // Generate chords for each bar
     for (let bar = 0; bar < bars; bar++) {
       const chordIndex = bar % progression.length;
       const rootDegree = progression[chordIndex];
 
-      // Find the root note for this chord
-      const rootNoteIndex = this.findNoteByDegree(chordNotes, rootDegree);
-      if (rootNoteIndex === -1) continue;
+      // Find root position in chord range
+      const rootPosition = ((rootDegree - 1) % this.scaleLength);
 
-      // Build chord voicing (root, 3rd, 5th, optional 7th)
-      const chordTones: number[] = [rootNoteIndex];
+      // Build triad: root (0), 3rd (+2), 5th (+4)
+      // Add 7th (+6) for complexity
+      const intervals = params.complexity > 0.6 ? [0, 2, 4, 6] : [0, 2, 4];
 
-      // Add 3rd (2 scale steps up)
-      if (rootNoteIndex + 2 < chordNotes.length) {
-        chordTones.push(rootNoteIndex + 2);
-      }
+      // Place chord tones on consecutive steps (creates polyphonic sound with sustain)
+      for (let hitIdx = 0; hitIdx < hitPattern.length; hitIdx++) {
+        const stepPositions = hitPattern[hitIdx];
+        const chordForThisHit = hitIdx % progression.length;
+        const hitRootDegree = progression[(bar + Math.floor(hitIdx / 2)) % progression.length];
 
-      // Add 5th (4 scale steps up)
-      if (rootNoteIndex + 4 < chordNotes.length) {
-        chordTones.push(rootNoteIndex + 4);
-      }
+        // Record for melody awareness
+        const globalHitStart = bar * 16 + stepPositions[0];
+        stepToChordRoot.set(globalHitStart, hitRootDegree);
 
-      // Add 7th for complexity (6 scale steps up)
-      if (params.complexity > 0.5 && rootNoteIndex + 6 < chordNotes.length) {
-        chordTones.push(rootNoteIndex + 6);
-      }
+        // Place each chord tone on consecutive steps
+        for (let i = 0; i < Math.min(stepPositions.length, intervals.length); i++) {
+          const globalStep = bar * 16 + stepPositions[i];
+          if (globalStep >= 256) continue;
 
-      // Place chord notes at rhythm positions
-      for (const rhythmStep of chordRhythm) {
-        const globalStep = bar * 16 + rhythmStep;
-        if (globalStep >= 256) continue;
+          // Find the note for this chord tone
+          const targetDegree = ((hitRootDegree - 1 + intervals[i]) % this.scaleLength);
+          let noteIndex = -1;
 
-        // Record chord root for melody awareness
-        stepToChordRoot.set(globalStep, rootDegree);
+          // Search for this degree in chord range
+          for (let j = 0; j < chordRange.length; j++) {
+            if (j % this.scaleLength === targetDegree) {
+              noteIndex = j;
+              break;
+            }
+          }
 
-        // Stagger chord tones slightly for a more natural feel
-        chordTones.forEach((toneIndex, i) => {
-          const staggeredStep = globalStep + i;
-          if (staggeredStep < 256 && toneIndex < chordNotes.length) {
-            steps[staggeredStep] = {
+          if (noteIndex >= 0 && noteIndex < chordRange.length) {
+            steps[globalStep] = {
               active: true,
-              note: chordNotes[toneIndex],
+              note: chordRange[noteIndex],
             };
           }
-        });
+        }
       }
     }
 
@@ -391,8 +397,8 @@ export class MelodyGenerator {
   }
 
   /**
-   * Generate melody that knows about the underlying chords
-   * Melody lives in higher register and favors chord tones on strong beats
+   * Generate melody that complements the chords
+   * Uses higher register and musical patterns (not random)
    */
   private generateMelodyOverChords(
     steps: Step[],
@@ -400,66 +406,100 @@ export class MelodyGenerator {
     params: MelodyParams,
     chordInfo: { stepToChordRoot: Map<number, number> }
   ): void {
-    const totalSteps = bars * 16;
+    // Find notes in higher register for melody
+    const rangeStart = Math.floor(this.scaleNotes.length * 0.5);
+    const rangeEnd = Math.min(this.scaleNotes.length - 1, Math.floor(this.scaleNotes.length * 0.85));
+    const melodyNotes = this.scaleNotes.slice(rangeStart, rangeEnd + 1);
 
-    // Find notes in higher register for melody (octaves 4-5)
-    const melodyNotes = this.scaleNotes.filter(n => {
-      const octave = parseInt(n.slice(-1));
-      return octave >= 4 && octave <= 5;
-    });
+    if (melodyNotes.length < 4) return;
 
-    if (melodyNotes.length === 0) return;
+    // Melody rhythm patterns based on energy (complementing the chords)
+    const melodyRhythms: { [key: string]: number[] } = {
+      sparse: [2, 6, 10, 14],           // Off-beat, breathing room
+      low: [2, 4, 10, 12],              // Gentle syncopation
+      medium: [0, 2, 4, 8, 10, 12],     // Steady eighth feel
+      high: [0, 2, 3, 6, 8, 10, 11, 14], // Busier with syncopation
+    };
 
-    // Generate melody with awareness of chords
-    const motif = this.generateMotif(params);
+    let rhythmKey: string;
+    if (params.energy < 0.3) rhythmKey = 'sparse';
+    else if (params.energy < 0.5) rhythmKey = 'low';
+    else if (params.energy < 0.75) rhythmKey = 'medium';
+    else rhythmKey = 'high';
 
-    // Melody rhythm - offset from chord hits for groove
-    const melodyDensity = params.energy;
-    let currentNoteIndex = Math.floor(melodyNotes.length / 2);
+    const rhythm = melodyRhythms[rhythmKey];
 
-    for (let step = 0; step < totalSteps; step++) {
-      // Skip if chord is playing on this step (avoid muddiness)
-      if (steps[step].active) continue;
+    // Generate melodic sequence using contour
+    const contourFn = CONTOUR_SHAPES[params.contour] || CONTOUR_SHAPES.arch;
 
-      // Probability of note based on energy and beat strength
-      const beatStrength = this.getBeatStrength(step % 16);
-      const noteProb = melodyDensity * 0.3 + beatStrength * 0.2;
+    // Create the melodic sequence for one phrase, then repeat with variation
+    const phraseSteps = params.phraseLength * 16;
+    const notesPerPhrase = rhythm.length * params.phraseLength;
 
-      if (Math.random() > noteProb) continue;
+    for (let bar = 0; bar < bars; bar++) {
+      const phrasePosition = (bar % params.phraseLength) / params.phraseLength;
 
-      // Get current chord context
-      const currentChord = this.findNearestChordRoot(step, chordInfo.stepToChordRoot);
+      for (const rhythmStep of rhythm) {
+        const globalStep = bar * 16 + rhythmStep;
+        if (globalStep >= 256) continue;
 
-      // On strong beats, favor chord tones
-      if (beatStrength > 0.5 && currentChord !== null) {
-        // Find a chord tone in melody range
-        const chordToneIndex = this.findChordToneInRange(
-          currentChord,
-          currentNoteIndex,
-          melodyNotes.length
-        );
-        currentNoteIndex = chordToneIndex;
-      } else {
-        // On weak beats, follow the motif and contour
-        const motifInterval = motif.intervals[step % motif.intervals.length];
-        currentNoteIndex = Math.max(0, Math.min(
-          melodyNotes.length - 1,
-          currentNoteIndex + motifInterval
-        ));
+        // Skip if chord is already there
+        if (steps[globalStep].active) continue;
+
+        // Get contour position for this step
+        const stepInPhrase = (bar % params.phraseLength) * 16 + rhythmStep;
+        const contourPos = stepInPhrase / phraseSteps;
+        const contourValue = contourFn(contourPos);
+
+        // Map contour to note index
+        let noteIndex = Math.floor(contourValue * (melodyNotes.length - 1));
+
+        // Add some variation based on complexity
+        if (params.complexity > 0.3) {
+          const variation = Math.floor((Math.random() - 0.5) * params.complexity * 3);
+          noteIndex = Math.max(0, Math.min(melodyNotes.length - 1, noteIndex + variation));
+        }
+
+        // On strong beats, favor chord tones
+        const beatStrength = this.getBeatStrength(rhythmStep);
+        if (beatStrength > 0.6 && params.tension < 0.7) {
+          const currentChord = this.findNearestChordRoot(globalStep, chordInfo.stepToChordRoot);
+          if (currentChord !== null) {
+            noteIndex = this.snapToChordTone(noteIndex, currentChord, melodyNotes.length);
+          }
+        }
+
+        steps[globalStep] = {
+          active: true,
+          note: melodyNotes[noteIndex],
+        };
       }
-
-      // Apply contour influence
-      const phrasePosition = (step % (params.phraseLength * 16)) / (params.phraseLength * 16);
-      const contourFn = CONTOUR_SHAPES[params.contour] || CONTOUR_SHAPES.arch;
-      const contourTarget = Math.floor(contourFn(phrasePosition) * melodyNotes.length);
-      currentNoteIndex = Math.round(currentNoteIndex * 0.7 + contourTarget * 0.3);
-      currentNoteIndex = Math.max(0, Math.min(melodyNotes.length - 1, currentNoteIndex));
-
-      steps[step] = {
-        active: true,
-        note: melodyNotes[currentNoteIndex],
-      };
     }
+  }
+
+  /**
+   * Snap a note index to the nearest chord tone
+   */
+  private snapToChordTone(noteIndex: number, chordRoot: number, rangeSize: number): number {
+    const rootDegree = ((chordRoot - 1) % this.scaleLength);
+    const chordDegrees = [rootDegree, (rootDegree + 2) % this.scaleLength, (rootDegree + 4) % this.scaleLength];
+
+    // Find nearest chord tone
+    let bestIndex = noteIndex;
+    let bestDistance = Infinity;
+
+    for (let i = Math.max(0, noteIndex - 3); i <= Math.min(rangeSize - 1, noteIndex + 3); i++) {
+      const degree = i % this.scaleLength;
+      if (chordDegrees.includes(degree)) {
+        const distance = Math.abs(i - noteIndex);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+    }
+
+    return bestIndex;
   }
 
   /**
