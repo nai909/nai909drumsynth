@@ -28,12 +28,49 @@ interface SavedProject {
 
 const STORAGE_KEY = 'drumsynth-saved-projects';
 const MAX_PROJECTS = 20; // Limit to prevent localStorage quota exceeded
+const MAX_PROJECT_NAME_LENGTH = 50; // Prevent excessively long names
+const MAX_STORAGE_SIZE_BYTES = 4 * 1024 * 1024; // 4MB safety limit
 
-// Safe localStorage helper - handles quota exceeded and other errors
+// Rate limiting for localStorage writes (prevent DoS)
+const storageRateLimiter = {
+  lastWrite: 0,
+  writeCount: 0,
+  windowMs: 1000, // 1 second window
+  maxWrites: 10,  // Max 10 writes per second
+
+  canWrite(): boolean {
+    const now = Date.now();
+    if (now - this.lastWrite > this.windowMs) {
+      this.writeCount = 0;
+      this.lastWrite = now;
+    }
+    return this.writeCount < this.maxWrites;
+  },
+
+  recordWrite(): void {
+    this.writeCount++;
+    this.lastWrite = Date.now();
+  }
+};
+
+// Safe localStorage helper - handles quota exceeded, rate limiting, and other errors
 const safeLocalStorage = {
   setItem: (key: string, value: string): boolean => {
     try {
+      // Rate limiting check
+      if (!storageRateLimiter.canWrite()) {
+        console.warn('localStorage rate limit exceeded');
+        return false;
+      }
+
+      // Size check - prevent excessively large writes
+      if (value.length > MAX_STORAGE_SIZE_BYTES) {
+        console.warn('localStorage write exceeds size limit');
+        return false;
+      }
+
       localStorage.setItem(key, value);
+      storageRateLimiter.recordWrite();
       return true;
     } catch (e) {
       console.error('localStorage error:', e);
@@ -156,46 +193,52 @@ const validateSynthParams = (params: unknown): SynthParams => {
   const validArpModes: SynthParams['arpMode'][] = ['off', 'up', 'down', 'updown', 'random'];
   const validLfoDestinations: SynthParams['lfoDestination'][] = ['filter', 'pitch', 'volume'];
 
+  // Use validateNumber for all numeric params with appropriate bounds
   return {
     waveform: validWaveforms.includes(p.waveform as SynthParams['waveform'])
       ? p.waveform as SynthParams['waveform']
       : DEFAULT_SYNTH_PARAMS.waveform,
-    attack: typeof p.attack === 'number' ? p.attack : DEFAULT_SYNTH_PARAMS.attack,
-    decay: typeof p.decay === 'number' ? p.decay : DEFAULT_SYNTH_PARAMS.decay,
-    sustain: typeof p.sustain === 'number' ? p.sustain : DEFAULT_SYNTH_PARAMS.sustain,
-    release: typeof p.release === 'number' ? p.release : DEFAULT_SYNTH_PARAMS.release,
-    filterCutoff: typeof p.filterCutoff === 'number' ? p.filterCutoff : DEFAULT_SYNTH_PARAMS.filterCutoff,
-    filterResonance: typeof p.filterResonance === 'number' ? p.filterResonance : DEFAULT_SYNTH_PARAMS.filterResonance,
-    filterEnvAmount: typeof p.filterEnvAmount === 'number' ? p.filterEnvAmount : DEFAULT_SYNTH_PARAMS.filterEnvAmount,
-    detune: typeof p.detune === 'number' ? p.detune : DEFAULT_SYNTH_PARAMS.detune,
-    volume: typeof p.volume === 'number' ? p.volume : DEFAULT_SYNTH_PARAMS.volume,
-    pan: typeof p.pan === 'number' ? p.pan : DEFAULT_SYNTH_PARAMS.pan,
+    // ADSR envelope (0-2 seconds typical range)
+    attack: validateNumber(p.attack, DEFAULT_SYNTH_PARAMS.attack, 0.001, 5),
+    decay: validateNumber(p.decay, DEFAULT_SYNTH_PARAMS.decay, 0.001, 5),
+    sustain: validateNumber(p.sustain, DEFAULT_SYNTH_PARAMS.sustain, 0, 1),
+    release: validateNumber(p.release, DEFAULT_SYNTH_PARAMS.release, 0.001, 10),
+    // Filter params (0-1 normalized)
+    filterCutoff: validateNumber(p.filterCutoff, DEFAULT_SYNTH_PARAMS.filterCutoff, 0, 1),
+    filterResonance: validateNumber(p.filterResonance, DEFAULT_SYNTH_PARAMS.filterResonance, 0, 1),
+    filterEnvAmount: validateNumber(p.filterEnvAmount, DEFAULT_SYNTH_PARAMS.filterEnvAmount, 0, 1),
+    // Detune in cents (-100 to +100)
+    detune: validateNumber(p.detune, DEFAULT_SYNTH_PARAMS.detune, -100, 100),
+    // Volume and pan
+    volume: validateNumber(p.volume, DEFAULT_SYNTH_PARAMS.volume, 0, 1),
+    pan: validateNumber(p.pan, DEFAULT_SYNTH_PARAMS.pan, -1, 1),
+    // Arpeggiator
     arpMode: validArpModes.includes(p.arpMode as SynthParams['arpMode'])
       ? p.arpMode as SynthParams['arpMode']
       : DEFAULT_SYNTH_PARAMS.arpMode,
-    arpRate: typeof p.arpRate === 'number' ? p.arpRate : DEFAULT_SYNTH_PARAMS.arpRate,
+    arpRate: validateNumber(p.arpRate, DEFAULT_SYNTH_PARAMS.arpRate, 0.01, 10),
     mono: typeof p.mono === 'boolean' ? p.mono : DEFAULT_SYNTH_PARAMS.mono,
-    // Effects
-    reverbMix: typeof p.reverbMix === 'number' ? p.reverbMix : DEFAULT_SYNTH_PARAMS.reverbMix,
-    reverbDecay: typeof p.reverbDecay === 'number' ? p.reverbDecay : DEFAULT_SYNTH_PARAMS.reverbDecay,
-    delayMix: typeof p.delayMix === 'number' ? p.delayMix : DEFAULT_SYNTH_PARAMS.delayMix,
-    delayTime: typeof p.delayTime === 'number' ? p.delayTime : DEFAULT_SYNTH_PARAMS.delayTime,
-    delayFeedback: typeof p.delayFeedback === 'number' ? p.delayFeedback : DEFAULT_SYNTH_PARAMS.delayFeedback,
-    // LFO
-    lfoRate: typeof p.lfoRate === 'number' ? p.lfoRate : DEFAULT_SYNTH_PARAMS.lfoRate,
-    lfoDepth: typeof p.lfoDepth === 'number' ? p.lfoDepth : DEFAULT_SYNTH_PARAMS.lfoDepth,
+    // Effects - mix values (0-1)
+    reverbMix: validateNumber(p.reverbMix, DEFAULT_SYNTH_PARAMS.reverbMix, 0, 1),
+    reverbDecay: validateNumber(p.reverbDecay, DEFAULT_SYNTH_PARAMS.reverbDecay, 0.1, 30),
+    delayMix: validateNumber(p.delayMix, DEFAULT_SYNTH_PARAMS.delayMix, 0, 1),
+    delayTime: validateNumber(p.delayTime, DEFAULT_SYNTH_PARAMS.delayTime, 0.01, 2),
+    delayFeedback: validateNumber(p.delayFeedback, DEFAULT_SYNTH_PARAMS.delayFeedback, 0, 0.95),
+    // LFO params
+    lfoRate: validateNumber(p.lfoRate, DEFAULT_SYNTH_PARAMS.lfoRate, 0.01, 50),
+    lfoDepth: validateNumber(p.lfoDepth, DEFAULT_SYNTH_PARAMS.lfoDepth, 0, 1),
     lfoEnabled: typeof p.lfoEnabled === 'boolean' ? p.lfoEnabled : DEFAULT_SYNTH_PARAMS.lfoEnabled,
     lfoDestination: validLfoDestinations.includes(p.lfoDestination as SynthParams['lfoDestination'])
       ? p.lfoDestination as SynthParams['lfoDestination']
       : DEFAULT_SYNTH_PARAMS.lfoDestination,
     // Phaser
-    phaserMix: typeof p.phaserMix === 'number' ? p.phaserMix : DEFAULT_SYNTH_PARAMS.phaserMix,
-    phaserFreq: typeof p.phaserFreq === 'number' ? p.phaserFreq : DEFAULT_SYNTH_PARAMS.phaserFreq,
-    phaserDepth: typeof p.phaserDepth === 'number' ? p.phaserDepth : DEFAULT_SYNTH_PARAMS.phaserDepth,
+    phaserMix: validateNumber(p.phaserMix, DEFAULT_SYNTH_PARAMS.phaserMix, 0, 1),
+    phaserFreq: validateNumber(p.phaserFreq, DEFAULT_SYNTH_PARAMS.phaserFreq, 0.1, 20),
+    phaserDepth: validateNumber(p.phaserDepth, DEFAULT_SYNTH_PARAMS.phaserDepth, 0, 1),
     // Flanger
-    flangerMix: typeof p.flangerMix === 'number' ? p.flangerMix : DEFAULT_SYNTH_PARAMS.flangerMix,
-    flangerDepth: typeof p.flangerDepth === 'number' ? p.flangerDepth : DEFAULT_SYNTH_PARAMS.flangerDepth,
-    flangerFreq: typeof p.flangerFreq === 'number' ? p.flangerFreq : DEFAULT_SYNTH_PARAMS.flangerFreq,
+    flangerMix: validateNumber(p.flangerMix, DEFAULT_SYNTH_PARAMS.flangerMix, 0, 1),
+    flangerDepth: validateNumber(p.flangerDepth, DEFAULT_SYNTH_PARAMS.flangerDepth, 0, 1),
+    flangerFreq: validateNumber(p.flangerFreq, DEFAULT_SYNTH_PARAMS.flangerFreq, 0.1, 20),
   };
 };
 
@@ -1312,9 +1355,19 @@ const App: React.FC = () => {
   };
 
 
+  // Sanitize project name - remove control characters and limit length
+  const sanitizeProjectName = (name: string): string => {
+    // Remove control characters and trim
+    // eslint-disable-next-line no-control-regex
+    const sanitized = name.replace(/[\x00-\x1F\x7F]/g, '').trim();
+    // Limit length
+    return sanitized.slice(0, MAX_PROJECT_NAME_LENGTH);
+  };
+
   // Save project handler
   const handleSaveProject = () => {
-    if (!projectName.trim()) return;
+    const sanitizedName = sanitizeProjectName(projectName);
+    if (!sanitizedName) return;
 
     // Check project limit
     if (savedProjects.length >= MAX_PROJECTS) {
@@ -1323,7 +1376,7 @@ const App: React.FC = () => {
     }
 
     const newProject: SavedProject = {
-      name: projectName.trim(),
+      name: sanitizedName,
       timestamp: Date.now(),
       pattern,
       synthSequence,
@@ -1412,6 +1465,7 @@ const App: React.FC = () => {
               value={projectName}
               onChange={e => setProjectName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSaveProject()}
+              maxLength={MAX_PROJECT_NAME_LENGTH}
               autoFocus
             />
             <div className="modal-buttons">

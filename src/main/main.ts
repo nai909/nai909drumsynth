@@ -80,18 +80,27 @@ app.whenReady().then(() => {
         'Content-Security-Policy': [
           [
             "default-src 'self'",
-            "script-src 'self'",                    // Removed blob: for stricter security
-            "style-src 'self' 'unsafe-inline'",     // Required for inline styles
-            "media-src 'self' blob:",               // Audio blobs needed
-            "worker-src 'self' blob:",              // Web workers for audio
+            "script-src 'self'",                    // No eval, no inline scripts
+            "style-src 'self' 'unsafe-inline'",     // Required for inline styles (React)
+            "media-src 'self' blob:",               // Audio blobs needed for Tone.js
+            "worker-src 'self' blob:",              // Web workers for audio processing
             "img-src 'self' data:",                 // Allow data URIs for images
+            "font-src 'self'",                      // Restrict fonts to self
             "connect-src 'self'",                   // No external connections
             "frame-src 'none'",                     // No iframes
-            "object-src 'none'",                    // No plugins
+            "frame-ancestors 'none'",               // Prevent embedding in iframes
+            "object-src 'none'",                    // No plugins (Flash, Java, etc.)
             "base-uri 'self'",                      // Restrict base tag
             "form-action 'self'",                   // Restrict form submissions
+            "upgrade-insecure-requests",            // Upgrade HTTP to HTTPS
           ].join('; ')
-        ]
+        ],
+        // Additional security headers
+        'X-Content-Type-Options': ['nosniff'],
+        'X-Frame-Options': ['DENY'],
+        'X-XSS-Protection': ['1; mode=block'],
+        'Referrer-Policy': ['strict-origin-when-cross-origin'],
+        'Permissions-Policy': ['camera=(), microphone=(), geolocation=(), payment=()'],
       }
     });
   });
